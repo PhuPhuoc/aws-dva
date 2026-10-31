@@ -4,77 +4,77 @@
 
 ## 1. CloudFormation - Cơ chế hoạt động chi tiết
 
-### CloudFormation Template Lifecycle
+### Vòng đời (Lifecycle) của CloudFormation Template
 
 #### Giải thích cốt lõi
-CloudFormation hoạt động theo cơ chế **declarative** (khai báo) chứ không phải **imperative** (mệnh lệnh). Khi bạn upload template, CloudFormation:
+CloudFormation hoạt động theo cơ chế **declarative** (khai báo) chứ không phải **imperative** (mệnh lệnh). Khi bạn tải lên (upload) template, CloudFormation:
 
-1. **Parse template** → So sánh desired state (trong template) với current state (trong AWS)
-2. **Tính toán changes cần thiết** → Ví dụ: tạo mới EC2, update security group rule, không thay đổi RDS
-3. **Thực thi changes theo thứ tự**:
+1. **Giai đoạn phân tích (parse) template** → So sánh trạng thái mong muốn (desired state) trong template với trạng thái hiện tại (current state) trong AWS
+2. **Tính toán các thay đổi (changes) cần thiết** → Ví dụ: tạo mới EC2, cập nhật (update) rule của security group, không thay đổi RDS
+3. **Thực thi các thay đổi theo đúng thứ tự**:
    - Tạo VPC → Subnets → Security Groups → EC2 instances → Load Balancer
    - Phụ thuộc được tự động phát hiện (qua `!Ref` và `!GetAtt`)
-4. **Stack states**:
+4. **Trạng thái Stack (Stack states):**
    - `CREATE_IN_PROGRESS` → `CREATE_COMPLETE` (hoặc `CREATE_FAILED` → `ROLLBACK_COMPLETE`)
    - `UPDATE_IN_PROGRESS` → `UPDATE_COMPLETE` (hoặc `UPDATE_FAILED` → `UPDATE_ROLLBACK_COMPLETE`)
    - `DELETE_IN_PROGRESS` → `DELETE_COMPLETE` (hoặc `DELETE_FAILED`)
 
-**So sánh với alternatives:**
+**So sánh với các phương án khác (alternatives):**
 
-| Công cụ | Approach | State Management | Best For |
+| Công cụ | Cách tiếp cận (Approach) | Quản lý State (State Management) | Phù hợp nhất (Best For) |
 |---------|----------|------------------|----------|
-| **CloudFormation** | Declarative | AWS tự quản lý state | AWS-only, mature |
-| **Terraform** | Declarative | State file riêng | Multi-cloud |
-| **CDK** | Imperative (compiles to CF) | AWS tự quản lý state | Developers thích code |
-| **Pulumi** | Imperative (general languages) | State file riêng | Multi-cloud + code |
-| **Ansible** | Imperative | Không có state tracking | Config management |
+| **CloudFormation** | Declarative (khai báo) | AWS tự quản lý state | Chỉ dùng AWS, hệ thống ổn định (mature) |
+| **Terraform** | Declarative (khai báo) | File state riêng | Multi-cloud (nhiều nhà cung cấp) |
+| **CDK** | Imperative (mệnh lệnh, biên dịch thành CF) | AWS tự quản lý state | Đội ngũ kỹ sư (developers) thích viết code |
+| **Pulumi** | Imperative (dùng các ngôn ngữ thông dụng) | File state riêng | Multi-cloud + viết code |
+| **Ansible** | Imperative (mệnh lệnh) | Không theo dõi state | Quản lý cấu hình (config management) |
 
 #### NÊN làm
-- **Bắt đầu với CloudFormation khi infrastructure là AWS-only** → Vì native, free (chỉ trả tiền resources), integrate tốt với AWS services, có **drift detection**. So với Terraform: cần quản lý state file riêng, tốn thêm learning curve.
-- **Dùng YAML thay vì JSON** → Vì YAML hỗ trợ comments, multi-line strings, ít dấu ngoặc. JSON "horrible for CF" vì verbose, không có comments, dễ sai syntax.
-- **Tag mọi resource bằng stack name** → Vì AWS tự động tag resources với `aws:cloudformation:stack-name`, giúp tracking cost, cleanup, debugging dễ dàng.
+- **Bắt đầu với CloudFormation khi infrastructure là AWS-only (chỉ AWS)** → Vì native (gốc), miễn phí (chỉ trả tiền cho resources), tích hợp (integrate) tốt với AWS services, có **drift detection**. So với Terraform: cần quản lý state file riêng, tốn thêm learning curve (chậm quen công cụ).
+- **Dùng YAML thay vì JSON** → Vì YAML hỗ trợ ghi chú (comments), chuỗi nhiều dòng (multi-line strings), ít dấu ngoặc. JSON "thật khó dùng với CloudFormation (CF)" vì dài dòng (verbose), không có comments, dễ sai cú pháp (syntax).
+- **Gán nhãn (Tag) mọi resource bằng tên stack (stack name)** → Vì AWS tự động gán nhãn (tag) resources với `aws:cloudformation:stack-name`, giúp theo dõi chi phí (tracking cost), dọn dẹp (cleanup), gỡ lỗi (debugging) dễ dàng.
 
 #### KHÔNG NÊN làm
-- **Viết 1 template khổng lồ chứa toàn bộ infrastructure** → Vì khi fail 1 resource, rollback toàn bộ stack. NÊN: chia thành **nested stacks** (VPC stack, Network stack, App stack) → dễ quản lý, dễ reuse, fail isolation.
-- **Hardcode giá trị trong Resources** → Vì mỗi lần thay đổi phải re-upload template. NÊN: dùng **Parameters** cho values thay đổi được (InstanceType, CIDR), **Mappings** cho values theo Region/Environment.
+- **Viết 1 template khổng lồ chứa toàn bộ infrastructure** → Vì khi 1 resource thất bại (fail), toàn bộ stack bị hủy (rollback) hết. NÊN: chia thành **nested stacks** (VPC stack, Network stack, App stack) → dễ quản lý, dễ tái sử dụng (reuse), cách ly lỗi (fail isolation).
+- **Mã hóa sẵn (Hardcode) giá trị trong Resources** → Vì mỗi lần thay đổi phải tải lên lại (re-upload) template. NÊN: dùng **Parameters** cho giá trị có thể thay đổi (InstanceType, CIDR), **Mappings** cho giá trị theo Region/Environment.
 
 ---
 
 ## 2. CloudFormation Parameters
 
-### Parameters Best Practices
+### Thực hành tốt (Best Practices) với Parameters
 
 #### Giải thích cốt lõi
-Parameters cho phép template trở nên **reusable** cho nhiều environments/teams. Có 2 loại Parameters chính:
+Parameters cho phép template có thể **tái sử dụng (reusable)** cho nhiều môi trường (environment)/đội nhóm (team). Có 2 loại Parameters chính:
 
-**AWS-Specific Parameters** - AWS validate giá trị với existing values:
+**AWS-Specific Parameters** - AWS xác thực (validate) giá trị với các giá trị tồn tại sẵn (existing values):
 - `AWS::EC2::VPC::Id` - chỉ chấp nhận VPC ID tồn tại trong account
 - `AWS::EC2::Subnet::Id` - chỉ chấp nhận Subnet ID
 - `AWS::EC2::SecurityGroup::Id`
 - `List<AWS::EC2::VPC::Id>` - danh sách VPC IDs
 
-**SSM Parameter Types** - Lấy value từ SSM Parameter Store:
+**SSM Parameter Types** - Lấy giá trị (value) từ SSM Parameter Store:
 - `AWS::SSM::Parameter::Value<String>`
 - `AWS::SSM::Parameter::Value<AWS::EC2::VPC::Id>`
-- Cho phép **centralized configuration management**
+- Cho phép **quản lý cấu hình tập trung (centralized configuration management)**
 
 **So sánh các approaches:**
 
-| Approach | Use Case | Security |
+| Cách làm (Approach) | Trường hợp dùng (Use Case) | Bảo mật (Security) |
 |----------|----------|----------|
-| Hardcoded values | Single env, không cần thay đổi | ✅ N/A |
-| Parameters | Multi-env, runtime config | ⚠️ Cần careful với NoEcho |
-| Mappings | Region/AMI-specific values | ✅ Hardcoded, safe |
-| SSM Parameter Store | Shared config across stacks | ✅ Encrypted, versioned |
-| Secrets Manager | Sensitive data (DB passwords) | ✅ Auto-rotation, audit |
+| Giá trị hardcode (Hardcoded values) | Môi trường (env) đơn lẻ, không cần thay đổi | ✅ N/A |
+| Parameters | Nhiều env, cấu hình lúc runtime | ⚠️ Cần thận trọng với NoEcho |
+| Mappings | Giá trị theo Region/AMI (region/AMI-specific values) | ✅ Hardcode, an toàn |
+| SSM Parameter Store | Cấu hình dùng chung (shared config) giữa các stack | ✅ Được mã hóa, có phiên bản (versioned) |
+| Secrets Manager | Dữ liệu nhạy cảm (password DB) | ✅ Tự động xoay (auto-rotation), có audit |
 
 #### NÊN làm
-- **Dùng AWS-Specific Parameters thay vì String cho IDs** → Vì AWS sẽ **validate** giá trị có tồn tại. Nếu user nhập sai VPC ID, stack fail ngay lúc validate chứ không phải lúc runtime.
-- **Dùng `AllowedValues` để giới hạn options** → Vì nó chống typo và document rõ ràng options. Ví dụ: `AllowedValues: [t3.micro, t3.small, t3.medium]`.
-- **Dùng `NoEcho: true` cho sensitive values** → Vì mặc định parameter values hiển thị trong CloudFormation console/events. Với secrets, NÊN dùng **Secrets Manager** hoặc **SSM SecureString** thay vì parameter.
+- **Dùng AWS-Specific Parameters thay vì String cho IDs** → Vì AWS sẽ **xác thực (validate)** giá trị có tồn tại. Nếu user nhập sai VPC ID, stack thất bại (fail) ngay lúc xác thực (validate) chứ không phải lúc chạy (runtime).
+- **Dùng `AllowedValues` để giới hạn các tùy chọn (options)** → Vì nó chống sai chính tả (typo) và tài liệu hóa (document) rõ ràng các tùy chọn (options). Ví dụ: `AllowedValues: [t3.micro, t3.small, t3.medium]`.
+- **Dùng `NoEcho: true` cho các giá trị nhạy cảm (sensitive values)** → Vì mặc định các giá trị parameter (parameter values) hiển thị trong CloudFormation console/events. Với secrets, NÊN dùng **Secrets Manager** hoặc **SSM SecureString** thay vì parameter.
 
 #### KHÔNG NÊN làm
-- **Đặt Default value cho mọi parameter** → Vì user có thể skip nhập và dùng default không phù hợp. NÊN: chỉ default cho optional parameters, **không default** cho critical values (production instance type, CIDR).
+- **Đặt giá trị mặc định (Default value) cho mọi parameter** → Vì user có thể bỏ qua (skip) bước nhập và dùng giá trị mặc định (default) không phù hợp. NÊN: chỉ đặt default cho các parameter tùy chọn (optional parameters), **không đặt default** cho các giá trị quan trọng (critical values: production instance type, CIDR).
 - **Truyền database password qua Parameters** → Vì password hiển thị trong CloudFormation logs/events. NÊN: dùng `Secrets Manager` với dynamic reference: `{{resolve:secretsmanager:MySecret:SecretString:password}}`.
 
 ---
@@ -84,12 +84,12 @@ Parameters cho phép template trở nên **reusable** cho nhiều environments/t
 ### Mappings chi tiết
 
 #### Giải thích cốt lõi
-Mappings là **hardcoded lookup tables** trong template. Khác với Parameters (user input), Mappings là **developer-defined** values, thường dùng cho:
+Mappings là **các bảng tra mã hóa sẵn (hardcoded lookup tables)** trong template. Khác với Parameters (do user nhập), Mappings là các giá trị **do developer định nghĩa (developer-defined)**, thường dùng cho:
 
-1. **Region-specific values** (AMI IDs per region)
-2. **Environment-specific configs** (dev/staging/prod sizes)
-3. **Account-specific values** (ARNs, account IDs)
-4. **Conditional configurations** theo một variable có thể determine lúc deploy
+1. **Giá trị theo region (region-specific values)** (AMI IDs theo từng region)
+2. **Cấu hình theo môi trường (environment-specific configs)** (dev/staging/prod sizes)
+3. **Giá trị theo account (account-specific values)** (ARNs, account IDs)
+4. **Cấu hình có điều kiện (conditional configurations)** theo một biến (variable) có thể xác định (determine) lúc triển khai (deploy)
 
 **Ví dụ thực tế - AMI mapping:**
 
@@ -114,24 +114,24 @@ Resources:
 ```
 
 #### NÊN làm
-- **Dùng Mappings cho AMI IDs per region** → Vì AMIs là **region-specific** (không dùng được AMI us-east-1 ở eu-west-1). Hardcode mapping → không cần update mỗi khi AWS ra AMI mới (trừ khi dùng SSM Parameter).
-- **Dùng Mappings kết hợp với `!Ref AWS::Region`** → Vì tự động chọn đúng config cho region đang deploy, không cần user nhập.
+- **Dùng Mappings cho AMI IDs theo từng region** → Vì AMI là **đặc thù theo region (region-specific)** (không dùng được AMI us-east-1 ở eu-west-1). Hardcode mapping → không cần cập nhật (update) mỗi khi AWS ra AMI mới (trừ khi dùng SSM Parameter).
+- **Dùng Mappings kết hợp với `!Ref AWS::Region`** → Vì tự động chọn đúng cấu hình (config) cho region đang triển khai (deploy), không cần user nhập.
 
 #### KHÔNG NÊN làm
-- **Dùng Mappings cho values user cần thay đổi thường xuyên** → Vì mỗi lần thay đổi phải edit template và re-upload. NÊN: dùng **Parameters** cho user-specific values, dùng **SSM Parameter Store** cho shared config across stacks.
-- **Dùng Mappings cho data quá lớn (>100 entries)** → Vì template sẽ khó đọc. NÊN: chuyển data lên S3 hoặc DynamoDB, dùng Custom Resource để fetch.
+- **Dùng Mappings cho các giá trị mà user cần thay đổi thường xuyên** → Vì mỗi lần thay đổi phải chỉnh sửa (edit) template và upload lại (re-upload). NÊN: dùng **Parameters** cho giá trị riêng theo từng user, dùng **SSM Parameter Store** cho cấu hình dùng chung (shared config) giữa các stack.
+- **Dùng Mappings cho dữ liệu (data) quá lớn (>100 entries)** → Vì template sẽ khó đọc. NÊN: chuyển dữ liệu (data) lên S3 hoặc DynamoDB, dùng Custom Resource để đọc (fetch).
 
 ---
 
 ## 4. CloudFormation Outputs & Cross-Stack References
 
-### Cross-Stack Reference Pattern
+### Mẫu tham chiếu cross-stack (Cross-Stack Reference Pattern)
 
 #### Giải thích cốt lõi
-**Outputs** cho phép một stack expose values để các stacks khác consume. Có 2 cách:
+**Outputs** cho phép một stack công khai (expose) các giá trị để các stack khác sử dụng (consume). Có 2 cách:
 
-1. **Outputs without Export** - chỉ để xem (CLI/Console)
-2. **Outputs with Export** - để cross-stack import (qua `Fn::ImportValue`)
+1. **Outputs không có Export** - chỉ để xem (qua CLI/Console)
+2. **Outputs có Export** - dùng để import giữa các stack (cross-stack, qua `Fn::ImportValue`)
 
 **Ví dụ:**
 
@@ -157,26 +157,26 @@ Resources:
 ```
 
 **Quy tắc quan trọng:**
-- **Export names phải UNIQUE trong account/region**
+- **Tên Export (Export names) phải DU NHẤT (UNIQUE) trong account/region**
 - **Không thể xóa stack gốc** nếu vẫn còn stack khác đang import từ nó
-- Nếu muốn xóa stack có exports → phải xóa tất cả dependent stacks trước
+- Nếu muốn xóa stack có exports → phải xóa tất cả các stack phụ thuộc (dependent stacks) trước
 
-**So sánh với alternatives:**
+**So sánh với các phương án khác (alternatives):**
 
-| Pattern | Pros | Cons |
+| Mẫu (Pattern) | Ưu điểm (Pros) | Nhược điểm (Cons) |
 |---------|------|------|
-| **Outputs + ImportValue** | Native CF, no extra cost | Stack deletion coupling |
-| **SSM Parameter Store** | Loose coupling, easier deletion | Cost, eventual consistency |
-| **DynamoDB lookup** | Very flexible | Need custom resource, more complex |
-| **Nested Stacks** | Strong coupling, easy lifecycle | All-in-one template |
+| **Outputs + ImportValue** | Native trong CF, không phát sinh chi phí | Liên kết chặt với việc xóa stack (deletion coupling) |
+| **SSM Parameter Store** | Liên kết lỏng (loose coupling), dễ xóa hơn | Có chi phí, chỉ đồng nhất cuối cùng (eventual consistency) |
+| **DynamoDB lookup** | Rất linh hoạt | Cần custom resource, phức tạp hơn |
+| **Nested Stacks** | Liên kết chặt (strong coupling), vòng đời dễ quản lý | Gộp tất cả vào một (all-in-one) template |
 
 #### NÊN làm
-- **Dùng `!Sub "${AWS::StackName}-VPC-ID"` làm Export name** → Vì stack name là unique → export name cũng unique. Tránh hardcode export name.
-- **Dùng Outputs cho shared infrastructure (VPC, Subnet, SG IDs)** → Vì nhiều stacks cần consume, **single source of truth**.
+- **Dùng `!Sub "${AWS::StackName}-VPC-ID"` làm tên Export** → Vì stack name là duy nhất (unique) → export name cũng duy nhất. Tránh hardcode tên export.
+- **Dùng Outputs cho hạ tầng dùng chung (shared infrastructure, VPC, Subnet, SG IDs)** → Vì nhiều stacks cần dùng chung, **nguồn dữ liệu duy nhất (single source of truth)**.
 
 #### KHÔNG NÊN làm
-- **Export quá nhiều values không cần thiết** → Vì mỗi export tạo "lock" - khó xóa stack. NÊN: chỉ export những gì thực sự cross-stack cần.
-- **Dùng cross-stack references cho high-frequency updates** → Vì khi update giá trị ở stack gốc, tất cả dependent stacks bị affected. NÊN: dùng **SSM Parameter Store** cho values cần thay đổi runtime.
+- **Export quá nhiều giá trị (values) không cần thiết** → Vì mỗi export tạo "kẻ khóa (lock)" - khó xóa stack. NÊN: chỉ export những gì thực sự cần dùng chung giữa các stack (cross-stack).
+- **Dùng cross-stack references cho các bản cập nhật tần suất cao (high-frequency updates)** → Vì khi cập nhật (update) giá trị ở stack gốc, tất cả các stack phụ thuộc (dependent stacks) bị ảnh hưởng (affected). NÊN: dùng **SSM Parameter Store** cho các giá trị cần thay đổi lúc runtime.
 
 ---
 
@@ -185,19 +185,19 @@ Resources:
 ### Conditions chi tiết
 
 #### Giải thích cốt lõi
-Conditions cho phép **conditionally create resources** dựa trên:
-- Parameter values (Environment, Region)
+Điều kiện (Conditions) cho phép **tạo resources có điều kiện (conditionally create resources)** dựa trên:
+- Giá trị parameter (Parameter values: Environment, Region)
 - Pseudo parameters
-- Other conditions
+- Các điều kiện khác (Other conditions)
 
 **Các intrinsic functions cho Conditions:**
 
 | Function | Logic | Example |
 |----------|-------|---------|
 | `Fn::Equals` | A == B | `!Equals [!Ref Env, prod]` |
-| `Fn::And` | All true | `!And [!Equals, !Equals]` |
-| `Fn::Or` | Any true | `!Or [IsProd, IsStaging]` |
-| `Fn::Not` | Negate | `!Not [!Equals [!Ref Env, dev]]` |
+| `Fn::And` | Tất cả điều kiện đều true | `!And [!Equals, !Equals]` |
+| `Fn::Or` | Ít nhất một điều kiện true | `!Or [IsProd, IsStaging]` |
+| `Fn::Not` | Phủ định (negate) | `!Not [!Equals [!Ref Env, dev]]` |
 | `Fn::If` | If/else | `!If [IsProd, prod-value, dev-value]` |
 
 **Ví dụ thực tế:**
@@ -229,12 +229,12 @@ Resources:
 ```
 
 #### NÊN làm
-- **Dùng Conditions để tạo environment-specific resources** → Vì template 1 cho nhiều môi trường (dev, staging, prod) nhưng vẫn customize resources theo từng env. So với việc có 3 templates riêng: dễ bị drift, khó maintain.
-- **Dùng `!If` để switch giữa các giá trị** → Vì tránh duplicate resources. Ví dụ: `InstanceType: !If [IsProd, m5.large, t3.micro]`.
+- **Dùng Conditions để tạo resources theo môi trường (environment-specific)** → Vì 1 template cho nhiều môi trường (dev, staging, prod) nhưng vẫn tùy chỉnh (customize) resources theo từng env. So với việc có 3 templates riêng: dễ bị lệch (drift), khó bảo trì (maintain).
+- **Dùng `!If` để chuyển đổi (switch) giữa các giá trị** → Vì tránh trùng lặp (duplicate) resources. Ví dụ: `InstanceType: !If [IsProd, m5.large, t3.micro]`.
 
 #### KHÔNG NÊN làm
-- **Dùng Conditions thay vì Nested Stacks cho logic quá phức tạp** → Vì Conditions chỉ true/false, không thể express "for each X, create Y". NÊN: dùng **Nested Stacks** cho multi-environment, dùng **Modules** (CloudFormation Modules) cho reusable components.
-- **Dùng Conditions với circular references** → Vì CloudFormation không detect được → deploy fail với error khó hiểu. NÊN: test kỹ với mọi combination.
+- **Dùng Conditions thay vì Nested Stacks cho logic quá phức tạp** → Vì Conditions chỉ true/false, không thể diễn đạt được logic "với mỗi X thì tạo Y" (for each X, create Y). NÊN: dùng **Nested Stacks** cho multi-environment, dùng **Modules** (CloudFormation Modules) cho các component có thể tái sử dụng (reusable components).
+- **Dùng Conditions với tham chiếu vòng (circular references)** → Vì CloudFormation không phát hiện (detect) được → triển khai (deploy) thất bại (fail) với lỗi (error) khó hiểu. NÊN: kiểm thử (test) kỹ với mọi tổ hợp (combination) giá trị.
 
 ---
 
@@ -243,7 +243,7 @@ Resources:
 ### Functions chi tiết
 
 #### Giải thích cốt lõi
-**MUST KNOW (in đậm trong slide - "Pink"):**
+**BẮT BUỘC PHẢI THUỘC (MUST KNOW, in đậm trong slide - "Pink"):**
 - `Ref`
 - `Fn::Base64`
 - `Fn::GetAtt`
@@ -259,7 +259,7 @@ Resources:
 - `Fn::ForEach`
 - `Fn::Length`
 - `Fn::ToJsonString`
-- Condition Functions (Fn::If, Fn::Not, Fn::Equals, etc.)
+- Các hàm điều kiện (Condition Functions: Fn::If, Fn::Not, Fn::Equals, v.v.)
 
 **`!Ref` vs `!GetAtt` - Sự khác biệt quan trọng:**
 
@@ -279,7 +279,7 @@ Resources:
 !GetAtt MyInstance.PublicDnsName  # → "ec2-1-2-3-4.compute-1.amazonaws.com"
 ```
 
-**Các attributes có sẵn** tùy thuộc vào resource type - xem AWS docs cho mỗi resource.
+**Các attributes có sẵn** tùy thuộc vào loại resource (resource type) - xem tài liệu (docs) của AWS cho mỗi resource.
 
 **`!Sub` - String substitution mạnh mẽ:**
 
@@ -299,12 +299,12 @@ Resources:
 
 #### NÊN làm
 - **Dùng `!Sub` thay vì `!Join` khi có thể** → Vì `!Sub` ngắn gọn hơn, dễ đọc hơn. `!Sub "arn:${Partition}:s3:::${Bucket}"` ngắn hơn `!Join ["", ["arn:", !Ref Partition, ":s3:::", !Ref Bucket]]`.
-- **Dùng `!GetAtt` thay vì hardcode attribute values** → Vì attributes có thể thay đổi (private IP sau khi stop/start EC2). Hardcode sẽ sai.
-- **Dùng `Fn::Cidr` để tạo subnet CIDRs tự động** → Vì tránh manual calculation, dễ scale. Ví dụ: từ VPC `/16`, tạo 4 subnets `/18`: `!Cidr [!Ref VPCCidr, 4, 18]`.
+- **Dùng `!GetAtt` thay vì hardcode giá trị attribute** → Vì attributes có thể thay đổi (private IP sau khi stop/start EC2). Hardcode sẽ sai.
+- **Dùng `Fn::Cidr` để tạo subnet CIDRs tự động** → Vì tránh tính toán thủ công (manual calculation), dễ mở rộng (scale). Ví dụ: từ VPC `/16`, tạo 4 subnets `/18`: `!Cidr [!Ref VPCCidr, 4, 18]`.
 
 #### KHÔNG NÊN làm
-- **Dùng `!Sub` cho logic phức tạp (nested substitutions)** → Vì template trở nên khó đọc. NÊN: dùng `!Join` cho concatenations phức tạp, dùng `!Select` cho list indexing.
-- **Dùng `Fn::Base64` cho dữ liệu nhạy cảm** → Vì Base64 chỉ là encoding, không phải encryption. NÊN: dùng `Secrets Manager` hoặc `SSM SecureString`.
+- **Dùng `!Sub` cho logic phức tạp (thay thế lồng nhau - nested substitutions)** → Vì template trở nên khó đọc. NÊN: dùng `!Join` cho các phép ghép chuỗi phức tạp (concatenations), dùng `!Select` để chỉ mục trong list (list indexing).
+- **Dùng `Fn::Base64` cho dữ liệu nhạy cảm** → Vì Base64 chỉ là mã hóa dạng (encoding), không phải mã hóa bảo mật (encryption). NÊN: dùng `Secrets Manager` hoặc `SSM SecureString`.
 
 ---
 
@@ -313,56 +313,56 @@ Resources:
 ### Rollback chi tiết
 
 #### Giải thích cốt lõi
-CloudFormation có 3 loại rollback scenarios:
+CloudFormation có 3 kịch bản (scenarios) rollback:
 
-**1. Stack Creation Fails:**
-- Default behavior: **ROLLBACK** - xóa tất cả resources đã tạo
-- Disable rollback: chỉnh `DisableRollback: true` → giữ resources để debug
-- Sau khi fix, manually delete hoặc `ContinueUpdateRollback`
+**1. Tạo Stack thất bại (Stack Creation Fails):**
+- Hành vi mặc định (Default behavior): **ROLLBACK** - xóa tất cả resources đã tạo
+- Vô hiệu hóa rollback (Disable rollback): chỉnh `DisableRollback: true` → giữ lại các resources để debug
+- Sau khi fix, xóa thủ công (manually delete) hoặc `ContinueUpdateRollback`
 
-**2. Stack Update Fails:**
-- Auto rollback về **previous known working state**
-- Có thể xem logs để biết lý do fail
-- Stack status: `UPDATE_ROLLBACK_COMPLETE` hoặc `UPDATE_ROLLBACK_FAILED`
+**2. Cập nhật Stack thất bại (Stack Update Fails):**
+- Tự động rollback (auto rollback) về **trạng thái hoạt động tốt trước đó (previous known working state)**
+- Có thể xem logs để biết lý do thất bại (fail)
+- Trạng thái stack (Stack status): `UPDATE_ROLLBACK_COMPLETE` hoặc `UPDATE_ROLLBACK_FAILED`
 
-**3. Rollback Failure:**
-- Resources bị stuck ở inconsistent state
-- Manual fix từng resource
-- Sau đó issue `continue-update-rollback` API
+**3. Rollback thất bại (Rollback Failure):**
+- Các resources bị "kẹt" (stuck) ở trạng thái không nhất quán (inconsistent state)
+- Sửa thủ công (Manual fix) từng resource
+- Sau đó thực hiện (issue) API `continue-update-rollback`
 
-**So sánh với alternatives:**
+**So sánh với các phương án khác (alternatives):**
 
-| Scenario | CloudFormation | Terraform |
+| Kịch bản (Scenario) | CloudFormation | Terraform |
 |----------|----------------|-----------|
-| Create fail | Auto rollback (delete all) | Stop, keep state |
-| Update fail | Rollback to last good state | Rollback to last good state |
-| Rollback fail | Manual fix + continue-update-rollback | Refresh state + apply |
+| Tạo thất bại (Create fail) | Auto rollback (xóa tất cả, delete all) | Dừng lại, giữ state (Stop, keep state) |
+| Cập nhật thất bại (Update fail) | Rollback về trạng thái tốt cuối (Rollback to last good state) | Rollback về trạng thái tốt cuối |
+| Rollback thất bại (Rollback fail) | Sửa thủ công + `continue-update-rollback` | Làm mới state (refresh) + apply |
 
 #### NÊN làm
-- **Disable rollback cho production stack first deployment** → Vì muốn **xem resources đã tạo** để debug, không muốn bị xóa hết. Sau khi deploy thành công, enable rollback lại.
-- **Dùng Change Sets cho production updates** → Vì preview changes trước khi apply, tránh accidental deletes. Change Sets hiển thị rõ resource nào sẽ be replaced, modified, removed.
+- **Vô hiệu hóa rollback cho lần triển khai đầu (first deployment) của production stack** → Vì muốn **xem các resources đã tạo** để debug, không muốn bị xóa hết. Sau khi triển khai (deploy) thành công, bật lại rollback (enable rollback).
+- **Dùng Change Sets cho production updates** → Vì xem trước (preview) các thay đổi trước khi áp dụng (apply), tránh xóa nhầm (accidental deletes). Change Sets hiển thị rõ resource nào sẽ bị thay thế (replaced), sửa đổi (modified), gỡ bỏ (removed).
 
 #### KHÔNG NÊN làm
-- **Tắt rollback vĩnh viễn cho production** → Vì nếu update fail, stack ở trạng thái inconsistent. NÊN: enable rollback cho prod, disable chỉ cho debugging scenarios.
-- **Ignore `UPDATE_ROLLBACK_FAILED` status** → Vì stack bị stuck, không thể update/delete bình thường. NÊN: investigate ngay, fix resources thủ công, issue `continue-update-rollback`.
+- **Tắt rollback vĩnh viễn cho production** → Vì nếu cập nhật (update) thất bại, stack ở trạng thái không nhất quán (inconsistent). NÊN: bật rollback cho production, chỉ vô hiệu hóa cho các kịch bản debug (debugging scenarios).
+- **Bỏ qua (Ignore) trạng thái `UPDATE_ROLLBACK_FAILED`** → Vì stack bị "kẹt" (stuck), không thể cập nhật/xóa (update/delete) bình thường. NÊN: kiểm tra (investigate) ngay, sửa resources thủ công, thực hiện (issue) `continue-update-rollback`.
 
 ---
 
 ## 8. CloudFormation Service Role
 
-### Service Role Best Practices
+### Thực hành tốt (Best Practices) với Service Role
 
 #### Giải thích cốt lõi
 CloudFormation cần IAM permissions để create/update/delete resources. Hai cách cấp permissions:
 
-**Cách 1: User có full permissions trực tiếp**
-- Đơn giản nhưng **violates least privilege**
-- User phải có quyền đối với mọi resource trong template
+**Cách 1: User có đủ (full) permissions trực tiếp**
+- Đơn giản nhưng **vi phạm (violates) nguyên tắc đặc quyền tối thiểu (least privilege)**
+- Người dùng (User) phải có quyền đối với mọi resource trong template
 
-**Cách 2: CloudFormation Service Role (Recommended)**
+**Cách 2: CloudFormation Service Role (được khuyến nghị - Recommended)**
 - User chỉ cần `cloudformation:*` permissions
-- Service Role có quyền create resources
-- User phải có **`iam:PassRole`** để pass Service Role cho CloudFormation
+- Service Role có quyền tạo (create) resources
+- User phải có **`iam:PassRole`** để chuyển (pass) Service Role cho CloudFormation
 
 **Ví dụ IAM Policy cho Service Role:**
 
@@ -383,7 +383,7 @@ CloudFormation cần IAM permissions để create/update/delete resources. Hai c
 }
 ```
 
-**User policy cần:**
+**Chính sách (Policy) người dùng (user) cần có:**
 
 ```json
 {
@@ -404,12 +404,12 @@ CloudFormation cần IAM permissions để create/update/delete resources. Hai c
 ```
 
 #### NÊN làm
-- **Dùng Service Role cho production** → Vì áp dụng **least privilege** principle. Users chỉ cần quyền deploy stacks, không cần quyền tạo trực tiếp EC2/RDS/etc.
-- **Tạo nhiều Service Roles cho các use cases khác nhau** → Vì giới hạn blast radius. Ví dụ: `CFRole-Dev` (full perms), `CFRole-Prod-ReadOnly` (chỉ updates).
+- **Dùng Service Role cho production** → Vì áp dụng **nguyên tắc đặc quyền tối thiểu (least privilege)**. Người dùng (Users) chỉ cần quyền triển khai (deploy) stacks, không cần quyền tạo trực tiếp EC2/RDS/etc.
+- **Tạo nhiều Service Roles cho các trường hợp sử dụng (use cases) khác nhau** → Vì giới hạn phạm vi ảnh hưởng (blast radius). Ví dụ: `CFRole-Dev` (đủ quyền, full permissions), `CFRole-Prod-ReadOnly` (chỉ cho phép cập nhật, read-only cho updates).
 
 #### KHÔNG NÊN làm
-- **Cho user full AdministratorAccess chỉ để deploy stacks** → Vì violates least privilege, user có thể tạo/xóa bất cứ gì. NÊN: tạo Service Role scoped theo resources cần thiết.
-- **Forget `iam:PassRole` permission** → Vì CloudFormation sẽ fail với error "User is not authorized to perform iam:PassRole". NÊN: thêm `iam:PassRole` vào user policy khi dùng Service Role.
+- **Cho user full AdministratorAccess chỉ để triển khai (deploy) stacks** → Vì vi phạm (violates) nguyên tắc đặc quyền tối thiểu (least privilege), user có thể tạo/xóa bất cứ gì. NÊN: tạo Service Role thu gọn phạm vi (scoped) theo resources cần thiết.
+- **Quên (Forget) phân quyền `iam:PassRole`** → Vì CloudFormation sẽ thất bại (fail) với error "User is not authorized to perform iam:PassRole". NÊN: thêm `iam:PassRole` vào policy của user (user policy) khi dùng Service Role.
 
 ---
 
@@ -424,10 +424,10 @@ CloudFormation cần IAM permissions để create/update/delete resources. Hai c
 
 **3 loại:**
 
-| Policy | Behavior | Use Case |
+| Policy | Hành vi (Behavior) | Trường hợp dùng (Use Case) |
 |--------|----------|----------|
-| `Delete` (default) | Xóa resource | Stateless resources (EC2, Security Group) |
-| `Retain` | Giữ lại resource | State data, log files, manually-managed resources |
+| `Delete` (mặc định) | Xóa resource | Resources không có trạng thái (stateless, EC2, Security Group) |
+| `Retain` | Giữ lại resource | Dữ liệu có state, log files, resources quản lý thủ công |
 | `Snapshot` | Tạo snapshot trước khi xóa | EBS, RDS, ElastiCache, Redshift |
 
 **Ví dụ:**
@@ -454,17 +454,17 @@ Resources:
 ```
 
 **Lưu ý quan trọng:**
-- `Delete` không xóa được **non-empty S3 bucket**
-- `Snapshot` chỉ support một số resource types (xem slide 426)
-- `Retain` cần manual cleanup nếu muốn xóa sau
+- `Delete` không xóa được **S3 bucket không trống (non-empty S3 bucket)**
+- `Snapshot` chỉ hỗ trợ (support) một số loại resource (resource types, xem slide 426)
+- `Retain` cần dọn dẹp thủ công (manual cleanup) nếu muốn xóa sau
 
 #### NÊN làm
-- **Dùng `Snapshot` cho RDS databases** → Vì có backup tự động trước khi xóa, có thể restore nếu cần. So với `Delete`: mất data vĩnh viễn.
-- **Dùng `Retain` cho S3 buckets có data quan trọng** → Vì không lỡ tay xóa bucket khi delete stack, manual cleanup khi cần.
+- **Dùng `Snapshot` cho RDS databases** → Vì có backup tự động trước khi xóa, có thể khôi phục (restore) nếu cần. So với `Delete`: mất dữ liệu (data) vĩnh viễn.
+- **Dùng `Retain` cho S3 buckets có data quan trọng** → Vì không lỡ tay xóa bucket khi xóa (delete) stack, dọn dẹp thủ công (manual cleanup) khi cần.
 
 #### KHÔNG NÊN làm
-- **Dùng `Delete` cho databases/EBS có data production** → Vì data mất vĩnh viễn. NÊN: `Snapshot` cho databases, `Retain` cho EBS volumes.
-- **Dùng `Retain` cho tất cả resources** → Vì tạo "orphaned" resources, tốn tiền, khó cleanup. NÊN: `Delete` cho stateless resources (EC2, ASG, ELB), `Retain`/`Snapshot` cho stateful.
+- **Dùng `Delete` cho databases/EBS có data production** → Vì dữ liệu (data) mất vĩnh viễn. NÊN: `Snapshot` cho databases, `Retain` cho EBS volumes.
+- **Dùng `Retain` cho tất cả resources** → Vì tạo ra các "rơi rớt" (orphaned) resources, tốn tiền, khó dọn dẹp (cleanup). NÊN: `Delete` cho resources không có trạng thái (stateless: EC2, ASG, ELB), `Retain`/`Snapshot` cho có trạng thái (stateful).
 
 ---
 
@@ -473,16 +473,16 @@ Resources:
 ### Stack Policies chi tiết
 
 #### Giải thích cốt lõi
-**Stack Policy** bảo vệ resources khỏi **unintentional updates** trong stack update.
+**Stack Policy** bảo vệ resources khỏi **các bản cập nhật không cố ý (unintentional updates)** trong stack update.
 
-**Default behavior** (không có Stack Policy):
-- Stack update có thể modify/delete **bất kỳ resource** nào
-- Nguy hiểm: update template vô tình xóa production database
+**Hành vi mặc định (Default behavior, không có Stack Policy):**
+- Stack update có thể sửa/xóa (modify/delete) **bất kỳ resource** nào
+- Nguy hiểm: cập nhật (update) template vô tình xóa production database
 
 **Với Stack Policy:**
-- Tất cả resources **protected by default** (deny tất cả updates)
-- Phải explicit **ALLOW** cho resources muốn update
-- Policy là **JSON document**
+- Tất cả resources **được bảo vệ theo mặc định (protected by default)**, từ chối (deny) tất cả updates
+- Phải cho phép (ALLOW) một cách tường minh (explicit) cho các resources muốn cập nhật
+- Policy là một **tài liệu JSON (JSON document)**
 
 **Ví dụ Stack Policy:**
 
@@ -510,12 +510,12 @@ Resources:
 - `Update:Modify` - chỉ modify properties
 
 #### NÊN làm
-- **Dùng Stack Policy cho production databases** → Vì bảo vệ khỏi accidental replacement/deletion khi update template. Nếu cần update DB, tạm thời modify Stack Policy.
-- **Dùng Stack Policy cho critical resources (Encryption keys, IAM Roles)** → Vì những resources này khó recreate, ảnh hưởng lớn nếu bị replace.
+- **Dùng Stack Policy cho production databases** → Vì bảo vệ khỏi thay thế/xóa (replacement/deletion) không cẩn thận (accidental) khi cập nhật (update) template. Nếu cần cập nhật (update) DB, tạm thời sửa (modify) Stack Policy.
+- **Dùng Stack Policy cho các resource quan trọng (critical resources: Encryption keys, IAM Roles)** → Vì những resources này khó tạo lại (recreate), ảnh hưởng lớn nếu bị thay thế (replace).
 
 #### KHÔNG NÊN làm
-- **Dùng Stack Policy chỉ với `Allow: *` cho mọi resource** → Vì tương đương với không có policy, không có protection. NÊN: explicit Deny cho critical resources, chỉ Allow cho resources muốn update được.
-- **Forget rằng Stack Policy áp dụng cho cả stack delete** → Vì nếu muốn delete stack, phải delete Stack Policy trước (nếu có Deny cho resources). NÊN: lưu ý khi thiết kế.
+- **Dùng Stack Policy chỉ với `Allow: *` cho mọi resource** → Vì tương đương với không có policy, không có sự bảo vệ (protection) nào. NÊN: từ chối (Deny) tường minh (explicit) cho các resource quan trọng (critical), chỉ cho phép (Allow) cho các resource muốn được cập nhật (update) được.
+- **Quên (Forget) rằng Stack Policy áp dụng cho cả việc xóa (delete) stack** → Vì nếu muốn xóa (delete) stack, phải xóa Stack Policy trước (nếu có Deny cho resources). NÊN: lưu ý khi thiết kế.
 
 ---
 
@@ -525,9 +525,9 @@ Resources:
 
 #### Giải thích cốt lõi
 **Custom Resources** mở rộng CloudFormation để:
-1. Tạo resources **chưa được hỗ trợ** (new AWS services)
-2. Run **custom logic** trong quá trình CFN operations
-3. Manage **external resources** (on-premises, 3rd party)
+1. Tạo các resource **chưa được hỗ trợ** (new AWS services)
+2. Chạy (Run) **logic tùy chỉnh (custom logic)** trong các thao tác CFN (operations)
+3. Quản lý (Manage) **các resource bên ngoài (external resources)** (on-premises, bên thứ 3 - 3rd party)
 
 **Cấu trúc:**
 
@@ -565,20 +565,20 @@ Resources:
                   cfnresponse.send(event, context, cfnresponse.FAILED, {})
 ```
 
-**Lifecycle events:**
+**Sự kiện vòng đời (Lifecycle events):**
 - `Create` - khi resource được tạo
 - `Update` - khi properties thay đổi
 - `Delete` - khi resource/stack bị xóa
 
 #### NÊN làm
-- **Dùng Custom Resource để empty S3 bucket trước khi xóa** → Vì CloudFormation không thể xóa non-empty bucket. Lambda function này chạy trước khi bucket bị xóa.
-- **Dùng Custom Resource cho third-party resources** → Vì tích hợp Datadog, MongoDB Atlas, on-premises resources vào CloudFormation.
-- **Cache values trong Custom Resource** → Vì tránh gọi API nhiều lần. Ví dụ: tạo IAM Role, cache Role ARN.
+- **Dùng Custom Resource để làm trống (empty) S3 bucket trước khi xóa** → Vì CloudFormation không thể xóa S3 bucket không trống (non-empty bucket). Lambda function này chạy trước khi bucket bị xóa.
+- **Dùng Custom Resource cho các resource bên thứ ba (third-party)** → Vì tích hợp Datadog, MongoDB Atlas, resources on-premises vào CloudFormation.
+- **Lưu (cache) values trong Custom Resource** → Vì tránh gọi API nhiều lần. Ví dụ: tạo IAM Role, cache Role ARN.
 
 #### KHÔNG NÊN làm
-- **Dùng Custom Resource cho resources AWS đã hỗ trợ** → Vì phức tạp, khó maintain. NÊN: dùng native CloudFormation resources khi có thể.
-- **Không handle errors trong Lambda** → Vì nếu Lambda fail, stack update fail. NÊN: try/except, gửi `cfnresponse.FAILED` với error message rõ ràng.
-- **Quên idempotency** → Vì CF có thể gọi lại Lambda với cùng input. NÊN: design Lambda để idempotent - chạy nhiều lần cũng cho cùng kết quả.
+- **Dùng Custom Resource cho các resource mà AWS đã hỗ trợ sẵn** → Vì phức tạp, khó bảo trì (maintain). NÊN: dùng resources native của CloudFormation khi có thể.
+- **Không xử lý lỗi (handle errors) trong Lambda** → Vì nếu Lambda thất bại (fail), stack update cũng thất bại (fail). NÊN: dùng try/except, gửi `cfnresponse.FAILED` kèm thông báo lỗi (error message) rõ ràng.
+- **Quên tính nguyên ảnh (idempotency)** → Vì CF có thể gọi lại Lambda với cùng input. NÊN: thiết kế (design) Lambda để đạt nguyên ảnh (idempotent) - chạy nhiều lần vẫn cho cùng kết quả.
 
 ---
 
@@ -587,47 +587,47 @@ Resources:
 ### StackSets chi tiết
 
 #### Giải thích cốt lõi
-**StackSets** cho phép tạo/update/delete stacks trên **multiple accounts và regions** với một single template.
+**StackSets** cho phép tạo/cập nhật/xóa (create/update/delete) stacks trên **nhiều (multiple) accounts và regions** với một template duy nhất (single template).
 
-**Use cases:**
-- Deploy **security baseline** (CloudTrail, Config) cho tất cả accounts trong Organization
-- Deploy **logging infrastructure** ở nhiều regions
-- Enforce **compliance policies** across accounts
+**Các trường hợp sử dụng (Use cases):**
+- Triển khai (Deploy) **security baseline** (CloudTrail, Config) cho tất cả các accounts trong Organization
+- Triển khai (Deploy) **hạ tầng ghi log (logging infrastructure)** ở nhiều regions
+- Áp dụng (Enforce) **compliance policies** trên tất cả các accounts (across accounts)
 
-**Concepts:**
+**Các khái niệm (Concepts):**
 
-| Term | Definition |
+| Thuật ngữ (Term) | Định nghĩa (Definition) |
 |------|------------|
 | **StackSet** | Template + parameters + capabilities |
 | **Stack Instance** | Stack trong target account/region |
 | **Administrator Account** | Account tạo/quản lý StackSet |
-| **Target Account** | Account chứa stack instances |
-| **Service-managed permissions** | Tự động trust giữa accounts trong Organization |
-| **Self-managed permissions** | Manual setup IAM roles |
+| **Target Account** | Account chứa các stack instance |
+| **Service-managed permissions** | Tự động trust giữa các accounts trong Organization |
+| **Self-managed permissions** | Thiết lập thủ công (manual setup) các IAM roles |
 
 **Quy trình:**
 1. Administrator account tạo StackSet
-2. Chọn target accounts (manual hoặc Organizational Units)
-3. Chọn regions
-4. Stack instances được tạo tại mỗi target account/region
-5. Update StackSet → tất cả instances updated
+2. Chọn các target account (manual hoặc Organizational Units)
+3. Chọn các region
+4. Các stack instance được tạo tại mỗi target account/region
+5. Cập nhật (Update) StackSet → tất cả instances được cập nhật (updated)
 
-**So sánh với alternatives:**
+**So sánh với các phương án khác (alternatives):**
 
-| Approach | Use Case | Complexity |
+| Cách làm (Approach) | Trường hợp dùng (Use Case) | Độ phức tạp (Complexity) |
 |----------|----------|------------|
-| **StackSets** | Multi-account, multi-region | Medium - AWS manages |
-| **Nested Stacks + cross-region** | Single account, multi-region | High - manual replication |
-| **Custom automation (Lambda)** | Custom logic | High - DIY |
-| **AWS Organizations SCP** | Permission boundaries | Low - but only permissions |
+| **StackSets** | Nhiều account, nhiều region (Multi-account, multi-region) | Trung bình - AWS tự quản lý (manages) |
+| **Nested Stacks + cross-region** | Một (single) account, nhiều region | Cao - phải sao chép thủ công (manual replication) |
+| **Custom automation (Lambda)** | Logic tùy chỉnh (Custom logic) | Cao - tự làm (DIY) |
+| **AWS Organizations SCP** | Giới hạn phân quyền (Permission boundaries) | Thấp - nhưng chỉ về phân quyền |
 
 #### NÊN làm
-- **Dùng StackSets với service-managed permissions khi trong AWS Organization** → Vì AWS tự động tạo IAM roles, trust relationships. Đơn giản hơn self-managed.
-- **Dùng StackSets cho baseline infrastructure** (CloudTrail, Config, GuardDuty) → Vì mọi account cần có, tự động deploy khi thêm account mới.
+- **Dùng StackSets với service-managed permissions khi trong AWS Organization** → Vì AWS tự động tạo IAM roles, quan hệ tin cậy (trust relationships). Đơn giản hơn self-managed.
+- **Dùng StackSets cho baseline infrastructure** (CloudTrail, Config, GuardDuty) → Vì mọi account đều cần có, tự động triển khai (deploy) khi thêm account mới.
 
 #### KHÔNG NÊN làm
-- **Dùng StackSets cho application-specific stacks** → Vì mỗi account/region có app khác nhau, khó config. NÊN: dùng nested stacks hoặc CI/CD pipeline cho application deployment.
-- **Dùng StackSets mà không test trên ít account trước** → Vì một lỗi có thể ảnh hưởng hàng trăm accounts. NÊN: test trên 1-2 accounts, sau đó mới rollout toàn bộ Organization.
+- **Dùng StackSets cho các stack ứng dụng cụ thể (application-specific)** → Vì mỗi account/region có ứng dụng (app) khác nhau, khó cấu hình (config). NÊN: dùng nested stacks hoặc CI/CD pipeline cho việc triển khai ứng dụng (application deployment).
+- **Dùng StackSets mà không kiểm thử (test) trên ít account trước** → Vì một lỗi có thể ảnh hưởng hàng trăm accounts. NÊN: test trên 1-2 accounts, sau đó mới triển khai toàn bộ (rollout) Organization.
 
 ---
 
@@ -636,9 +636,9 @@ Resources:
 ### Tổng hợp Best Practices
 
 #### Giải thích cốt lõi
-Dựa trên kinh nghiệm triển khai thực tế, có một số patterns giúp CloudFormation templates dễ maintain hơn:
+Dựa trên kinh nghiệm triển khai thực tế, có một số mẫu (patterns) giúp CloudFormation templates dễ bảo trì (maintain) hơn:
 
-**1. Template Organization:**
+**1. Tổ chức Template (Template Organization):**
 ```yaml
 AWSTemplateFormatVersion: '2010-09-09'
 Description: 'Application stack - Web tier'
@@ -681,27 +681,27 @@ Outputs:
     Value: !Ref Instance
 ```
 
-**2. Naming Conventions:**
+**2. Quy ước đặt tên (Naming Conventions):**
 - Resource Logical IDs: PascalCase, có ý nghĩa (`WebServer` chứ không phải `Instance1`)
-- Parameters: PascalCase với prefix theo category (`DbPassword`, `VpcCIDR`)
+- Parameters: PascalCase với prefix theo nhóm (category) (`DbPassword`, `VpcCIDR`)
 
-**3. Security:**
+**3. Bảo mật (Security):**
 - Không hardcode secrets
 - Dùng `Secrets Manager` với dynamic reference
-- Enable encryption by default
+- Bật (Enable) mã hóa (encryption) theo mặc định
 
 #### NÊN làm
-- **Dùng Nested Stacks cho infrastructure lớn** → Vì chia nhỏ template → dễ đọc, dễ test, dễ reuse. So với 1 template lớn: khó review, fail 1 chỗ rollback tất cả.
-- **Tag mọi resources với Environment, Project, Owner** → Vì tracking cost, automation cleanup dễ dàng.
-- **Dùng Change Sets cho production updates** → Vì preview changes trước khi apply, tránh accidental resource replacement.
-- **Store templates trong Git** → Vì version control, code review, audit trail.
-- **Enable CloudFormation Drift Detection** → Vì phát hiện resources bị modify ngoài CloudFormation (manual changes qua console).
+- **Dùng Nested Stacks cho infrastructure lớn** → Vì chia nhỏ template → dễ đọc, dễ kiểm thử (test), dễ tái sử dụng (reuse). So với 1 template lớn: khó xem lại (review), sai 1 chỗ (fail) thì rollback tất cả.
+- **Tag mọi resources với Environment, Project, Owner** → Vì theo dõi chi phí (tracking cost), dọn dẹp tự động (automation cleanup) dễ dàng.
+- **Dùng Change Sets cho production updates** → Vì xem trước (preview) các thay đổi trước khi áp dụng (apply), tránh thay thế (replacement) resource nhầm (accidental).
+- **Lưu (Store) templates trong Git** → Vì quản lý phiên bản (version control), xem lại (review) code, có dấu vết kiểm toán (audit trail).
+- **Bật (Enable) CloudFormation Drift Detection** → Vì phát hiện các resources bị sửa đổi (modify) ngoài CloudFormation (thay đổi thủ công - manual changes qua console).
 
 #### KHÔNG NÊN làm
-- **Viết 1 template > 500 lines** → Vì khó đọc, khó review, fail nhiều. NÊN: chia thành nested stacks, mỗi stack < 300 lines.
-- **Manual edit resources trong console sau khi deploy** → Vì CloudFormation không biết → drift detection sẽ cảnh báo. NÊN: update template + apply qua CloudFormation.
-- **Hardcode AMI IDs cụ thể** → Vì AMI bị deprecate theo thời gian. NÊN: dùng `AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>` để lấy latest AMI.
-- **Skip testing cho production stacks** → Vì một lỗi template có thể xóa data. NÊN: test trên dev account trước, dùng Change Sets để review.
+- **Viết 1 template > 500 lines** → Vì khó đọc, khó xem lại (review), dễ sai nhiều (fail). NÊN: chia thành nested stacks, mỗi stack < 300 lines.
+- **Tự sửa (Manual edit) resources trong console sau khi triển khai (deploy)** → Vì CloudFormation không biết → drift detection sẽ cảnh báo. NÊN: cập nhật (update) template + áp dụng (apply) qua CloudFormation.
+- **Hardcode AMI IDs cụ thể** → Vì AMI bị ngừng hỗ trợ (deprecate) theo thời gian. NÊN: dùng `AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>` để lấy AMI mới nhất (latest).
+- **Bỏ qua (Skip) kiểm thử (testing) cho production stacks** → Vì một lỗi template có thể xóa dữ liệu (data). NÊN: kiểm thử (test) trên dev account trước, dùng Change Sets để xem lại (review).
 
 ---
 
@@ -710,13 +710,13 @@ Outputs:
 ### Drift Detection chi tiết
 
 #### Giải thích cốt lõi
-**Drift** xảy ra khi resources trong AWS **bị modified** ngoài CloudFormation (qua console, CLI, hoặc service khác). Khi đó, CloudFormation state không khớp với actual state.
+**Drift** (lệch trạng thái) xảy ra khi resources trong AWS **bị sửa đổi (modified)** ngoài CloudFormation (qua console, CLI, hoặc service khác). Khi đó, state của CloudFormation không khớp với trạng thái thực tế (actual state).
 
 **Ví dụ:**
 - Template tạo Security Group với rule SSH (port 22)
-- User manual add rule RDP (port 3389) qua console
+- Người dùng (User) tự thêm (manual add) rule RDP (port 3389) qua console
 - CloudFormation không biết về rule này
-- Nếu update stack, có thể **ghi đè** rule RDP
+- Nếu cập nhật (update) stack, có thể **ghi đè** rule RDP
 
 **Phát hiện drift:**
 
@@ -730,19 +730,19 @@ aws cloudformation describe-stack-resource-drifts \
   --stack-resource-drift-status-filters MODIFIED DELETED
 ```
 
-**Drift status:**
+**Trạng thái drift (Drift status):**
 - `IN_SYNC` - khớp với template
 - `MODIFIED` - bị thay đổi
 - `DELETED` - bị xóa
 - `NOT_CHECKED` - chưa kiểm tra
 
 #### NÊN làm
-- **Enable drift detection định kỳ (weekly/monthly)** → Vì phát hiện manual changes sớm, tránh surprises khi update stack. Có thể setup CloudWatch Event rule tự động.
-- **Dùng IAM permissions để restrict manual changes** → Vì ngăn users edit resources qua console khi resources được quản lý bởi CloudFormation. Ví dụ: deny `ec2:CreateSecurityGroup` cho non-admin users.
+- **Bật (Enable) drift detection định kỳ (tuần/tháng)** → Vì phát hiện các thay đổi thủ công (manual changes) sớm, tránh bất ngờ (surprises) khi cập nhật (update) stack. Có thể cài đặt (setup) CloudWatch Event rule tự động.
+- **Dùng IAM permissions để hạn chế (restrict) các thay đổi thủ công** → Vì ngăn người dùng (users) chỉnh sửa (edit) resources qua console khi resources được quản lý bởi CloudFormation. Ví dụ: từ chối (deny) `ec2:CreateSecurityGroup` cho các user không phải admin (non-admin users).
 
 #### KHÔNG NÊN làm
-- **Ignore drift detection** → Vì stack update có thể **overwrite** manual changes, gây mất cấu hình. NÊN: investigate drift, update template nếu cần, hoặc revert manual changes.
-- **Run drift detection liên tục (mỗi phút)** → Vì tốn API calls, có thể hit rate limits. NÊN: schedule weekly hoặc monthly, kết hợp với CloudWatch Events.
+- **Bỏ qua (Ignore) drift detection** → Vì stack update có thể **ghi đè (overwrite)** các thay đổi thủ công, gây mất cấu hình. NÊN: kiểm tra (investigate) drift, cập nhật (update) template nếu cần, hoặc hoàn tác (revert) các thay đổi thủ công.
+- **Chạy (Run) drift detection liên tục (mỗi phút)** → Vì tốn API calls, có thể chạm (hit) giới hạn tốc độ (rate limits). NÊN: lên lịch (schedule) theo tuần hoặc tháng, kết hợp với CloudWatch Events.
 
 ---
 
@@ -752,34 +752,34 @@ aws cloudformation describe-stack-resource-drifts \
 
 #### Giải thích cốt lõi
 
-| Feature | CloudFormation | CDK | Terraform |
+| Tính năng (Feature) | CloudFormation | CDK | Terraform |
 |---------|----------------|-----|-----------|
 | **Syntax** | YAML/JSON | TypeScript, Python, Java, Go, .NET | HCL (HashiCorp Language) |
-| **State Management** | AWS-managed | AWS-managed (compiles to CF) | State file (local hoặc S3) |
-| **Multi-cloud** | ❌ AWS only | ❌ AWS only (chính) | ✅ AWS, Azure, GCP, etc. |
-| **Learning Curve** | Medium (YAML, intrinsic functions) | High (programming concepts) | Medium (HCL syntax) |
-| **Community** | AWS native | AWS native | Very large, multi-cloud |
-| **Cost** | Free (chỉ trả resources) | Free | Free (Terraform Cloud có phí) |
-| **Drift Detection** | ✅ Built-in | ✅ Built-in (qua CF) | ✅ Built-in |
-| **Rollback** | ✅ Auto rollback | ✅ Auto rollback (qua CF) | ⚠️ Manual hoặc auto |
+| **State Management** | AWS tự quản lý (AWS-managed) | AWS tự quản lý (biên dịch thành CF) | File state (local hoặc S3) |
+| **Multi-cloud** | ❌ Chỉ AWS (AWS only) | ❌ Chỉ AWS (AWS only, chính) | ✅ AWS, Azure, GCP, v.v. |
+| **Learning Curve** | Trung bình (YAML, intrinsic functions) | Cao (các khái niệm lập trình) | Trung bình (cú pháp HCL) |
+| **Community** | Native của AWS | Native của AWS | Rất lớn, multi-cloud |
+| **Cost** | Miễn phí (chỉ trả tiền resources) | Miễn phí | Miễn phí (Terraform Cloud có phí) |
+| **Drift Detection** | ✅ Có sẵn (Built-in) | ✅ Có sẵn (qua CF) | ✅ Có sẵn |
+| **Rollback** | ✅ Auto rollback | ✅ Auto rollback (qua CF) | ⚠️ Thủ công (manual) hoặc tự động |
 
 **Khi nào dùng cái nào:**
 
-| Use Case | Recommended |
+| Trường hợp dùng (Use Case) | Nên dùng (Recommended) |
 |----------|-------------|
-| **AWS-only, team thích YAML** | CloudFormation |
-| **AWS-only, team là developers** | CDK |
+| **Chỉ AWS (AWS-only), team thích YAML** | CloudFormation |
+| **Chỉ AWS, team là developers** | CDK |
 | **Multi-cloud** | Terraform |
 | **Compliance cao, cần AWS-managed state** | CloudFormation |
-| **Open-source ecosystem** | Terraform |
+| **Hệ sinh thái mã nguồn mở (Open-source ecosystem)** | Terraform |
 
 #### NÊN làm
-- **Chọn CloudFormation khi AWS-only + cần AWS-managed state** → Vì zero infrastructure để quản lý state, integrate tốt với AWS services (CodePipeline, Service Catalog).
+- **Chọn CloudFormation khi chỉ dùng AWS (AWS-only) + cần AWS-managed state** → Vì không cần hạ tầng phụ (zero infrastructure) để quản lý state, tích hợp (integrate) tốt với các AWS services (CodePipeline, Service Catalog).
 - **Dùng CDK khi team là developers và code nhiều logic** → Vì CDK cho phép viết loops, conditions, abstractions dễ dàng hơn YAML.
 
 #### KHÔNG NÊN làm
-- **Mix CloudFormation và Terraform cho cùng resources** → Vì hai tools sẽ fight nhau, drift detection cả hai cùng report. NÊN: chọn 1 tool cho infrastructure.
-- **Dùng CloudFormation cho multi-cloud strategy** → Vì giới hạn AWS only. NÊN: Terraform hoặc Pulumi cho multi-cloud.
+- **Trộn (Mix) CloudFormation và Terraform cho cùng một resources** → Vì hai tools sẽ "tranh giành" (fight) nhau, drift detection của cả hai cùng báo cáo (report). NÊN: chọn 1 tool cho infrastructure.
+- **Dùng CloudFormation cho chiến lược multi-cloud** → Vì giới hạn chỉ trong AWS (AWS only). NÊN: Terraform hoặc Pulumi cho multi-cloud.
 
 ---
 
@@ -792,41 +792,41 @@ Dựa trên exam guide và câu hỏi DVA-C02, CloudFormation tập trung vào:
 
 **1. Intrinsic Functions (Hay xuất hiện nhất):**
 - `!Ref` vs `!GetAtt` - khi nào dùng cái nào
-- `!Sub` cho string substitution
-- `!Join` cho concatenations phức tạp
-- `!FindInMap` cho region-specific values
-- `!ImportValue` cho cross-stack references
+- `!Sub` cho thay chuỗi (string substitution)
+- `!Join` cho ghép chuỗi phức tạp (concatenations)
+- `!FindInMap` cho giá trị theo region (region-specific values)
+- `!ImportValue` cho tham chiếu cross-stack (cross-stack references)
 
-**2. Stack Management:**
-- Rollback behavior (Creation, Update, Failure)
+**2. Quản lý Stack (Stack Management):**
+- Hành vi Rollback (khi Tạo, Cập nhật, Thất bại)
 - DeletionPolicy (Delete, Retain, Snapshot)
-- Stack Policies (protect resources)
+- Stack Policies (bảo vệ resources)
 - Termination Protection
 - Drift Detection
 
-**3. Advanced Features:**
-- Custom Resources (Lambda-backed)
-- StackSets (multi-account, multi-region)
+**3. Tính năng nâng cao (Advanced Features):**
+- Custom Resources (dựa trên Lambda)
+- StackSets (nhiều account, nhiều region)
 - Nested Stacks
 - Change Sets
 - Service Roles
 
 **4. Parameters vs Mappings:**
-- Parameters: user input
-- Mappings: hardcoded lookup
+- Parameters: đầu vào của user (user input)
+- Mappings: bảng tra mã hóa sẵn (hardcoded lookup)
 
 **5. Outputs:**
-- Cross-stack references
-- Export names unique
+- Tham chiếu cross-stack (cross-stack references)
+- Tên Export phải duy nhất (unique)
 
 #### NÊN làm
-- **Học thuộc syntax YAML shorthand** → Vì exam cho cả JSON và YAML. YAML: `!Ref`, `!Sub`, `!GetAtt`. JSON: `{"Ref": "...", "Fn::Sub": "..."}`.
-- **Hiểu rõ DeletionPolicy behaviors** → Vì hay có câu hỏi: "RDS bị xóa khi delete stack - làm sao giữ data?" → Answer: `DeletionPolicy: Snapshot`.
-- **Biết khi nào dùng Custom Resources** → Vì câu hỏi: "Cần xóa non-empty S3 bucket" → Answer: Custom Resource backed by Lambda.
+- **Học thuộc cú pháp rút gọn (shorthand) của YAML** → Vì thi (exam) cho cả JSON và YAML. YAML: `!Ref`, `!Sub`, `!GetAtt`. JSON: `{"Ref": "...", "Fn::Sub": "..."}`.
+- **Hiểu rõ các hành vi (behaviors) của DeletionPolicy** → Vì hay có câu hỏi: "RDS bị xóa khi delete stack - làm sao giữ data?" → Đáp án (Answer): `DeletionPolicy: Snapshot`.
+- **Biết khi nào dùng Custom Resources** → Vì câu hỏi: "Cần xóa non-empty S3 bucket" → Đáp án (Answer): Custom Resource dựa trên Lambda.
 
 #### KHÔNG NÊN làm
-- **Học thuộc lòng 700+ resource types** → Vì không khả thi và không cần thiết. NÊN: hiểu structure `service-provider::service-name::data-type-name`, biết cách tra docs.
-- **Bỏ qua Drift Detection** → Vì là topic mới trong exam, AWS hay hỏi về "phát hiện resources bị thay đổi ngoài CloudFormation".
+- **Học thuộc lòng 700+ resource types** → Vì không khả thi và không cần thiết. NÊN: hiểu cấu trúc (structure) `service-provider::service-name::data-type-name`, biết cách tra cứu tài liệu (docs).
+- **Bỏ qua Drift Detection** → Vì là chủ đề (topic) mới trong kỳ thi (exam), AWS hay hỏi về "phát hiện resources bị thay đổi ngoài CloudFormation".
 
 ---
 
@@ -834,18 +834,18 @@ Dựa trên exam guide và câu hỏi DVA-C02, CloudFormation tập trung vào:
 
 ### Các khái niệm cần nhớ:
 
-| Concept | Key Point |
+| Khái niệm (Concept) | Điểm chính (Key Point) |
 |---------|-----------|
-| **Declarative IaC** | Khai báo desired state, AWS lo chi tiết |
-| **Parameters** | User inputs, dynamic values |
-| **Mappings** | Hardcoded lookups (Region, AMI) |
-| **Outputs** | Cross-stack references via `!ImportValue` |
-| **Conditions** | Conditional resource creation |
+| **Declarative IaC** | Khai báo trạng thái mong muốn (desired state), AWS lo phần chi tiết |
+| **Parameters** | Đầu vào của user (user inputs), giá trị động (dynamic values) |
+| **Mappings** | Bảng tra mã hóa sẵn (hardcoded lookups: Region, AMI) |
+| **Outputs** | Tham chiếu cross-stack (cross-stack references) qua `!ImportValue` |
+| **Conditions** | Tạo resource có điều kiện (conditional resource creation) |
 | **Intrinsic Functions** | `!Ref`, `!GetAtt`, `!Sub`, `!FindInMap`, `!ImportValue` |
-| **Rollback** | Auto-rollback on create/update fail |
-| **Service Role** | IAM role for CloudFormation to act on user's behalf |
-| **DeletionPolicy** | Delete (default), Retain, Snapshot |
-| **Stack Policy** | Protect resources from accidental updates |
-| **Custom Resources** | Extend CF with Lambda-backed custom logic |
-| **StackSets** | Multi-account, multi-region deployment |
-| **Drift Detection** | Detect manual changes outside CloudFormation |
+| **Rollback** | Tự động rollback (auto-rollback) khi tạo/cập nhật thất bại (create/update fail) |
+| **Service Role** | IAM role để CloudFormation thực hiện thay mặt (on behalf of) user |
+| **DeletionPolicy** | Delete (mặc định), Retain, Snapshot |
+| **Stack Policy** | Bảo vệ resources khỏi cập nhật nhầm (accidental updates) |
+| **Custom Resources** | Mở rộng CF bằng logic tùy chỉnh (custom logic) dựa trên Lambda |
+| **StackSets** | Triển khai (deployment) trên nhiều account, nhiều region |
+| **Drift Detection** | Phát hiện (detect) các thay đổi thủ công (manual changes) ngoài CloudFormation |

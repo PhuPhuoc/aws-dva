@@ -6,27 +6,27 @@
 
 ### SQS - Consuming Messages (Trang 441-442)
 
-**Consumer workflow - quy trình consumer:**
-1. Poll SQS for messages (nhận up to **10 messages** tại một lần)
-2. Process messages (ví dụ: insert vào RDS)
-3. Delete messages sử dụng **DeleteMessage API**
+**Quy trình Consumer (workflow):**
+1. Poll (lấy) messages từ SQS (nhận nhiều nhất **10 messages** một lần)
+2. Xử lý (process) messages (ví dụ: insert vào RDS)
+3. Xóa messages bằng **DeleteMessage API**
 
-**Parallel Processing - xử lý song song:**
-- Multiple EC2 instances có thể consume song song
-- **At least once delivery** - ít nhất một lần
-- **Best-effort message ordering** - cố gắng giữ thứ tự
-- Scale horizontally để cải thiện throughput
+**Xử lý song song (Parallel Processing):**
+- Nhiều EC2 instances có thể consume (đọc) song song
+- **Ghi ít nhất một lần (At least once delivery)**
+- **Giữ thứ tự message tốt nhất có thể (Best-effort message ordering)**
+- Scale ngang (horizontally) để cải thiện throughput
 
 ### Amazon SQS - Security (Trang 445-446)
 
 **Mã hóa - Encryption:**
-- **In-flight**: HTTPS API
-- **At-rest**: KMS keys
-- **Client-side**: Customer tự quản lý
+- **In-flight** (trên đường truyền): HTTPS API
+- **At-rest** (khi lưu): KMS keys
+- **Client-side**: Customer (khách hàng) tự quản lý
 
 **Access Controls - kiểm soát truy cập:**
 - **IAM policies**: Điều chỉnh SQS API access
-- **SQS Access Policies**: Cross-account access, cho phép SNS/S3 ghi
+- **SQS Access Policies**: Truy cập cross-account, cho phép SNS/S3 ghi vào queue
 
 ### SQS - Message Visibility Timeout (Trang 447-448)
 
@@ -38,42 +38,42 @@
 
 **Lưu ý:**
 - Timeout quá ngắn → duplicates
-- Timeout quá dài → slow re-processing on crash
+- Timeout quá dài → xử lý lại chậm khi hệ thống crash
 
 ### Amazon SQS - Dead Letter Queue (DLQ) (Trang 449-450)
 
-- Nếu message fail (exceed visibility timeout), quay lại queue
-- **MaximumReceives** threshold - ngưỡng
-- Sau khi exceed → message đến **DLQ**
-- DLQ phải match queue type:
+- Nếu message fail (vượt qua visibility timeout), sẽ quay lại queue
+- Ngưỡng **MaximumReceives** (số lần receive tối đa)
+- Sau khi vượt ngưỡng → message được chuyển đến **DLQ**
+- DLQ phải cùng loại (match) với queue gốc:
   - FIFO queue → FIFO DLQ
   - Standard queue → Standard DLQ
-- Set retention lên đến **14 days**
+- Cấu hình thời gian lưu (retention) lên đến **14 ngày**
 
 ### SQS DLQ - Redrive to Source (Trang 450)
 
-- Tính năng để consume DLQ messages
-- Hiểu vấn đề
-- Fix code
-- **Redrive** messages trở về source queue
+- Tính năng giúp đưa messages từ DLQ về lại source queue để xử lý
+- Xác định nguyên nhân vấn đề
+- Sửa (fix) code
+- **Redrive** (đưa lại) messages về source queue
 
 ### Amazon SQS - Delay Queue (Trang 451)
 
-- Delay message (invisible) lên đến **15 minutes**
-- Default: 0 seconds (immediately available)
-- Set ở queue level hoặc per message sử dụng **DelaySeconds**
+- Trì hoãn (delay) message (không hiển thị) lên đến **15 phút**
+- Mặc định: 0 giây (message có thể nhận ngay)
+- Cấu hình ở cấp queue hoặc cho từng message bằng tham số **DelaySeconds**
 
 ### Amazon SQS - Long Polling (Trang 452)
 
-- Consumer có thể **wait** cho messages nếu queue trống
-- Giảm API calls, cải thiện efficiency
-- Wait time: **1-20 seconds** (20 sec preferable)
-- Enabled ở queue level hoặc sử dụng **WaitTimeSeconds**
+- Consumer có thể **wait** (chờ) khi queue chưa có messages
+- Giảm số lần gọi API, tăng hiệu quả
+- Thời gian chờ (wait time): **1-20 giây** (nên dùng 20 giây)
+- Bật ở cấp queue hoặc dùng tham số **WaitTimeSeconds**
 
 ### SQS Extended Client (Trang 453)
 
-- Message size limit: **256KB**
-- Cho messages lớn hơn (ví dụ: 1GB): Sử dụng SQS Extended Client (Java library)
+- Giới hạn kích thước message (message size limit): **256KB**
+- Với messages lớn hơn (ví dụ: 1GB): Dùng SQS Extended Client (thư viện Java) để lưu message trong S3
 
 ### SQS Must Know API (Trang 454)
 
@@ -92,20 +92,20 @@
 **FIFO = First In First Out**
 
 **Thuộc tính:**
-- Limited throughput: **300 msg/s** (without batching)
-- **3000 msg/s** (with batching)
-- **Exactly-once** send capability
-- Messages processed **in order**
+- Throughput hạn chế: **300 msg/s** (không dùng batching)
+- **3000 msg/s** (khi dùng batching)
+- Khả năng gửi **chỉ một lần duy nhất (exactly-once)**
+- Messages được xử lý **đúng thứ tự**
 
 **Deduplication - loại bỏ trùng lặp:**
-- Interval: **5 minutes**
+- Khoảng thời gian (interval): **5 phút**
 - Methods:
-  - **Content-based**: SHA-256 hash của message body
-  - **Explicit**: Cung cấp Message Deduplication ID
+  - **Content-based**: hash SHA-256 của nội dung (body) message
+  - **Explicit**: Tự cung cấp Message Deduplication ID
 
 **Message Grouping - nhóm messages:**
 - Same **MessageGroupID** → một consumer, ordered
-- Different MessageGroupID → parallel processing, order within group
+- Khác MessageGroupID → xử lý song song giữa các group, thứ tự được giữ trong từng group
 
 ---
 
@@ -113,15 +113,15 @@
 
 ### Amazon SNS Overview (Trang 459)
 
-**Architecture:**
-- **Producer** gửi đến một SNS topic
-- **Multiple subscribers** nhận tất cả messages
-- Up to **12,500,000 subscriptions** per topic
-- **100,000 topics** limit
+**Kiến trúc (Architecture):**
+- **Producer (người gửi)** gửi đến một SNS topic
+- Nhiều **subscribers (người nhận)** nhận tất cả messages
+- Nhiều nhất **12,500,000 subscriptions** mỗi topic
+- Giới hạn **100,000 topics** (mỗi tài khoản)
 
-**Subscriber types:**
-- SQS, Lambda, Kinesis Data Firehose
-- Emails, SMS, HTTP(S)
+**Các loại subscriber:**
+- SQS, Lambda, Kinesis Data Firehose (các service AWS)
+- Email, SMS, HTTP(S)
 - Mobile Notifications
 
 ### SNS Integrations (Trang 460)
@@ -137,26 +137,26 @@
 
 ### Amazon SNS - How to Publish (Trang 461)
 
-**Topic Publish:**
+**Publish đến Topic:**
 1. Tạo một topic
 2. Tạo subscriptions
 3. Publish đến topic
 
 **Direct Publish (cho mobile apps):**
-1. Tạo platform application
-2. Tạo platform endpoint
+1. Tạo application nền tảng (platform application)
+2. Tạo endpoint nền tảng (platform endpoint)
 3. Publish đến platform endpoint
 
 ### Amazon SNS - Security (Trang 462)
 
 **Mã hóa:**
-- In-flight: HTTPS
-- At-rest: KMS keys
-- Client-side: Customer tự quản lý
+- In-flight (trên đường truyền): HTTPS
+- At-rest (khi lưu): KMS keys
+- Client-side: Customer (khách hàng) tự quản lý
 
-**Access Controls:**
+**Kiểm soát truy cập (Access Controls):**
 - IAM policies
-- SNS Access Policies (cross-account)
+- SNS Access Policies (cross-account - giữa các tài khoản)
 
 ### SNS + SQS: Fan Out (Trang 463)
 
@@ -169,21 +169,21 @@ SNS Topic → SQS Queue 1 → Consumer 1
 
 **Lợi ích:**
 - Push một lần, nhận ở tất cả queues
-- Fully decoupled, no data loss - tách biệt hoàn toàn
-- SQS cung cấp persistence, retries
-- Cross-Region delivery supported
+- Tách biệt hoàn toàn (fully decoupled), không mất dữ liệu (no data loss)
+- SQS cung cấp lưu trữ bền vững (persistence) và cơ chế thử lại (retries)
+- Hỗ trợ chuyển message đến nhiều Region (cross-Region)
 
 ### Amazon SNS - FIFO Topic (Trang 466)
 
-- FIFO ordering
+- Thứ tự xử lý FIFO (đầu vào trước, đầu ra trước)
 - Giống SQS FIFO:
-  - Message Group ID cho ordering
-  - Deduplication
-- SQS Standard và FIFO queues as subscribers
+  - Dùng Message Group ID để giữ thứ tự
+  - Deduplication (loại bỏ trùng lặp)
+- Có thể dùng cả SQS Standard lẫn FIFO queue làm subscriber
 
 ### SNS - Message Filtering (Trang 468)
 
-- JSON policy để filter messages
+- Dùng JSON policy (filter policy) để lọc messages
 - Subscription không có filter → nhận tất cả messages
 
 ---
@@ -193,49 +193,49 @@ SNS Topic → SQS Queue 1 → Consumer 1
 ### Kinesis Data Streams (Trang 469-470)
 
 **Tính năng:**
-- Collect and store streaming data **real-time** - thu thập và lưu trữ dữ liệu streaming thời gian thực
-- Retention: **1-365 days**
+- Thu thập và lưu trữ (collect and store) dữ liệu streaming **real-time**
+- Thời gian lưu (retention): **1-365 ngày**
 - Ability to **replay** data - khả năng phát lại dữ liệu
-- Data up to **1MB**
-- Ordering guarantee cho same Partition ID
-- At-rest KMS encryption
+- Dữ liệu lên đến **1MB** (data up to 1MB)
+- Đảm bảo thứ tự (ordering) với cùng Partition ID
+- Mã hóa KMS khi lưu trữ (at-rest)
 
 ### Kinesis Data Streams - Capacity Modes (Trang 471)
 
-**Provisioned Mode:**
-- Choose number of **shards**
-- Each shard: **1MB/s in**, **2MB/s out**
-- Scale manually
-- Pay per shard per hour
+**Chế độ Provisioned (Provisioned Mode):**
+- Tự chọn số **shards**
+- Mỗi shard: **1MB/s vào**, **2MB/s ra**
+- Tự scale (scale thủ công)
+- Thanh toán theo shard theo giờ
 
-**On-Demand Mode:**
-- No provisioning needed - không cần provision
-- Default capacity: **4 MB/s**
-- Auto-scales based on peak
-- Pay per stream + data in/out
+**Chế độ On-Demand (On-Demand Mode):**
+- Không cần provision (chuẩn bị sẵn capacity)
+- Capacity mặc định: **4 MB/s**
+- Tự động scale theo lượng đỉnh (peak)
+- Thanh toán theo stream + dữ liệu vào/ra
 
 ### Amazon Data Firehose (Trang 472-473)
 
-- Load streaming data đến các destinations
+- Đưa (load) dữ liệu streaming đến các destinations
 - Destinations:
   - S3, Redshift, OpenSearch
   - 3rd party (Splunk, MongoDB, Datadog)
   - Custom HTTP
-- **Fully managed**, serverless
-- Near real-time
-- Supports CSV, JSON, Parquet, Avro
-- Custom transformations via Lambda
+- **Fully managed** (quản lý hoàn toàn), serverless
+- Gần như real-time (near real-time)
+- Hỗ trợ định dạng CSV, JSON, Parquet, Avro
+- Biến đổi dữ liệu tùy chỉnh (custom transformations) bằng Lambda
 
 ### Kinesis Data Streams vs Firehose (Trang 474)
 
 | Đặc điểm | Kinesis Data Streams | Firehose |
 |---------|---------------------|----------|
-| **Type** | Streaming collection | Load to destinations |
-| **Code** | Producer & Consumer | Fully managed |
+| **Loại (Type)** | Thu thập streaming (Streaming collection) | Đưa dữ liệu đến destinations (Load to destinations) |
+| **Code** | Producer & Consumer (phải tự viết) | Fully managed (quản lý hoàn toàn) |
 | **Real-time** | Có | Near real-time |
-| **Capacity** | Provisioned/On-demand | Auto scaling |
+| **Capacity** | Provisioned hoặc On-demand | Auto scaling (tự động) |
 | **Replay** | Có | Không |
-| **Storage** | Up to 365 days | Không |
+| **Storage (Lưu trữ)** | Lâu nhất 365 ngày | Không |
 
 ---
 
@@ -243,12 +243,12 @@ SNS Topic → SQS Queue 1 → Consumer 1
 
 | Đặc điểm | SQS | SNS | Kinesis |
 |---------|-----|-----|---------|
-| **Type** | Queue | Pub/Sub | Stream |
-| **Delivery** | Pull | Push | Pull |
-| **Consumers** | 1 | Many | Many (shards) |
-| **Ordering** | FIFO available | FIFO available | Per shard |
+| **Loại (Type)** | Hàng đợi (Queue) | Pub/Sub | Dòng (Stream) |
+| **Giao nhận (Delivery)** | Kéo (Pull) | Đẩy (Push) | Kéo (Pull) |
+| **Consumers** | 1 | Nhiều | Nhiều (theo shards) |
+| **Thứ tự (Ordering)** | Có FIFO | Có FIFO | Theo từng shard |
 | **Replay** | Không | Không | Có |
-| **Use case** | Decouple | Fan-out | Real-time analytics |
+| **Dùng cho (Use case)** | Tách biệt (Decouple) | Phân tán (Fan-out) | Phân tích real-time |
 
 ---
 
@@ -257,39 +257,39 @@ SNS Topic → SQS Queue 1 → Consumer 1
 ### Amazon CloudWatch Metrics (Trang 481-482)
 
 **Khái niệm:**
-- **Namespace**: Container cho metrics (ví dụ: AWS/EC2)
-- **Dimension**: Attribute của metric (up to 30)
-- **Metric**: Variable để monitor (CPUUtilization, NetworkIn)
-- **Timestamp**: Thời gian đo lường
+- **Namespace**: nhóm (container) cho metrics (ví dụ: AWS/EC2)
+- **Dimension**: thuộc tính (attribute) của metric (tối đa 30)
+- **Metric**: chỉ số (biến số) để giám sát (monitor) (CPUUtilization, NetworkIn)
+- **Timestamp**: thời điểm đo lường (thời gian)
 
 **EC2 Metrics:**
-- Standard: CPU, Disk, Network
-- **Không thể monitor memory** theo default
-- Custom metrics cho RAM, disk usage
+- Chuẩn: CPU, Disk (đĩa), Network (mạng)
+- Theo mặc định (default) **không thể monitor RAM (memory)**
+- Tự tạo custom metrics cho RAM, disk usage
 
 ### EC2 Detailed Monitoring (Trang 484)
 
 - Standard: **5 minutes**
 - Detailed: **1 minute**
-- Free Tier: 10 detailed monitoring metrics
-- Use cho faster ASG scaling
+- Free Tier: 10 metrics detailed monitoring (miễn phí)
+- Dùng để Auto Scaling Group scale nhanh hơn
 
 ### CloudWatch Custom Metrics (Trang 485)
 
 **Hai cách:**
 - **PutMetricData API** (SDK, CLI)
-- **CloudWatch Agent** (recommended cho EC2)
+- **CloudWatch Agent** (khuyến khích dùng cho EC2)
 
 **Resolution - độ phân giải:**
-- Standard: **1 minute**
-- High Resolution: **1/5/10/30 seconds** (higher cost)
+- Standard: **1 phút**
+- High Resolution (độ phân giải cao): **1/5/10/30 giây** (chi phí cao hơn)
 
 ### CloudWatch Logs (Trang 486-488)
 
 **Khái niệm:**
-- **Log groups**: Container cho related logs
-- **Log stream**: Individual log sequence
-- Expiration: Never expire đến 10 years
+- **Log groups**: nhóm (container) chứa các logs liên quan (related logs)
+- **Log stream**: một chuỗi (sequence) logs riêng lẻ
+- Thời hạn hết (expiration): không bao giờ đến 10 năm
 
 **Sources - các nguồn:**
 - SDK, CloudWatch Logs Agent, Unified Agent
@@ -299,28 +299,28 @@ SNS Topic → SQS Queue 1 → Consumer 1
 
 ### CloudWatch Logs Insights (Trang 489-490)
 
-- Purpose-built query language
-- Auto-discovers fields từ JSON logs
-- Calculate statistics, filter, sort
-- Save queries, add to dashboards
-- Query multiple accounts/regions
+- Ngôn ngữ query chuyên dụng (purpose-built)
+- Tự phát hiện (auto-discover) các trường (fields) từ JSON logs
+- Tính thống kê (statistics), lọc, sắp xếp
+- Lưu các query (save queries), thêm vào dashboards
+- Query giữa nhiều accounts/regions
 
 ### CloudWatch Logs for EC2 (Trang 495-496)
 
 **Yêu cầu:**
-1. Run CloudWatch agent trên EC2
+1. Chạy (run) CloudWatch agent trên EC2
 2. IAM permissions đúng
-3. Configuration file cho metrics/logs
+3. File cấu hình cho metrics/logs
 
 **Unified Agent thu thập:**
-- CPU, Disk metrics, RAM
-- Netstat, Processes, Swap Space
+- CPU, metrics đĩa, RAM
+- Netstat, Processes (tiến trình), Swap Space
 
 ### CloudWatch Logs Metric Filter (Trang 498)
 
-- Filter expressions cho logs
-- Trigger CloudWatch Alarms
-- **Does not retroactively filter** - không lọc dữ liệu cũ
+- Biểu thức lọc (filter expressions) cho logs
+- Kích hoạt (trigger) CloudWatch Alarms
+- **Không lọc ngược (does not retroactively filter)** - không lọc dữ liệu cũ
 
 ### CloudWatch Alarms (Trang 499-503)
 
@@ -330,27 +330,27 @@ SNS Topic → SQS Queue 1 → Consumer 1
 - **ALARM**
 
 **Targets - các mục tiêu:**
-- Stop, Terminate, Reboot, Recover EC2
-- Trigger Auto Scaling
-- Send SNS notification
+- Dừng, kết thúc, khởi động lại, khôi phục (Stop, Terminate, Reboot, Recover) EC2
+- Kích hoạt (trigger) Auto Scaling
+- Gửi (send) thông báo SNS
 
-**EC2 Instance Recovery:**
-- **Instance status**: Check EC2 VM
-- **System status**: Check hardware
-- Recovery restores same IP, metadata
+**Khôi phục EC2 Instance (EC2 Instance Recovery):**
+- **Instance status**: Kiểm tra (check) phần mềm/VM của EC2
+- **System status**: Kiểm tra (check) phần cứng
+- Recovery giữ nguyên IP và metadata của instance
 
-**Composite Alarms:**
-- Monitor multiple alarms
-- AND/OR conditions
-- Reduce alarm noise - giảm tiếng ồn alarm
+**Composite Alarms (alarm tổng hợp):**
+- Giám sát (monitor) nhiều alarm
+- Điều kiện AND/OR (và/or)
+- Giảm nhiễu (alarm noise) từ các alarm
 
 ### CloudWatch Synthetics Canary (Trang 504)
 
-- Configurable scripts monitor APIs, URLs, Websites
-- Reproduce customer behavior - tái tạo hành vi khách hàng
-- Check availability and latency
-- Integration with CloudWatch Alarms
-- Scripts: Node.js or Python
+- Scripts cấu hình được để monitor (giám sát) APIs, URLs, Websites
+- Tái tạo (reproduce) hành vi của khách hàng (user)
+- Kiểm tra khả dụng (availability) và độ trễ (latency)
+- Tích hợp với CloudWatch Alarms
+- Scripts viết bằng Node.js hoặc Python
 
 ---
 
@@ -359,32 +359,32 @@ SNS Topic → SQS Queue 1 → Consumer 1
 ### Amazon EventBridge Overview (Trang 505)
 
 **Hai patterns - hai mô hình:**
-- **Schedule**: Cron jobs (scheduled scripts)
-- **Event Pattern**: React to service events - phản ứng với các sự kiện
+- **Schedule**: Cron jobs (các scripts chạy theo lịch)
+- **Event Pattern (Mẫu sự kiện)**: phản ứng (react) với các service events
 
 **Targets - các mục tiêu:**
-- Lambda functions
+- Các Lambda functions (hàm)
 - SQS/SNS messages
 
 ### Amazon EventBridge Features (Trang 507-509)
 
-**Event Buses:**
-- Default event bus cho AWS services
-- Partner event buses cho SaaS
-- Custom event buses
+**Event Buses (các tổng sự kiện):**
+- Event bus mặc định cho các AWS services
+- Partner event buses (dành cho SaaS)
+- Custom event buses (tự tạo)
 
-**Archive & Replay:**
-- Archive events (all or filtered)
-- Replay archived events
+**Lưu trữ & Phát lại (Archive & Replay):**
+- Lưu trữ (archive) events (toàn bộ hoặc đã lọc)
+- Phát lại (replay) các events đã archive
 
-**Schema Registry:**
+**Schema Registry (đăng ký schema dữ liệu):**
 - Infer schema từ events
-- Generate code với known structure
-- Versioning support
+- Tạo (generate) code với cấu trúc đã biết trước
+- Hỗ trợ quản lý phiên bản (versioning)
 
-**Resource-based Policies:**
-- Cross-account access
-- Aggregate events from Organization
+**Resource-based Policies (chính sách dựa trên resource):**
+- Truy cập cross-account (giữa các tài khoản)
+- Gom (aggregate) events từ Organization
 
 ---
 
@@ -393,58 +393,58 @@ SNS Topic → SQS Queue 1 → Consumer 1
 ### AWS X-Ray Overview (Trang 510-512)
 
 **X-Ray làm gì:**
-- Trace & analyze requests - theo dõi và phân tích requests
-- Visualize request flow across services - trực quan hóa luồng request
-- Identify bottlenecks - nhận diện điểm nghẽn
-- Troubleshoot performance issues - khắc phục vấn đề hiệu suất
+- Theo dõi và phân tích (trace & analyze) requests
+- Trực quan hóa (visualize) luồng request giữa các service
+- Nhận diện (identify) điểm nghẽn (bottlenecks)
+- Khắc phục (troubleshoot) các vấn đề hiệu suất (performance)
 
 **Lợi ích:**
-- Troubleshooting performance
-- Understand microservice dependencies
-- Pinpoint service issues
-- Review request behavior
-- Find errors and exceptions
-- SLA monitoring
+- Chẩn đoán (troubleshooting) hiệu năng
+- Hiểu các phụ thuộc (dependencies) giữa microservices
+- Định vị (pinpoint) các vấn đề của service
+- Xem xét (review) hành vi của request
+- Tìm lỗi (errors) và ngoại lệ (exceptions)
+- Giám sát (monitoring) SLA
 
 ### X-Ray Compatibility (Trang 513)
 
 - AWS Lambda, Elastic Beanstalk, ECS
 - ELB, API Gateway
-- EC2 Instances, on-premises
+- EC2 Instances và hệ thống on-premises (nội bộ)
 
 ### AWS X-Ray - How it Works (Trang 514-516)
 
 **Components - các thành phần:**
-1. **SDK** in application code
-2. **X-Ray Daemon** (UDP packet interceptor)
+1. **SDK** cấy vào (cài đặt) trong code ứng dụng
+2. **X-Ray Daemon** (thiết bị chặn và chuyển tiếp UDP packets - UDP packet interceptor)
 
 **SDK captures - SDK bắt:**
-- Calls to AWS services
-- HTTP/HTTPS requests
-- Database calls
-- Queue calls
+- Các cuộc gọi (calls) tới AWS services
+- Các request HTTP/HTTPS
+- Các cuộc gọi database
+- Các cuộc gọi queue
 
 ### X-Ray Concepts (Trang 519)
 
 | Khái niệm | Mô tả |
 |---------|-------------|
-| **Segment** | Data from application/service |
-| **Subsegment** | More details in segment |
-| **Trace** | Collection of segments |
-| **Sampling** | Reduce data recorded - giảm dữ liệu ghi |
-| **Annotations** | Key-value pairs, indexed |
-| **Metadata** | Key-value pairs, not indexed |
+| **Segment** | Dữ liệu từ application/service |
+| **Subsegment** | Chi tiết hơn (more details) trong segment |
+| **Trace** | Tập hợp (collection) các segments |
+| **Sampling** | Giảm dữ liệu được ghi (reduce data recorded) |
+| **Annotations** | Các cặp key-value, được lập chỉ mục (indexed) |
+| **Metadata** | Các cặp key-value, không lập chỉ mục (not indexed) |
 
-**Default sampling:**
-- First request each second
-- 5% of additional requests
+**Sampling theo mặc định (default sampling):**
+- Request đầu tiên của mỗi giây
+- 5% số request còn lại
 
 ### AWS Distro for Open Telemetry (Trang 527-528)
 
-- AWS-supported distribution of OpenTelemetry
-- Single set of APIs, libraries, agents
-- Collect traces and metrics
-- Send to multiple destinations (X-Ray, CloudWatch, Prometheus)
+- Phân phối (distribution) OpenTelemetry do AWS hỗ trợ
+- Bộ APIs, thư viện (libraries), agents dùng chung duy nhất
+- Thu thập (collect) traces và metrics
+- Gửi đến nhiều destinations (X-Ray, CloudWatch, Prometheus)
 
 ---
 
@@ -454,46 +454,46 @@ SNS Topic → SQS Queue 1 → Consumer 1
 
 **CloudTrail làm gì:**
 - Governance, compliance, audit - quản trị, tuân thủ, kiểm toán
-- **Enabled by default** - được bật theo mặc định
-- History of API calls - lịch sử các API calls
+- **Bật theo mặc định (enabled by default)**
+- Lịch sử (history) các API calls
 
 **Sources - các nguồn:**
-- Console, SDK, CLI, AWS Services
+- Console, SDK, CLI, các AWS Services
 
-**Integrations:**
+**Tích hợp (Integrations):**
 - CloudWatch Logs
 - S3
 
 ### CloudTrail Events (Trang 531-532)
 
-**Management Events:**
-- Operations on resources
-- Configure security, routing, logging
-- Read vs Write events
+**Management Events (sự kiện quản lý):**
+- Các thao tác (operations) trên resources
+- Cấu hình bảo mật (security), routing, logging
+- Phân biệt sự kiện đọc (read) và ghi (write)
 
-**Data Events:**
-- S3 object-level (GetObject, DeleteObject, PutObject)
-- Lambda function execution
-- Not logged by default (high volume)
+**Data Events (sự kiện dữ liệu):**
+- Cấp object trong S3 (GetObject, DeleteObject, PutObject)
+- Chạy (execution) Lambda function
+- Không được ghi log theo mặc định (vì số lượng lớn)
 
 **CloudTrail Insights:**
-- Detect unusual activity - phát hiện hoạt động bất thường
-- Inaccurate provisioning
-- Hitting limits - chạm giới hạn
-- Bursts of IAM actions
+- Phát hiện (detect) các hoạt động bất thường (unusual activity)
+- Cấu hình (provisioning) không chính xác
+- Vượt giới hạn (hitting limits)
+- Gặp sự bùng phát (bursts) các thao tác IAM
 
 ### CloudTrail Events Retention (Trang 533)
 
-- Events stored for **90 days**
-- Log to S3 + Athena cho longer retention
+- Events được lưu **90 ngày**
+- Ghi log vào S3 + Athena để lưu lâu hơn
 
 ### CloudTrail vs CloudWatch vs X-Ray (Trang 536)
 
 | Service | Purpose - Mục đích |
 |---------|---------|
-| **CloudTrail** | Audit API calls, detect unauthorized access - kiểm toán API calls |
-| **CloudWatch** | Metrics over time, logs, alarms |
-| **X-Ray** | Distributed tracing, latency analysis |
+| **CloudTrail** | Kiểm toán (audit) API calls, phát hiện truy cập không được cấp phép (unauthorized access) |
+| **CloudWatch** | Metrics theo thời gian, logs, alarms |
+| **X-Ray** | Distributed tracing (theo dõi phân tán), phân tích latency |
 
 ---
 
@@ -501,10 +501,10 @@ SNS Topic → SQS Queue 1 → Consumer 1
 
 ### What's Serverless? (Trang 540)
 
-- No servers to manage - không cần quản lý servers
-- Deploy code/functions
-- FaaS (Function as a Service)
-- Databases, messaging, storage managed
+- Không cần quản lý (manage) bất kỳ server nào
+- Chỉ cần triển khai (deploy) code/functions
+- FaaS (Function as a Service - dịch vụ dạng hàm)
+- Các databases, messaging, storage do AWS quản lý sẵn
 
 ### Why AWS Lambda (Trang 542)
 
@@ -512,36 +512,36 @@ SNS Topic → SQS Queue 1 → Consumer 1
 
 | EC2 | Lambda |
 |-----|--------|
-| Virtual servers | Virtual functions |
-| Limited by RAM/CPU | Limited by time |
-| Continuously running | Run on-demand |
-| Manual scaling | Automated scaling |
+| Máy ảo (Virtual servers) | Hàm ảo (Virtual functions) |
+| Giới hạn bởi RAM/CPU | Giới hạn bởi thời gian |
+| Chạy liên tục | Chạy theo yêu cầu (on-demand) |
+| Scale thủ công (manual) | Scale tự động (automated) |
 
 ### AWS Lambda Benefits (Trang 543)
 
-- **Easy Pricing**: Pay per request and compute time
+- **Giá đơn giản (Easy Pricing)**: Trả tiền theo số request và thời gian tính toán
 - **Free Tier**: 1,000,000 requests + 400,000 GB-seconds
 - Integrated với AWS services
-- Multiple languages support
-- Easy monitoring (CloudWatch)
+- Hỗ trợ nhiều ngôn ngữ lập trình
+- Giám sát (monitoring) dễ dàng (CloudWatch)
 - Up to **10GB RAM**
 
 ### AWS Lambda Language Support (Trang 544)
 
 - Node.js, Python, Java
 - C#, PowerShell, Ruby
-- Custom Runtime API
-- Container Image (Lambda Runtime API)
+- Custom Runtime API (tự định nghĩa runtime)
+- Container Image (qua Lambda Runtime API)
 
 ### Lambda Pricing (Trang 548)
 
-**Pay per calls:**
-- First 1M requests: **Free**
-- After: $0.20 per 1M requests ($0.0000002 per request)
+**Trả tiền theo số lần gọi (Pay per calls):**
+- 1 triệu request đầu: **miễn phí**
+- Vượt mức: $0.20 cho mỗi 1 triệu request ($0.0000002/request)
 
-**Pay per duration:**
-- 400,000 GB-seconds free per month
-- After: $1.00 per 600,000 GB-seconds
+**Trả tiền theo thời gian thực thi (Pay per duration):**
+- 400,000 GB-seconds miễn phí mỗi tháng
+- Vượt mức: $1.00 cho mỗi 600,000 GB-seconds
 
 ### Lambda - Synchronous Invocations (Trang 549-550)
 
@@ -552,7 +552,7 @@ SNS Topic → SQS Queue 1 → Consumer 1
 - Cognito, Step Functions
 - Lex, Alexa, Kinesis Data Firehose
 
-**Error handling:** Client-side retries
+**Xử lý lỗi:** Retries (thử lại) ở phía client
 
 ### Lambda - Asynchronous Invocations (Trang 556)
 
@@ -562,32 +562,32 @@ SNS Topic → SQS Queue 1 → Consumer 1
 - CloudWatch Logs, SES, CloudFormation
 
 **Retry behavior:**
-- 3 tries total - thử 3 lần
-- 1 minute wait → 2 minutes wait
-- **Idempotent processing required** - cần xử lý idempotent
-- DLQ cho failed processing
+- Thử tối đa 3 lần
+- Chờ 1 phút, sau đó chờ 2 phút trước mỗi lần thử
+- Cần xử lý **idempotent** (chạy lại cho kết quả như nhau)
+- DLQ (Dead Letter Queue) cho các lần xử lý thất bại
 
 ### Lambda - Event Source Mapping (Trang 561)
 
 **Sources - các nguồn:**
-- Kinesis Data Streams
-- SQS & SQS FIFO
+- Dữ liệu từ Kinesis Data Streams
+- SQS và SQS FIFO
 - DynamoDB Streams
 
-**Lambda invoked synchronously**
+**Lambda được gọi một cách đồng bộ (synchronously)**
 
 ### Lambda - Destinations (Trang 565)
 
 **Async invocations:**
-- Successful: SQS, SNS, Lambda, EventBridge
-- Failed: DLQ
+- Xử lý thành công: gửi đến SQS, SNS, Lambda, EventBridge
+- Xử lý thất bại: chuyển đến DLQ
 
-**Event source mapping:**
-- Discarded batches: SQS, SNS
+**Event source mapping (lớp ánh xạ nguồn sự kiện):**
+- Batch bị bỏ (discarded): gửi thông báo đến SQS, SNS
 
 ### Lambda Execution Role (Trang 566)
 
-**Managed policies:**
+**Managed policies (các policy đã quản lý sẵn):**
 - `AWSLambdaBasicExecutionRole` - CloudWatch Logs
 - `AWSLambdaKinesisExecutionRole` - Kinesis
 - `AWSLambdaDynamoDBExecutionRole` - DynamoDB Streams
@@ -597,107 +597,107 @@ SNS Topic → SQS Queue 1 → Consumer 1
 
 ### Lambda Resource Based Policies (Trang 567)
 
-- Give accounts/services permission to use Lambda
-- Similar to S3 bucket policies
+- Cấp quyền cho accounts/services khác được sử dụng Lambda
+- Tương tự như S3 bucket policies
 
 ### Lambda Logging & Monitoring (Trang 569)
 
 **CloudWatch Logs:**
-- Execution logs stored
-- IAM policy cho writes
+- Log thực thi (execution logs) được lưu tại đây
+- IAM policy cho phép ghi (writes) logs
 
 **CloudWatch Metrics:**
-- Invocations, Durations
-- Concurrent Executions
-- Error count, Success Rates
-- Throttles, Iterator Age
+- Số lần chạy (invocations), thời gian thực thi (durations)
+- Số lần thực thi đồng thời (concurrent executions)
+- Số lỗi, tỷ lệ thành công
+- Số lần bị throttle, Iterator Age (tuổi của iterator)
 
 ### Lambda Tracing with X-Ray (Trang 570)
 
-- Enable Active Tracing
+- Bật (enable) Active Tracing
 - IAM: `AWSXRayDaemonWriteAccess`
-- Environment variables cho X-Ray
+- Các biến môi trường (environment variables) cho X-Ray
 
 ### CloudFront Functions & Lambda@Edge (Trang 571-576)
 
 **CloudFront Functions:**
-- JavaScript only
-- Sub-ms startup, millions req/s
-- Viewer Request/Response
-- Cache key normalization, header manipulation
+- Chỉ hỗ trợ JavaScript (nhanh và nhẹ hơn)
+- Khởi động dưới 1ms (sub-ms), hàng triệu req/s
+- Các giai đoạn Viewer Request/Response
+- Chuẩn hóa (normalize) cache key, chỉnh sửa (manipulation) HTTP header
 
 **Lambda@Edge:**
-- Node.js or Python
-- 1000s req/s
-- 4 phases: Viewer/Origin Request/Response
-- Author in us-east-1, replicated globally
+- Hỗ trợ Node.js hoặc Python
+- Hàng nghìn req/s
+- 4 giai đoạn: Viewer/Origin Request/Response
+- Viết (author) ở us-east-1, sau đó được nhân rộng (replicate) toàn cầu
 
 ### Lambda in VPC (Trang 577-579)
 
-**Theo mặc định:** Lambda runs outside your VPC
+**Theo mặc định:** Lambda chạy (runs) ở bên ngoài VPC của bạn
 
 **Để truy cập VPC resources:**
-1. Define VPC ID, Subnets, Security Groups
-2. Lambda creates ENI in subnets
-3. Requires `AWSLambdaVPCAccessExecutionRole`
+1. Định nghĩa (define) VPC ID, Subnets, Security Groups
+2. Lambda tự tạo (create) ENI trong các subnets
+3. Bắt buộc cần (requires) `AWSLambdaVPCAccessExecutionRole`
 
 **Internet Access - truy cập Internet:**
-- Public subnet: No internet access
-- Private subnet: Internet via NAT Gateway
-- **VPC Endpoints**: Private access to AWS services
+- Public subnet: KHÔNG có internet access
+- Private subnet: ra Internet qua NAT Gateway
+- **VPC Endpoints**: truy cập riêng tư (private) tới các AWS services
 
 ### Lambda Function Configuration (Trang 580)
 
 **RAM:**
-- 128MB đến **10GB** (1MB increments)
-- More RAM = more vCPU
-- At 1792MB = 1 full vCPU
+- 128MB đến **10GB** (tăng theo bước (increment) 1MB)
+- Càng nhiều RAM = càng nhiều vCPU
+- Ở mức 1792MB tương đương 1 vCPU đầy đủ
 
-**Timeout:** Default 3 seconds, max **900 seconds (15 minutes)**
+**Timeout:** Mặc định 3 giây, tối đa **900 giây (15 phút)**
 
 ### Lambda Execution Context (Trang 581)
 
-- Temporary runtime environment
-- Initialize external dependencies
-- **Re-used cho subsequent invocations**
-- Includes `/tmp` directory
+- Môi trường runtime tạm thời (temporary)
+- Khởi tạo (initialize) các dependencies bên ngoài
+- **Được tái sử dụng cho các lần invoke tiếp theo**
+- Chứa sẵn thư mục `/tmp`
 
 ### Lambda /tmp Space (Trang 583)
 
-- Up to **10GB** storage
-- Content remains when frozen
-- Use cho transient cache
-- For permanent storage: S3
-- Encrypt với KMS Data Keys
+- Dung lượng lưu trữ lên đến **10GB**
+- Nội dung vẫn còn khi instance bị đóng băng (frozen)
+- Dùng cho cache tạm (transient cache)
+- Để lưu trữ lâu dài (permanent): dùng S3
+- Mã hóa (encrypt) bằng KMS Data Keys
 
 ### Lambda Layers (Trang 584)
 
-- Externalize dependencies
-- Custom runtimes (C++, Rust)
-- Reuse across functions
+- Đưa dependencies ra bên ngoài (externalize) khỏi deployment package
+- Chạy custom runtimes (C++, Rust)
+- Tái sử dụng (reuse) giữa nhiều functions
 
 ### Lambda File Systems (Trang 585)
 
-- Access EFS in VPC
-- Configure EFS Access Points
-- Watch EFS connection limits
+- Truy cập (access) EFS nằm trong VPC
+- Cấu hình EFS Access Points (điểm truy cập)
+- Lưu ý (watch) giới hạn số kết nối EFS
 
 ### Lambda Concurrency (Trang 587-588)
 
-- **1000 concurrent executions** default limit
-- **Reserved concurrency**: Limit function
-- Throttle behavior:
-  - Sync: Return ThrottleError (429)
-  - Async: Retry → DLQ
+- Mức mặc định: **1000 executions đồng thời (concurrent)**
+- **Reserved concurrency**: dành trước (limit) mức độ song song cho từng function
+- Hành vi khi bị throttle (Throttle behavior):
+  - Đồng bộ (Sync): trả về ThrottleError (429)
+  - Bất đồng bộ (Async): Retry (thử lại) → DLQ
 
 ### Cold Starts & Provisioned Concurrency (Trang 590)
 
 **Cold Start:**
-- New instance: Load code, run init
-- First request có higher latency
+- Instance mới: tải code (load), chạy init (khởi tạo)
+- Request đầu tiên có độ trễ (latency) cao hơn
 
 **Provisioned Concurrency:**
-- Allocated before invocation
-- No cold starts
-- Low latency all the time
-- Application Auto Scaling support
+- Instance được cấp phát (allocated) trước khi có invocation
+- Không còn cold starts
+- Latency thấp liên tục (mọi lúc)
+- Hỗ trợ Application Auto Scaling (tự động điều chỉnh số lượng)

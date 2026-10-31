@@ -16,7 +16,7 @@
 - Sử dụng chữ in hoa
 - Sử dụng dấu gạch dưới (underscores)
 - Bắt đầu bằng `xn-` hoặc kết thúc bằng `-s3alias`
-- Sử dụng IP addresses
+- Sử dụng địa chỉ IP (IP addresses)
 
 ### S3 Object Key Design
 
@@ -39,8 +39,8 @@ my-bucket/
 
 **Lợi ích của cấu trúc phân cấp:**
 - Tổ chức tốt hơn
-- Sử dụng prefix-based lifecycle rules
-- Cải thiện hiệu suất (phân tán across prefixes)
+- Sử dụng lifecycle rules theo prefix (prefix-based)
+- Cải thiện hiệu suất (phân tán across các prefix)
 
 **KHÔNG NÊN:**
 ```
@@ -106,26 +106,26 @@ my-bucket/sku456_thumbnail.png
 **CRR (Cross-Region Replication):**
 - Yêu cầu tuân thủ (data residency)
 - Giảm latency cho người dùng toàn cầu
-- Disaster Recovery ở region khác
-- Không có chaining của replications
+- Disaster Recovery (khôi phục thảm họa) ở Region khác
+- Không có chaining của các replications
 
 **SRR (Same-Region Replication):**
-- Log aggregation từ nhiều accounts
-- Production → Test environment sync
-- Backup trong cùng region
+- Tổng hợp log (Log aggregation) từ nhiều accounts
+- Production → đồng bộ (sync) môi trường Test
+- Backup trong cùng Region
 
 **KHÔNG NÊN:**
-- Chain replications (A→B→C) - objects sẽ không đến C
-- Enable replication mà không có IAM permissions đúng
-- Quên rằng chỉ NEW objects được replicate
+- Chaining (chuỗi) các replications (A→B→C) - objects sẽ không đến C
+- Bật (Enable) replication mà không có IAM permissions đúng
+- Quên rằng chỉ NEW objects (object mới) được replicate
 
 ### S3 Versioning Best Practices
 
 **NÊN LÀM:**
-- Enable versioning cho TẤT CẢ buckets (best practice)
-- Sử dụng lifecycle rules để quản lý noncurrent versions
-- Set up MFA Delete cho sensitive buckets
-- Hiểu rằng suspend không xóa versions
+- Bật (Enable) versioning cho TẤT CẢ buckets (best practice)
+- Sử dụng lifecycle rules để quản lý các noncurrent versions (version không hiện hành)
+- Thiết lập (Set up) MFA Delete cho các bucket sensitive (nhạy cảm)
+- Hiểu rằng suspend (tạm dừng) không xóa các versions
 
 **⚠️ LƯU Ý:**
 - Versioning tăng chi phí storage
@@ -154,10 +154,10 @@ my-bucket/sku456_thumbnail.png
 └─────────────────────────────────────────────┘
 ```
 
-**Access Decision Logic:**
-1. Explicit DENY = DENY
-2. User IAM ALLOW OR Resource ALLOW = ALLOW
-3. Default = Implicit DENY
+**Logic ra quyết định truy cập (Access Decision Logic):**
+1. Explicit DENY = DENY (từ chối rõ ràng = từ chối)
+2. User IAM ALLOW HOẶC (OR) Resource ALLOW = ALLOW
+3. Mặc định (Default) = Implicit DENY (từ chối ngầm)
 
 ### S3 Bucket Policy Examples
 
@@ -221,17 +221,17 @@ my-bucket/sku456_thumbnail.png
 
 | Đặc điểm | SSE-S3 | SSE-KMS | SSE-C | Client-Side |
 |---------|--------|---------|-------|-------------|
-| Key Management | AWS | AWS KMS | Bạn | Bạn |
-| Key Rotation | Tự động | Có thể cấu hình | Thủ công | Thủ công |
-| Audit Trail | Hạn chế | CloudTrail | Không | Không |
-| Performance | Nhanh nhất | Chậm hơn | Chậm hơn | Chậm nhất |
-| HTTPS Required | Tùy chọn | Tùy chọn | **Bắt buộc** | Tùy chọn |
+| Quản lý Key (Key Management) | AWS | AWS KMS | Bạn | Bạn |
+| Xoay Key (Key Rotation) | Tự động | Có thể cấu hình | Thủ công | Thủ công |
+| Theo dõi (Audit Trail) | Hạn chế | CloudTrail | Không | Không |
+| Hiệu năng (Performance) | Nhanh nhất | Chậm hơn | Chậm hơn | Chậm nhất |
+| HTTPS bắt buộc (HTTPS Required) | Tùy chọn | Tùy chọn | **Bắt buộc** | Tùy chọn |
 
 **NÊN LÀM:**
-- Sử dụng **SSE-S3** cho hầu hết cases (default, hiệu quả)
-- Sử dụng **SSE-KMS** khi cần audit trail hoặc customer-managed keys
-- Sử dụng **SSE-C** khi phải quản lý keys bên ngoài AWS
-- Sử dụng **Client-side** cho mã hóa end-to-end
+- Dùng **SSE-S3** cho hầu hết các case (mặc định, hiệu quả)
+- Dùng **SSE-KMS** khi cần audit trail (theo dõi) hoặc customer-managed keys (key do khách hàng quản lý)
+- Dùng **SSE-C** khi phải quản lý keys bên ngoài AWS
+- Dùng **Client-side** cho mã hóa end-to-end (từ đầu đến cuối)
 
 **⚠️ QUAN TRỌNG:**
 - SSE-KMS có giới hạn request rate (5500-30000/s)
@@ -254,17 +254,17 @@ my-bucket/sku456_thumbnail.png
 ]
 ```
 
-**Scenario phổ biến:**
-- Frontend (CloudFront) → S3 bucket cho static assets
-- API calls đến S3 từ origin khác
-- Enable CORS trên S3 bucket
+**Kịch bản phổ biến (Scenario phổ biến):**
+- Frontend (CloudFront) → S3 bucket cho static assets (tài nguyên tĩnh)
+- Các API calls (gọi API) đến S3 từ origin (nguồn) khác
+- Bật (Enable) CORS trên S3 bucket
 
 ### S3 Pre-Signed URLs
 
 **NÊN LÀM:**
-- Tạo short-lived URLs cho downloads
-- Set expiration phù hợp
-- Sử dụng IAM roles cho việc tạo (bảo mật hơn)
+- Tạo URL short-lived (hết hạn nhanh) cho downloads (tải xuống)
+- Đặt thời gian hết hạn (expiration) phù hợp
+- Dùng IAM roles cho việc tạo (an toàn hơn)
 
 **Use cases:**
 ```bash
@@ -276,9 +276,9 @@ aws s3 presign s3://bucket/upload.txt --expires-in 3600
 ```
 
 **KHÔNG NÊN:**
-- Tạo pre-signed URLs với root credentials
-- Set expiration quá dài
-- Chia sẻ URLs công khai cho sensitive data
+- Tạo pre-signed URL bằng root credentials
+- Đặt thời gian hết hạn (expiration) quá dài
+- Chia sẻ URL công khai (public) cho dữ liệu nhạy cảm (sensitive data)
 
 ### S3 Object Lock vs. Versioning
 
@@ -291,9 +291,9 @@ aws s3 presign s3://bucket/upload.txt --expires-in 3600
 | **Legal Hold** | ❌ | ❌ | ❌ (cho đến khi removed) |
 
 **Khi nào sử dụng:**
-- **Compliance**: Ngành được quản lý, yêu cầu pháp lý
-- **Governance**: Kiểm soát nội bộ, ngăn accidental deletion
-- **Legal Hold**: Kiện tụng, điều tra
+- **Compliance (Tuân thủ)**: Ngành được quản lý (regulated), yêu cầu pháp lý
+- **Governance (Quản trị)**: Kiểm soát nội bộ, ngăn việc xóa nhầm (accidental deletion)
+- **Legal Hold (Phong tỏa pháp lý)**: Tranh tụng (Kiện tụng), điều tra
 
 ---
 
@@ -302,18 +302,18 @@ aws s3 presign s3://bucket/upload.txt --expires-in 3600
 ### S3 Performance Guidelines
 
 **NÊN LÀM:**
-- **Phân tán GET requests across prefixes**
-  - 1 prefix = 5,500 GET/HEAD requests/s
-  - 4 prefixes = 22,000 GET/HEAD requests/s
-- Sử dụng **CloudFront** CDN đằng trước S3
-- Sử dụng **S3 Transfer Acceleration** cho global uploads
+- **Phân tán GET requests theo các prefix** (across prefixes)
+  - 1 prefix = 5,500 request GET/HEAD/s
+  - 4 prefixes = 22,000 request GET/HEAD/s
+- Dùng **CloudFront** CDN phía trước S3
+- Dùng **S3 Transfer Acceleration** cho các upload toàn cầu (global)
 
-**Performance by operation:**
+**Hiệu năng theo thao tác (Performance by operation):**
 
-| Operation | Baseline per Prefix |
+| Thao tác (Operation) | Baseline theo Prefix |
 |-----------|--------------------|
-| GET/HEAD | 5,500 requests/s |
-| PUT/COPY/POST/DELETE | 3,500 requests/s |
+| GET/HEAD | 5,500 request/s |
+| PUT/COPY/POST/DELETE | 3,500 request/s |
 
 ### Multi-Part Upload Strategy
 
@@ -365,23 +365,23 @@ response = s3.select_object_content(
 
 **NÊN LÀM:**
 
-| VPC Size | Usable IPs | Common Use |
+| VPC Size | Số IP khả dụng (Usable IPs) | Mục đích dùng (Common Use) |
 |----------|------------|------------|
-| /28 | 11 | Small, isolated |
-| /27 | 27 | Single app |
-| /26 | 59 | Small department |
-| /24 | 243 | Medium app |
-| /16 | 65,531 | Large, multi-tier |
+| /28 | 11 | Nhỏ, cách ly (isolated) |
+| /27 | 27 | Một ứng dụng (single app) |
+| /26 | 59 | Phòng ban nhỏ (small department) |
+| /24 | 243 | Ứng dụng vừa (medium app) |
+| /16 | 65,531 | Lớn, nhiều tầng (large, multi-tier) |
 
-**RFC 1918 Private Ranges:**
-- `10.0.0.0/8` - Large networks
-- `172.16.0.0/12` - Medium networks (AWS default VPC)
-- `192.168.0.0/16` - Small networks
+**Các dải riêng tư RFC 1918 (RFC 1918 Private Ranges):**
+- `10.0.0.0/8` - Mạng lớn (large networks)
+- `172.16.0.0/12` - Mạng vừa (medium networks, AWS default VPC)
+- `192.168.0.0/16` - Mạng nhỏ (small networks)
 
 **KHÔNG NÊN:**
-- Sử dụng overlapping CIDRs
-- Sử dụng public IP ranges trong VPC
-- Tạo subnets quá nhỏ (nhớ -5 IPs)
+- Sử dụng các CIDR trùng (overlapping)
+- Sử dụng dải IP công cộng (public IP ranges) trong VPC
+- Tạo subnets quá nhỏ (nhớ công thức: khả dụng = tổng số - 5 IP)
 
 ### Subnet Design
 
@@ -398,47 +398,47 @@ VPC: 10.0.0.0/16
 └── Reserved: 10.0.4.0/22 (future)
 ```
 
-**Best Practices:**
-- Tách biệt public (Internet-facing) và private subnets
-- Deploy across multiple AZs cho HA
-- /24 subnet size là phổ biến
+**Thực hành tốt (Best Practices):**
+- Tách biệt subnet public (Internet-facing) và subnet private
+- Triển khai (Deploy) trên nhiều AZ cho HA (High Availability - cao khả dụng)
+- Kích thước subnet /24 là phổ biến
 
 ### Internet Gateway vs. NAT Gateway
 
 **Internet Gateway (IGW):**
-- Cho phép instances với **public IPs** truy cập Internet
-- **Outbound AND Inbound** traffic
-- Được sử dụng bởi instances trong **public subnets**
+- Cho phép instances có **IP public** (IP công cộng) truy cập Internet
+- Cả **Outbound và Inbound** (đi ra và đi vào) traffic
+- Được dùng bởi các instances trong **subnet public** (public subnets)
 
 **NAT Gateway:**
-- Cho phép instances với **private IPs** truy cập Internet
-- **Chỉ Outbound** (không có inbound từ Internet)
-- Được sử dụng bởi instances trong **private subnets**
-- Nằm trong **public subnet**
-- Được quản lý bởi AWS (không cần quản lý)
+- Cho phép instances có **IP private** (IP riêng tư) truy cập Internet
+- **Chỉ Outbound** (đi ra) (không có inbound đi vào từ Internet)
+- Được dùng bởi các instances trong **subnet private** (private subnets)
+- Được đặt trong **subnet public** (public subnet)
+- Được AWS quản lý (không cần tự quản lý)
 
 **Khi nào sử dụng:**
 | Nhu cầu | Giải pháp |
 |------|---------|
-| Instance với public IP truy cập Internet | IGW |
-| Private instance truy cập Internet (chỉ outbound) | NAT Gateway |
-| Không cần Internet access | Không cần |
+| Instance có IP public truy cập Internet | IGW |
+| Instance private truy cập Internet (chỉ outbound) | NAT Gateway |
+| Không cần truy cập Internet (Internet access) | Không cần |
 
 ### Security Groups vs NACLs
 
 **Security Groups (Stateful):**
-- Instance level
-- **Stateful**: Return traffic tự động được cho phép
-- **Default**: Deny all inbound, Allow all outbound
-- Evaluate TẤT CẢ rules
-- Hỗ trợ referencing other security groups
+- Cấp instance (instance level)
+- **Stateful (hữu trạng thái)**: Return traffic (lưu lượng phản hồi) được tự động cho phép
+- **Mặc định (Default)**: Deny (từ chối) mọi inbound (đi vào), Allow (cho phép) mọi outbound (đi ra)
+- Đánh giá (Evaluate) TẤT CẢ rules
+- Hỗ trợ tham chiếu (referencing) các security group khác
 
 **Network ACLs (Stateless):**
-- Subnet level
-- **Stateless**: Phải explicitly allow return traffic
-- **Default**: Allow all inbound/outbound
-- Evaluate rules theo THỨ TỰ (thấp đến cao)
-- Không referencing other security groups
+- Cấp subnet (subnet level)
+- **Stateless (vô trạng thái)**: Phải explicitly allow (cho phép rõ) return traffic
+- **Mặc định (Default)**: Allow (cho phép) mọi inbound/outbound
+- Đánh giá (Evaluate) rules theo THỨ TỰ (từ thấp đến cao)
+- Không tham chiếu (referencing) các security group khác
 
 **NÊN LÀM:**
 
@@ -447,19 +447,19 @@ Architecture:
 Internet → IGW → Route Table → Public Subnet → NACL → Security Group → EC2
 ```
 
-| Layer | Function | Type |
+| Lớp (Layer) | Chức năng (Function) | Loại (Type) |
 |-------|----------|------|
-| NACL | Subnet-level filtering | Stateless |
-| Security Group | Instance-level filtering | Stateful |
+| NACL | Lọc (filtering) ở cấp subnet | Stateless (vô trạng thái) |
+| Security Group | Lọc (filtering) ở cấp instance | Stateful (hữu trạng thái) |
 
 ### VPC Endpoints
 
 **NÊN LÀM:**
 
 **Gateway Endpoints (S3, DynamoDB):**
-- Miễn phí
-- Sử dụng route table entries
-- Chỉ cho S3 và DynamoDB
+- Miễn phí (không thu phí)
+- Dùng route table entries (các entry trong bảng định tuyến)
+- Chỉ dùng cho S3 và DynamoDB
 
 ```bash
 # Tạo Gateway Endpoint cho S3
@@ -470,9 +470,9 @@ aws ec2 create-vpc-endpoint \
 ```
 
 **Interface Endpoints:**
-- Chi phí per hour + data processing
-- ENI trong subnet
-- Cho các AWS services khác
+- Có chi phí theo giờ (per hour) + phí xử lý data (data processing)
+- Có ENI (Elastic Network Interface - giao diện mạng ảo) trong subnet
+- Dùng cho các AWS services khác (ngoài S3, DynamoDB)
 
 ### VPC Flow Logs
 
@@ -488,14 +488,14 @@ aws ec2 create-flow-logs \
   --log-group-name /aws/vpc/flow-logs
 ```
 
-**Log fields:**
-- srcaddr, dstaddr
-- srcport, dstport
-- action (ACCEPT/REJECT)
-- packets, bytes
+**Các trường log (Log fields):**
+- srcaddr (địa chỉ nguồn), dstaddr (địa chỉ đích)
+- srcport (cổng nguồn), dstport (cổng đích)
+- action (hành động: ACCEPT/REJECT)
+- packets (số gói), bytes (số byte)
 
 **KHÔNG NÊN:**
-- Log vào cùng VPC (tạo logging loop)
+- Log vào cùng VPC (tạo vòng lặp log - logging loop)
 - Quên tạo IAM role cho Flow Logs
 
 ---
@@ -511,21 +511,21 @@ User → CloudFront → S3 Bucket (Static Website)
 ```
 
 **Cấu hình:**
-1. Enable Static Website Hosting trên S3
-2. Set index.html làm index document
-3. Bucket policy: Allow public read
-4. Block Public Access: OFF
-5. Route 53: Tạo A record (Alias to S3)
+1. Bật (Enable) Static Website Hosting trên S3
+2. Đặt (Set) index.html làm index document
+3. Bucket policy: cho phép đọc công khai (Allow public read)
+4. Block Public Access (Chặn truy cập công khai): TẮT (OFF)
+5. Route 53: Tạo A record (trỏ Alias tới S3)
 
-### S3 + CloudFront Distribution
+### S3 + CloudFront Distribution (Phân phối S3 + CloudFront)
 
 **Lợi ích:**
-- Global edge locations
-- Giảm latency
-- DDoS protection
-- Caching at edge
+- Các vị trí edge toàn cầu (Global edge locations)
+- Giảm độ trễ (latency)
+- Bảo vệ DDoS (DDoS protection)
+- Caching tại các điểm edge (Caching at edge)
 
-**Cache invalidation:**
+**Invalidation cache (loại bỏ cache):**
 ```bash
 # Invalidate single file
 aws cloudfront create-invalidation \
@@ -568,31 +568,31 @@ VPC Endpoint (S3, DynamoDB)
 
 ## 6. Exam Tips
 
-### S3 Topics trọng tâm:
+### Các chủ đề S3 trọng tâm (S3 Topics):
 1. Storage classes và tối ưu chi phí
-2. Lifecycle rules
+2. Lifecycle rules (quy tắc vòng đời)
 3. Encryption (SSE-S3, SSE-KMS, SSE-C)
-4. Bucket policies (HTTPS enforcement, cross-account)
-5. Replication (CRR/SRR)
-6. Pre-signed URLs
-7. CORS configuration
+4. Bucket policies (bắt buộc HTTPS - HTTPS enforcement, cross-account)
+5. Replication (nhân bản: CRR/SRR)
+6. Pre-signed URLs (URL ký trước)
+7. Cấu hình CORS (CORS configuration)
 
-### VPC Topics trọng tâm:
-1. CIDR calculations
+### Các chủ đề VPC trọng tâm (VPC Topics):
+1. Tính toán CIDR (CIDR calculations)
 2. IGW vs NAT Gateway
 3. Security Groups vs NACLs
 4. VPC Endpoints
-5. Public vs Private subnets
-6. Route Tables
+5. Subnet Public so với Subnet Private (Public vs Private subnets)
+6. Route Tables (bảng định tuyến)
 
 ### Các Scenario phổ biến trong Exam:
-- "Cần host static website" → S3 + Route 53
-- "Cần ngăn accidental deletion" → S3 Versioning + Object Lock
-- "Cần cross-account access" → Bucket Policy
+- "Cần host (chủ trì) static website" → S3 + Route 53
+- "Cần ngăn (prevent) accidental deletion (xóa nhầm)" → S3 Versioning + Object Lock
+- "Cần cross-account access (truy cập xuyên account)" → Bucket Policy
 - "Cần private instances truy cập S3" → VPC Endpoint (Gateway)
-- "Cần tính usable IPs" → Subnet size - 5
+- "Cần tính usable IPs (số IP khả dụng)" → Subnet size - 5
 
-### VPC CIDR Quick Reference:
+### Tra cứu nhanh CIDR cho VPC (VPC CIDR Quick Reference):
 
 | CIDR | Total IPs | Usable IPs |
 |------|-----------|------------|

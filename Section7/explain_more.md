@@ -4,7 +4,7 @@
 
 ## 1. SQS Chi tiết
 
-### SQS Queue Types So sánh
+### So sánh các loại SQS Queue (Queue Types)
 
 **NÊN LÀM:**
 
@@ -16,17 +16,17 @@
 | Duplicates | Có thể xảy ra | Không duplicates |
 | Price | Thấp hơn | Cao hơn |
 
-**Khi nào dùng Standard:**
-- Cần high throughput
-- Duplicates có thể chấp nhận
-- Best-effort ordering OK
+**Khi nào nên dùng Standard Queue:**
+- Cần throughput cao (high throughput)
+- Chấp nhận được việc trùng lặp (duplicates)
+- Thứ tự best-effort là chấp nhận được
 
-**Khi nào dùng FIFO:**
-- Order quan trọng
-- Không được duplicate
-- Throughput thấp hơn acceptable
+**Khi nào nên dùng FIFO Queue:**
+- Thứ tự (order) là quan trọng
+- Không được phép trùng lặp (duplicates)
+- Có thể chấp nhận throughput thấp hơn
 
-### SQS Visibility Timeout Best Practices
+### Best Practices cho SQS Visibility Timeout
 
 **NÊN LÀM:**
 
@@ -54,12 +54,12 @@ def process_message(sqs, queue_url, message):
         raise
 ```
 
-**Timeout considerations:**
-- Processing time < Timeout
-- Thêm buffer cho failures
-- Sử dụng extended timeout cho long processing
+**Các lưu ý về timeout:**
+- Thời gian xử lý (processing time) phải nhỏ hơn timeout
+- Chừa thêm biên an toàn (buffer) cho các lần thất bại
+- Dùng extended timeout (kéo dài timeout) cho các tác vụ xử lý lâu
 
-### SQS Dead Letter Queue Configuration
+### Cấu hình SQS Dead Letter Queue
 
 **NÊN LÀM:**
 
@@ -80,14 +80,14 @@ MainQueue:
       maxReceiveCount: 3  # Sau 3 failures, gửi đến DLQ
 ```
 
-### SQS Long Polling vs Short Polling
+### So sánh SQS Long Polling và Short Polling
 
 **NÊN LÀM:**
 
-**Short Polling:**
-- Returns immediately kể cả khi queue trống
-- Lãng phí API calls
-- Chi phí cao hơn
+**Short Polling (KHUYẾN NGHỊ KHÔNG DÙNG):**
+- Trả về ngay lập tức kể cả khi queue trống
+- Lãng phí nhiều API calls
+- Chi phí cao hơn (do số lần gọi API lớn) (do số lần gọi API lớn)
 
 **Long Polling (KHUYẾN NGHỊ):**
 ```bash
@@ -101,11 +101,11 @@ aws sqs set-queue-attributes \
 
 ## 2. SNS Chi tiết
 
-### SNS Message Filtering
+### Lọc tin nhắn (SNS Message Filtering)
 
 **NÊN LÀM:**
 
-**Subscription filter policy:**
+**Subscription filter policy (chính sách lọc cho subscription):**
 ```json
 {
   "filterPolicy": {
@@ -116,7 +116,7 @@ aws sqs set-queue-attributes \
 }
 ```
 
-### SNS Fan-out Pattern
+### Mẫu (pattern) SNS Fan-out
 
 **NÊN LÀM:**
 
@@ -131,7 +131,7 @@ SNS Topic
 
 **NÊN LÀM:**
 
-**Platform applications:**
+**Ứng dụng nền tảng (platform applications):**
 - APNS (Apple)
 - FCM (Google)
 - ADM (Amazon)
@@ -143,7 +143,7 @@ SNS Topic
 
 ## 3. Kinesis Chi tiết
 
-### Kinesis Shard Capacity
+### Capacity của Kinesis Shard
 
 **NÊN LÀM:**
 
@@ -153,7 +153,7 @@ SNS Topic
 | Write | 1 MB/s |
 | Records | 1000 records/s |
 
-**Capacity planning:**
+**Lập kế hoạch capacity (Capacity planning):**
 ```python
 # Tính required shards
 def calculate_shards(write_rate_mbps, read_rate_mbps, records_per_sec):
@@ -164,19 +164,19 @@ def calculate_shards(write_rate_mbps, read_rate_mbps, records_per_sec):
     return max(write_shards, read_shards, record_shards)
 ```
 
-### Kinesis Enhanced Fan-out
+### Kinesis Enhanced Fan-out (Đọc nhanh) (Đọc nhanh)
 
 **NÊN LÀM:**
 
-- 2 MB/s per consumer per shard
-- Additional cost
+- 2 MB/s cho mỗi consumer trên mỗi shard (nhanh gấp đôi đọc thông thường)
+- Có chi phí thêm (thanh toán riêng)
 - Cho nhiều consumers đọc cùng một stream
 
 ---
 
 ## 4. CloudWatch Chi tiết
 
-### CloudWatch Metrics Resolution
+### Độ phân giải (resolution) của CloudWatch Metrics
 
 **NÊN LÀM:**
 
@@ -197,7 +197,7 @@ aws cloudwatch put-metric-data \
   --storage-resolution 10
 ```
 
-### CloudWatch Alarm Configuration
+### Cấu hình CloudWatch Alarm
 
 **NÊN LÀM:**
 
@@ -217,7 +217,7 @@ aws cloudwatch put-metric-alarm \
   --alarm-actions arn:aws:sns:region:account:topic
 ```
 
-### CloudWatch Logs Agent Configuration
+### Cấu hình CloudWatch Logs Agent
 
 **NÊN LÀM:**
 
@@ -239,7 +239,7 @@ aws cloudwatch put-metric-alarm \
 
 ## 5. X-Ray Chi tiết
 
-### X-Ray Sampling Rules
+### Quy tắc Sampling (X-Ray Sampling Rules)
 
 **NÊN LÀM:**
 
@@ -260,7 +260,7 @@ aws cloudwatch put-metric-alarm \
 }
 ```
 
-### X-Ray Daemon Configuration
+### Cấu hình X-Ray Daemon
 
 **NÊN LÀM:**
 
@@ -289,27 +289,27 @@ aws cloudwatch put-metric-alarm \
 
 ## 6. Lambda Chi tiết
 
-### Lambda Function Best Practices
+### Các thực hành tốt (best practices) cho Lambda Function
 
 **NÊN LÀM:**
 
-**Initialize outside handler:**
+**Khởi tạo (initialize) dependencies BÊN NGOÀI handler:**
 ```python
 import boto3
 import pymysql
 
-# Initialize outside handler - runs once per instance
+# Khởi tạo bên ngoài handler - chỉ chạy MỘT lần cho mỗi instance
 db_client = boto3.client('dynamodb')
 db_connection = pymysql.connect(...)  # Expensive initialization
 
 def handler(event, context):
-    # This runs for each invocation
+    # Phần này chạy với MỖI lần invoke
     data = process(event)
     return data
-    # Connection reused cho subsequent invocations
+    # Kết nối được tái sử dụng cho các lần invoke tiếp theo
 ```
 
-**Sử dụng /tmp cho temporary storage:**
+**Sử dụng /tmp làm vùng lưu tạm thời (temporary storage):**
 ```python
 import tempfile
 import os
@@ -322,18 +322,18 @@ def handler(event, context):
     return result
 ```
 
-### Lambda Concurrency Patterns
+### Các mẫu (patterns) Concurrency của Lambda
 
 **NÊN LÀM:**
 
-**Reserved concurrency:**
+**Reserved concurrency (giữ chỗ trước mức đồng thời):**
 ```bash
 aws lambda put-function-concurrency \
   --function-name my-function \
   --reserved-concurrent-executions 100
 ```
 
-**Provisioned concurrency:**
+**Provisioned concurrency (cấp phát trước):**
 ```bash
 aws lambda put-provisioned-concurrency-config \
   --function-name my-function \
@@ -341,11 +341,11 @@ aws lambda put-provisioned-concurrency-config \
   --provisioned-concurrent-executions 50
 ```
 
-### Lambda VPC Configuration
+### Cấu hình VPC cho Lambda
 
 **NÊN LÀM:**
 
-**Lambda VPC Access Role:**
+**IAM Role cho Lambda truy cập VPC (Lambda VPC Access Role):**
 ```json
 {
   "Version": "2012-10-17",
@@ -361,26 +361,26 @@ aws lambda put-provisioned-concurrency-config \
 }
 ```
 
-### Lambda Cold Start Optimization
+### Tối ưu Cold Start của Lambda
 
 **NÊN LÀM:**
 
-**Giảm cold start time:**
-1. Giảm deployment package size
-2. Minimize dependencies
-3. Sử dụng smaller runtime (Python vs Java)
-4. Provisioned concurrency cho critical functions
-5. Keep connections warm
+**Giảm thời gian khởi động lạnh (cold start time):**
+1. Giảm kích thước (size) của deployment package
+2. Giảm tối thiểu (minimize) số dependencies
+3. Dùng runtime nhỏ và nhẹ hơn (ví dụ: Python thay vì Java)
+4. Dùng Provisioned concurrency cho các function quan trọng (critical)
+5. Giữ sẵn kết nối (keep connections warm) để tránh tạo lại
 
-**Java optimization:**
+**Tối ưu Java (Java optimization):**
 - Sử dụng SnapStart (Lambda Powertools)
-- Minimize class initialization
+- Giảm thiểu (minimize) các quá trình khởi tạo class
 
 ---
 
 ## 7. CloudWatch Synthetics
 
-### Canary Configuration
+### Cấu hình Canary
 
 **NÊN LÀM:**
 
@@ -413,11 +413,11 @@ const handler = async () => {
 
 ## 8. EventBridge Patterns
 
-### EventBridge Rules
+### Quy tắc EventBridge (EventBridge Rules)
 
 **NÊN LÀM:**
 
-**Event pattern:**
+**Mẫu sự kiện (Event pattern):**
 ```json
 {
   "detail-type": ["EC2 Instance State-change Notification"],
@@ -429,14 +429,14 @@ const handler = async () => {
 }
 ```
 
-**Schedule pattern (Cron):**
+**Mẫu lịch trình (Schedule pattern, Cron):**
 ```json
 {
   "scheduleExpression": "cron(0 9 * * ? *)"
 }
 ```
 
-### EventBridge Schema Registry
+### Schema Registry của EventBridge
 
 **NÊN LÀM:**
 
@@ -455,7 +455,7 @@ aws schemas get-code-binding \
 
 ---
 
-## 9. Architecture Patterns
+## 9. Các Mẫu Kiến Trúc (Architecture Patterns)
 
 ### Event-Driven với SNS
 
@@ -469,7 +469,7 @@ Lambda (multiple subscribers)
 DynamoDB
 ```
 
-### SQS Worker Pattern
+### Mẫu Worker dùng SQS (SQS Worker Pattern)
 
 ```
 API Gateway
@@ -499,50 +499,50 @@ Response
 
 ---
 
-## 10. Exam Tips
+## 10. Mẹo Làm Bài Thi (Exam Tips)
 
 ### SQS trọng tâm:
-1. Standard vs FIFO
-2. Visibility timeout
-3. Dead Letter Queue
-4. Long polling
-5. Message retention
+1. So sánh Standard vs FIFO (loại queue)
+2. Visibility timeout (thời gian ẩn message)
+3. Dead Letter Queue (hàng chết - DLQ)
+4. Long polling (truy vấn dài)
+5. Message retention (thời gian lưu message)
 
 ### SNS trọng tâm:
-1. Fan-out pattern
-2. Message filtering
-3. FIFO topics
-4. Cross-region delivery
+1. Mẫu Fan-out (Fan-out pattern)
+2. Lọc tin nhắn (Message filtering)
+3. Các topics FIFO
+4. Gửi tin nhắn giữa các Region (Cross-region delivery)
 
 ### Kinesis trọng tâm:
-1. Shard capacity
-2. On-demand vs Provisioned
-3. Data Firehose destinations
+1. Capacity của Shard
+2. So sánh On-demand vs Provisioned
+3. Các destinations của Data Firehose
 
 ### CloudWatch trọng tâm:
-1. Custom metrics
+1. Custom metrics (metrics tùy chỉnh)
 2. Alarm states và actions
-3. Logs Insights queries
-4. Agent vs CloudWatch Logs
+3. Query của Logs Insights
+4. So sánh Agent vs CloudWatch Logs
 
 ### X-Ray trọng tâm:
 1. Segments và traces
-2. Sampling rules
-3. Daemon configuration
-4. SDK integration
+2. Các quy tắc Sampling (Sampling rules)
+3. Cấu hình Daemon (Daemon configuration)
+4. Tích hợp SDK (SDK integration)
 
 ### CloudTrail trọng tâm:
-1. Management vs Data events
-2. Insights events
-3. S3 + Athena integration
+1. So sánh Management vs Data events
+2. Các Insights events
+3. Tích hợp S3 + Athena (S3 + Athena integration)
 
 ### Lambda trọng tâm:
-1. Synchronous vs Asynchronous
-2. VPC configuration
+1. So sánh Synchronous vs Asynchronous
+2. Cấu hình VPC (VPC configuration)
 3. Concurrency và throttling
-4. Cold starts
-5. Provisioned concurrency
-6. Execution context reuse
+4. Các Cold starts (khởi động lạnh)
+5. Provisioned concurrency (cấp phát trước)
+6. Tái sử dụng Execution Context (Execution Context Reuse)
 
 ### Các Scenario phổ biến trong Exam:
 
@@ -550,8 +550,8 @@ Response
 |---------|----------|
 | Process messages với ordering | SQS FIFO |
 | Fan-out đến nhiều systems | SNS + SQS |
-| Real-time streaming analysis | Kinesis |
-| Monitor custom metrics | CloudWatch Custom Metrics |
+| Phân tích streaming real-time | Kinesis |
+| Giám sát (monitor) custom metrics | CloudWatch Custom Metrics |
 | Distributed tracing | X-Ray |
 | Audit API calls | CloudTrail |
 | Serverless function | Lambda |

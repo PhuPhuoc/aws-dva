@@ -53,6 +53,16 @@ pdftotext -f [start] -l [end] "[path/to/file.pdf]" -
 
 ---
 
+## Language Rule (STRICT COMPLIANCE REQUIRED)
+
+> **`slide.md` and `explain_more.md` MUST be written in VIETNESE.** Only the 72 technical keywords in the table above remain in English.
+
+- `slide.md`: Dịch nội dung slide gốc (English) sang **tiếng Việt**. Mọi dòng bullet, giải thích, tiêu đề phụ phải là tiếng Việt — KHÔNG được giữ nguyên câu tiếng Anh từ slide.
+  - ✅ `**Durability**: Loại storage bền nhất trên cloud` (dịch phần giải thích, giữ keyword)
+  - ❌ `**Durability**: Most durable storage in the cloud` (giữ nguyên câu tiếng Anh)
+- `explain_more.md`: Viết hoàn toàn bằng **tiếng Việt** (trừ keyword kỹ thuật, mã nguồn, bảng so sánh cột giá trị kiểu "Best effort" có thể giữ nếu là danh sách các giá trị kỹ thuật ngắn).
+- `dva_example.md`: Question **English**, Explanation **Vietnamese** (đúng như format thi — không thay đổi).
+
 ## Translation Rules (STRICT COMPLIANCE REQUIRED)
 
 ### Core Principle
@@ -316,7 +326,7 @@ pdftoppm -png "[path/to/file.pdf]" output_prefix
 
 ## Checklist Before Finishing a Section
 
-* [ ] `slide.md`: Accurate translation, preserved keywords, correct page numbers
+* [ ] `slide.md`: Accurate translation, preserved keywords, correct page numbers — **viết bằng tiếng Việt**, không giữ nguyên câu tiếng Anh từ slide
 * [ ] `explain_more.md`: Contains DO/DON'T tags, tips, and warnings
 * [ ] `dva_example.md`: English questions, Vietnamese explanations, vocabulary analysis included
 * [ ] `CLAUDE.md`: Updated if project changes occur

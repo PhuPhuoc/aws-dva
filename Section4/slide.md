@@ -8,39 +8,39 @@
 
 **S3 = Simple Storage Service**
 
-- **Building block** chính của AWS
-- Được quảng cáo là **"infinitely scaling"** storage
-- **Use cases:**
-  - Backup and storage
-  - Disaster Recovery
-  - Archive
-  - Hybrid Cloud storage
-  - Application hosting
-  - Media hosting
-  - Data lakes & big data analytics
-  - Software delivery
-  - Static website
+- **Building block** (viên gạch nền tảng) chính của AWS
+- Được quảng cáo là storage có khả năng **"infinitely scaling"** (mở rộng vô hạn)
+- **Use cases (trên thực tế):**
+  - Backup và lưu trữ (Backup and storage)
+  - Disaster Recovery (khôi phục thảm họa)
+  - Archive (lưu trữ dài hạn)
+  - Hybrid Cloud storage (lưu trữ hybrid cloud)
+  - Application hosting (chủ trì ứng dụng)
+  - Media hosting (chủ trì media)
+  - Data lakes & big data analytics (hồ dữ liệu & phân tích big data)
+  - Software delivery (phân phối phần mềm)
+  - Static website (website tĩnh)
 
-**Benefits:**
-- **Scalability**
-- **Durability**: Most durable storage in the cloud
-- **Availability**: Industry leading
-- **Security**: Secure, private, encrypted by default
-- **Multiple storage classes** với price performance tốt nhất
-- **Resiliency, flexibility, latency, throughput**
+**Lợi ích (Benefits):**
+- **Scalability** (tính mở rộng)
+- **Durability**: Loại storage bền nhất trên cloud
+- **Availability**: Dẫn đầu ngành (industry leading)
+- **Security**: An toàn, riêng tư, mã hóa (encrypted) theo mặc định
+- **Nhiều storage class** với hiệu suất/chi phí (price performance) tốt nhất
+- **Resiliency, flexibility, latency, throughput** (độ bền, linh hoạt, độ trễ, thông lượng)
 
 ### Amazon S3 - Buckets (Trang 192)
 
 - S3 cho phép lưu **objects (files)** trong **"buckets" (directories)**
-- Buckets phải có **globally unique name** (across all regions, all accounts)
+- Buckets phải có **tên unique toàn cầu** (globally unique, across all regions, all accounts)
 - Buckets được định nghĩa ở **region level**
-- S3 looks like a **global service** nhưng buckets được tạo trong một region
+- S3 nhìn như một **global service** (dịch vụ toàn cầu) nhưng các bucket được tạo trong một region cụ thể
 
-**Naming convention:**
-- Không uppercase, không underscore
-- 3-63 characters
-- Không phải IP
-- Phải bắt đầu bằng **lowercase letter hoặc number**
+**Quy tắc đặt tên (Naming convention):**
+- Không dùng chữ in hoa (uppercase), không dùng dấu gạch dưới (underscore)
+- 3-63 ký tự
+- Không được là địa chỉ IP
+- Phải bắt đầu bằng **chữ thường hoặc số** (lowercase letter hoặc number)
 - Không bắt đầu bằng prefix `xn-`
 - Không kết thúc bằng suffix `-s3alias`
 
@@ -50,57 +50,57 @@
 - Key = **FULL path:**
   - `s3://my-bucket/my_file.txt`
   - `s3://my-bucket/my_folder1/another_folder/my_file.txt`
-- Key composed of **prefix + object name**
+- **Key** được tạo bằng **prefix + tên object** (Key composed of prefix + object name)
 
-**Object properties:**
-- **Max Object Size**: 5TB (5000GB)
-- **Metadata**: Set of name-value pairs
-- **Tags**: Unicode key/value pair (up to 10)
-- **Version ID**: If versioning enabled
+**Thuộc tính Object (Object properties):**
+- **Kích thước tối đa Object (Max Object Size)**: 5TB (5000GB)
+- **Metadata**: Bộ các cặp name-value (Set of name-value pairs)
+- **Tags**: Cặp key/value kiểu Unicode (tối đa 10)
+- **Version ID**: Khi versioning được bật (If versioning enabled)
 
 ### Amazon S3 - Security (Trang 194-195)
 
-**User-Based:**
-- **IAM Policies** - allowed cho specific user từ IAM
+**Dựa theo user (User-Based):**
+- **IAM Policies** - cho phép (allowed) theo từng specific user từ IAM
 
-**Resource-Based:**
-- **Bucket Policies** - bucket-wide rules (JSON)
-- **Object Access Control List (ACL)** - finer grain (có thể disable)
-- **Bucket Access Control List (ACL)** - less common (có thể disable)
+**Dựa theo resource (Resource-Based):**
+- **Bucket Policies** - rules áp dụng cho cả bucket (JSON)
+- **Object Access Control List (ACL)** - granular hơn (có thể disable)
+- **Bucket Access Control List (ACL)** - ít dùng hơn (có thể disable)
 
 **Quy tắc Access:**
 - IAM principal có thể access S3 object nếu:
-  - User IAM permissions ALLOW **OR** resource policy ALLOWS
-  - **AND** there's no explicit DENY
+  - User IAM permissions ALLOW **HOẶC** resource policy ALLOWS
+  - **VÀ** không có explicit DENY nào
 
-**Encryption:** Encrypt objects sử dụng encryption keys
+**Encryption (Mã hóa):** Mã hóa (Encrypt) các object bằng encryption keys
 
 ### S3 Bucket Policies (Trang 195)
 
-**JSON based policies:**
+**Policies dạng JSON (JSON based policies):**
 - **Effect**: Allow / Deny
 - **Principal**: Account hoặc user để apply policy
-- **Actions**: Set of API to Allow hoặc Deny
-- **Resources**: Buckets và objects
+- **Actions**: Bộ các API để Allow hoặc Deny
+- **Resources**: Các Buckets và objects
 
-**Use cases:**
-- Grant public access to bucket
-- Force objects to be encrypted at upload
-- Grant access to another account (Cross Account)
+**Use cases (trên thực tế):**
+- Cấp quyền công khai (public access) cho bucket
+- Buộc objects phải được mã hóa (encrypted) khi upload
+- Cấp quyền truy cập cho account khác (Cross Account)
 
-### Bucket settings for Block Public Access (Trang 200)
+### Bucket settings của Block Public Access (Trang 200)
 
-- Được tạo để **prevent company data leaks**
+- Được tạo để **chống rò rỉ dữ liệu công ty** (prevent company data leaks)
 - Nếu bucket **không bao giờ** nên public, hãy để settings này ON
 - Có thể set ở **account level**
 
 ### Amazon S3 - Static Website Hosting (Trang 201)
 
-- S3 có thể host **static websites**
-- Website accessible on the Internet
-- **Nếu get 403 Forbidden error:**
+- S3 có thể host **static websites** (website tĩnh)
+- Website có thể truy cập từ Internet (accessible on the Internet)
+- **Nếu gặp lỗi 403 Forbidden:**
   - Block all Public Access: **OFF**
-  - Bucket policy allows public reads
+  - Bucket policy phải cho phép public read (allows public reads)
 
 **URL format:**
 ```
@@ -110,114 +110,114 @@ http://bucket-name.s3-website.aws-region.amazonaws.com
 
 ### Amazon S3 - Versioning (Trang 202)
 
-- Có thể **version files** trong S3
-- Enabled ở **bucket level**
-- Same key overwrite sẽ thay đổi "version": 1, 2, 3...
-- **Best practice** để version buckets
+- Có thể **version files** (gán phiên bản) trong S3
+- Bật (Enabled) ở **bucket level**
+- Overwrite cùng 1 key sẽ thay đổi "version": 1, 2, 3...
+- **Best practice** (thực hành tốt) là nên bật versioning cho các bucket
 
-**Benefits:**
-- Preserve, retrieve, and restore **every version**
-- Recover objects từ **accidental deletion or overwrite**
+**Lợi ích (Benefits):**
+- Giữ lại, truy xuất và khôi phục (Preserve, retrieve, and restore) **mọi version**
+- Khôi phục (Recover) các object bị **xóa nhầm hoặc ghi đè** (accidental deletion or overwrite)
 
-**Notes:**
+**Ghi chú (Notes):**
 - File không versioned trước khi enable sẽ có version **"null"**
-- Suspending versioning **không delete** previous versions
+- Tạm dừng (Suspending) versioning **không xóa** các previous versions
 
 ### Amazon S3 - Replication (CRR & SRR) (Trang 203-204)
 
-**Requirements:**
-- Must enable **Versioning** ở source và destination buckets
+**Yêu cầu (Requirements):**
+- Phải bật **Versioning** ở cả source lẫn destination buckets
 
-**Types:**
+**Các loại (Types):**
 - **Cross-Region Replication (CRR)**
 - **Same-Region Replication (SRR)**
-- Buckets có thể ở **different AWS accounts**
-- Copying là **asynchronous**
-- Must give proper **IAM permissions**
+- Các Buckets có thể thuộc **nhiều AWS account khác nhau**
+- Copy dữ liệu theo **asynchronous** (bất đồng bộ)
+- Phải cấp **IAM permissions** (quyền) đúng
 
-**Use cases:**
-- **CRR**: Compliance, lower latency access, replication across accounts
-- **SRR**: Log aggregation, live replication between production và test accounts
+**Use cases (trên thực tế):**
+- **CRR**: Tuân thủ (Compliance), giảm độ trễ truy cập (lower latency), nhân bản xuyên nhiều accounts
+- **SRR**: Gom log (Log aggregation), replication trực tiếp giữa production và test accounts
 
-**Important Notes:**
-- Sau khi enable replication, chỉ **new objects** được replicated
-- Sử dụng **S3 Batch Replication** để replicate existing objects
+**Lưu ý quan trọng (Important Notes):**
+- Sau khi enable replication, chỉ **new objects** (object mới) được replicated
+- Dùng **S3 Batch Replication** để replicate các existing objects (object đã có sẵn)
 - **DELETE operations**:
-  - Có thể replicate delete markers (optional)
-  - Deletions with version ID **không replicated** (tránh malicious deletes)
-- **No chaining** of replication
+  - Có thể replicate các delete markers (tuỳ chọn)
+  - Deletion có kèm version ID **không được replicate** (để tránh malicious deletes - xoá ác ý)
+- **Không được chaining** (chuỗi) replication
 
 ### S3 Storage Classes Overview (Trang 205-206)
 
-| Storage Class | Purpose |
+| Storage Class | Mục đích (Purpose) |
 |---------------|---------|
-| **S3 Standard** | General Purpose |
-| **S3 Standard-IA** | Infrequent Access |
-| **S3 One Zone-IA** | One Zone Infrequent Access |
-| **S3 Glacier Instant Retrieval** | Archive, ms retrieval |
-| **S3 Glacier Flexible Retrieval** | Archive, 1-12 hours retrieval |
-| **S3 Glacier Deep Archive** | Long-term archive |
-| **S3 Intelligent-Tiering** | Auto-tiering |
+| **S3 Standard** | Dành cho mục đích chung (General Purpose) |
+| **S3 Standard-IA** | Truy cập không thường xuyên (Infrequent Access) |
+| **S3 One Zone-IA** | Truy cập không thường xuyên trong 1 Availability Zone (One Zone) |
+| **S3 Glacier Instant Retrieval** | Lưu trữ dài hạn, truy xuất cấp mili-giây (ms) |
+| **S3 Glacier Flexible Retrieval** | Lưu trữ dài hạn, truy xuất 1-12 giờ |
+| **S3 Glacier Deep Archive** | Lưu trữ dài hạn, thời gian dài (Long-term archive) |
+| **S3 Intelligent-Tiering** | Tự động phân tầng (Auto-tiering) |
 
 **Durability & Availability:**
-- **Durability**: 99.999999999% (11 9's) - same for all classes
-- **Availability**: Khác nhau tùy class
+- **Durability (Độ bền)**: 99.999999999% (11 chữ 9) - giống nhau ở tất cả các class
+- **Availability (Độ sẵn sàng)**: Khác nhau tùy class
 
 ### S3 Standard - General Purpose (Trang 207)
 
-- **99.99% Availability**
-- Used for **frequently accessed data**
-- **Low latency** và **high throughput**
-- Sustain **2 concurrent facility failures**
-- **Use Cases**: Big Data analytics, mobile & gaming apps, content distribution
+- **99.99% Availability** (độ sẵn sàng)
+- Dùng cho **data được truy cập thường xuyên** (frequently accessed data)
+- **Độ trễ thấp** (Low latency) và **thông lượng cao** (high throughput)
+- Chịu được **2 facility failures đồng thời** (sustain 2 concurrent facility failures)
+- **Use Cases (Trên thực tế)**: Big Data analytics, mobile & gaming apps, phân phối nội dung (content distribution)
 
 ### S3 Storage Classes - Infrequent Access (Trang 208)
 
 **S3 Standard-Infrequent Access (S3 Standard-IA):**
-- **99.9% Availability**
-- Lower cost than S3 Standard
-- **Use cases**: Disaster Recovery, backups
+- **99.9% Availability** (độ sẵn sàng)
+- Rẻ hơn S3 Standard (lower cost than S3 Standard)
+- **Use cases (trên thực tế)**: Disaster Recovery (khôi phục thảm họa), backups (sao lưu)
 
 **S3 One Zone-Infrequent Access (S3 One Zone-IA):**
-- High durability (11 9's) trong **single AZ**
-- Data lost khi AZ bị destroy
-- **99.5% Availability**
-- **Use Cases**: Secondary backup copies, data có thể recreate
+- Độ bền cao (11 chữ 9) nhưng chỉ trong **một AZ** (single AZ)
+- Mất data khi AZ bị hỏng (data lost if the AZ is destroyed)
+- **99.5% Availability** (độ sẵn sàng)
+- **Use Cases (Trên thực tế)**: Bản sao backup thứ cấp (Secondary backup copies), data có thể tạo lại (recreate được)
 
 ### Amazon S3 Glacier Storage Classes (Trang 209)
 
-**Pricing:** price for storage + object retrieval cost
+**Giá (Pricing):** phí lưu trữ + phí truy xuất object (object retrieval cost)
 
 **S3 Glacier Instant Retrieval:**
-- **Millisecond retrieval**
-- Data accessed **once a quarter**
-- **Minimum storage duration**: 90 days
+- **Truy xuất cấp mili-giây (Millisecond retrieval)**
+- Data được truy cập **một lần/quý** (once a quarter)
+- **Thời gian lưu trữ tối thiểu (Minimum storage duration)**: 90 ngày
 
 **S3 Glacier Flexible Retrieval:**
-- Expedited: **1-5 minutes** (có phí)
-- Standard: **3-5 hours** (free)
-- Bulk: **5-12 hours** (free)
-- **Minimum storage duration**: 90 days
+- Expedited (nhanh): **1-5 phút** (có phí)
+- Standard (chuẩn): **3-5 giờ** (miễn phí)
+- Bulk (khối lượng lớn): **5-12 giờ** (miễn phí)
+- **Thời gian lưu trữ tối thiểu (Minimum storage duration)**: 90 ngày
 
 **S3 Glacier Deep Archive:**
-- Standard: **12 hours**
-- Bulk: **48 hours**
-- **Minimum storage duration**: 180 days
+- Standard (chuẩn): **12 giờ**
+- Bulk (khối lượng lớn): **48 giờ**
+- **Thời gian lưu trữ tối thiểu (Minimum storage duration)**: 180 ngày
 
 ### S3 Intelligent-Tiering (Trang 210)
 
-- **Small monthly monitoring** và auto-tiering fee
-- **No retrieval charges**
-- Tự động di chuyển objects giữa các Access Tiers dựa trên usage
+- Có phí giám sát hàng tháng nhỏ (small monthly monitoring) và phí auto-tiering
+- **Không thu phí truy xuất** (No retrieval charges)
+- Tự động di chuyển objects giữa các Access Tiers dựa trên mức sử dụng (usage)
 
-**Access Tiers:**
-| Tier | Trigger |
+**Các Access Tier (Phân tầng truy cập):**
+| Tier | Điều kiện kích hoạt (Trigger) |
 |------|---------|
-| Frequent Access | Default (automatic) |
-| Infrequent Access | Not accessed for 30 days |
-| Archive Instant Access | Not accessed for 90 days |
-| Archive Access | Optional: 90-700+ days |
-| Deep Archive Access | Optional: 180-700+ days |
+| Frequent Access (thường xuyên) | Mặc định (tự động) |
+| Infrequent Access (hiếm khi) | 30 ngày không bị truy cập |
+| Archive Instant Access | 90 ngày không bị truy cập |
+| Archive Access | Tùy chọn: 90-700+ ngày |
+| Deep Archive Access | Tùy chọn: 180-700+ ngày |
 
 ---
 
@@ -230,50 +230,50 @@ http://bucket-name.s3-website.aws-region.amazonaws.com
 
 ### Amazon S3 - Lifecycle Rules (Trang 214-216)
 
-**Transition Actions:**
-- Configure objects để transition sang storage class khác
+**Transition Actions (Thao tác chuyển đổi):**
+- Cấu hình (Configure) objects để chuyển (transition) sang storage class khác
 - Ví dụ:
-  - Move objects to Standard IA **60 days** sau khi tạo
-  - Move to Glacier for archiving **after 6 months**
+  - Chuyển objects sang Standard IA **60 ngày** sau khi tạo
+  - Chuyển sang Glacier để lưu trữ (archiving) **sau 6 tháng**
 
-**Expiration Actions:**
-- Configure objects để expire (delete) sau some time
+**Expiration Actions (Thao tác hết hạn):**
+- Cấu hình (Configure) objects để hết hạn (expire - xóa) sau một thời gian
 - Ví dụ:
-  - Access log files delete after **365 days**
-  - Delete old versions (nếu versioning enabled)
-  - Delete incomplete Multi-Part uploads
+  - Xóa file access log sau **365 ngày**
+  - Xóa các version cũ (nếu versioning đang bật)
+  - Xóa các upload Multi-Part chưa hoàn tất (incomplete)
 
-**Rules targeting:**
+**Các rule nhắm tới (Rules targeting):**
 - **Prefix**: `s3://mybucket/mp3/*`
 - **Tags**: `Department: Finance`
 
 ### Amazon S3 Analytics - Storage Class Analysis (Trang 217)
 
-- Help decide **when to transition** objects
-- **Recommendations** cho Standard và Standard IA
-- **Không work** cho One-Zone IA hoặc Glacier
-- Report updated **daily**
-- 24-48 hours để start seeing data
+- Giúp quyết định **khi nào nên chuyển đổi (transition)** các object
+- Có **gợi ý (Recommendations)** cho S3 Standard và Standard-IA
+- **Không hoạt động** cho One-Zone IA hoặc Glacier
+- Báo cáo được cập nhật **hàng ngày (daily)**
+- Cần 24-48 giờ để bắt đầu có dữ liệu (24-48 hours to start seeing data)
 
 ### S3 Event Notifications (Trang 218-219)
 
-**Event types:**
+**Các loại event (Event types):**
 - `S3:ObjectCreated`
 - `S3:ObjectRemoved`
 - `S3:ObjectRestore`
 - `S3:Replication`
 
-**Features:**
-- Object name filtering (`*.jpg`)
-- Destinations: SNS, SQS, Lambda
-- Deliver trong seconds, có thể lâu hơn
+**Tính năng (Features):**
+- Lọc theo tên object (Object name filtering) (`*.jpg`)
+- Điểm đến (Destinations): SNS, SQS, Lambda
+- Giao trong vòng vài giây, có thể lâu hơn (Deliver in seconds)
 
 ### S3 Event Notifications with Amazon EventBridge (Trang 220)
 
-**Advantages:**
-- Advanced filtering với **JSON rules** (metadata, object size, name)
-- Multiple Destinations (Step Functions, Kinesis)
-- EventBridge Capabilities: Archive, Replay, Reliable delivery
+**Lợi thế (Advantages):**
+- Lọc nâng cao (Advanced filtering) với **JSON rules** (metadata, kích thước object, tên)
+- Nhiều điểm đến (Multiple Destinations): Step Functions, Kinesis
+- Khả năng của EventBridge: lưu trữ (Archive), phát lại (Replay), giao tin cậy (Reliable delivery)
 
 ---
 
@@ -281,82 +281,82 @@ http://bucket-name.s3-website.aws-region.amazonaws.com
 
 ### S3 Baseline Performance (Trang 221)
 
-- **Auto-scales** to high request rates
-- **Latency**: 100-200 ms
-- **3,500 PUT/COPY/POST/DELETE** hoặc **5,500 GET/HEAD** per second per prefix
+- **Tự động mở rộng (Auto-scales)** theo lượng request lớn
+- **Độ trễ (Latency)**: 100-200 ms
+- **Mỗi prefix: 3,500 PUT/COPY/POST/DELETE** hoặc **5,500 GET/HEAD** mỗi giây
 
-**Example prefixes:**
+**Ví dụ prefix (Example prefixes):**
 ```
 bucket/folder1/sub1/file => /folder1/sub1/
 bucket/folder1/sub2/file => /folder1/sub2/
 bucket/1/file => /1/
 bucket/2/file => /2/
 ```
-→ Spread reads across 4 prefixes = **22,000 requests/second**
+→ Phân tán (spread) các đọc (reads) trên 4 prefixes = **22,000 request/giây**
 
 ### S3 Performance Optimizations (Trang 222)
 
 **Multi-Part upload:**
-- Recommended cho files **> 100MB**
-- Must use cho files **> 5GB**
-- Parallelize uploads
+- Khuyến nghị (Recommended) dùng cho files **> 100MB**
+- Bắt buộc (Must use) cho files **> 5GB**
+- Chạy song song (Parallelize) các upload
 
 **S3 Transfer Acceleration:**
-- Tăng speed bằng cách transfer qua **AWS edge location**
-- Forward data đến S3 bucket ở target region
-- Compatible với multi-part upload
+- Tăng tốc bằng cách transfer qua **điểm edge của AWS (AWS edge location)**
+- Chuyển tiếp (forward) data tới S3 bucket ở target region
+- Tương thích (compatible) với multi-part upload
 
 ### Amazon S3 - Object Encryption (Trang 224-229)
 
-**4 methods of encryption:**
+**4 phương pháp mã hóa (4 methods of encryption):**
 
-| Type | Description | Key Management |
+| Loại (Type) | Mô tả (Description) | Quản lý Key (Key Management) |
 |------|------------|----------------|
-| **SSE-S3** | Server-Side Encryption với S3-Managed Keys | AWS managed |
-| **SSE-KMS** | Server-Side Encryption với KMS Keys | AWS KMS |
-| **SSE-C** | Server-Side Encryption với Customer-Provided Keys | Customer managed |
-| **Client-Side Encryption** | Client encrypts trước khi upload | Customer managed |
+| **SSE-S3** | Mã hóa phía server (Server-Side Encryption) với key do S3 quản lý | AWS quản lý |
+| **SSE-KMS** | Mã hóa phía server (Server-Side Encryption) với KMS Key | AWS KMS |
+| **SSE-C** | Mã hóa phía server (Server-Side Encryption) với key khách hàng cung cấp | Khách hàng quản lý |
+| **Client-Side Encryption** | Client tự mã hóa trước khi upload | Khách hàng quản lý |
 
 ### SSE-S3 (Trang 225)
 
-- Keys **handled, managed, owned by AWS**
-- Encryption type: **AES-256**
+- Key do **AWS xử lý, quản lý và sở hữu** (handled, managed, owned by AWS)
+- Loại mã hóa: **AES-256**
 - Header: `"x-amz-server-side-encryption": "AES256"`
-- **Enabled by default** cho new buckets & objects
+- **Bật theo mặc định (Enabled by default)** cho các bucket & object mới
 
 ### SSE-KMS (Trang 226)
 
-- Leverages **AWS KMS** để manage keys
-- **Advantages**: User control + audit key usage via CloudTrail
+- Sử dụng (Leverage) **AWS KMS** để quản lý key
+- **Lợi thế (Advantages)**: Người dùng tự kiểm soát + theo dõi (audit) việc dùng key qua CloudTrail
 - Header: `"x-amz-server-side-encryption": "aws:kms"`
 
-**Limitations:**
-- Count towards **KMS quota per second**
-- Quotas: 5500, 10000, 30000 req/s (based on region)
-- Có thể request quota increase
+**Hạn chế (Limitations):**
+- Được tính vào **quota KMS trên giây (KMS quota per second)**
+- Quota: 5500, 10000, 30000 req/s (tùy region)
+- Có thể yêu cầu tăng quota (request quota increase)
 
 ### SSE-C (Trang 228)
 
-- Customer manages keys **outside of AWS**
-- S3 **does NOT store** encryption key
-- **HTTPS must be used**
-- Key phải provided in **HTTP headers** for every request
+- Khách hàng (Customer) quản lý keys **bên ngoài AWS** (outside of AWS)
+- S3 **KHÔNG lưu trữ (does NOT store)** encryption key
+- **PHẢI DÙNG HTTPS (HTTPS must be used)**
+- Key phải đưa vào (provided in) **HTTP headers** cho mọi request
 
 ### Client-Side Encryption (Trang 229)
 
-- Clients encrypt **trước khi sending** to S3
-- Clients decrypt **khi retrieving**
-- Customer fully manages keys và encryption cycle
+- Client tự mã hóa (encrypt) **TRƯỚC KHI GỬI** (sending) lên S3
+- Client tự giải mã (decrypt) **KHI LẤY VỀ** (retrieving)
+- Khách hàng (Customer) toàn quyền quản lý keys và vòng đời mã hóa (encryption cycle)
 
 ### Amazon S3 - Encryption in Transit (Trang 230)
 
-**Two endpoints:**
-- **HTTP Endpoint** - non encrypted
-- **HTTPS Endpoint** - encryption in flight (recommended)
+**Hai endpoint (Two endpoints):**
+- **HTTP Endpoint** - không mã hóa (non encrypted)
+- **HTTPS Endpoint** - mã hóa khi truyền (encryption in flight) (khuyến nghị / recommended)
 
 **Lưu ý:**
-- HTTPS is **mandatory** cho SSE-C
-- Most clients use HTTPS by default
+- HTTPS là **bắt buộc (mandatory)** với SSE-C
+- Đa số client dùng HTTPS theo mặc định (Most clients use HTTPS by default)
 
 ### S3 - Force Encryption in Transit (Trang 231)
 
@@ -364,47 +364,47 @@ bucket/2/file => /2/
 
 ### S3 - Default Encryption vs. Bucket Policies (Trang 232)
 
-- **SSE-S3** tự động applied cho new objects
-- Có thể **force encryption** bằng Bucket Policy
-- **Bucket Policies evaluated BEFORE "Default Encryption"**
+- **SSE-S3** được tự động áp dụng (applied) cho object mới (new objects)
+- Có thể **ép mã hóa (force encryption)** bằng Bucket Policy
+- **Bucket Policies được đánh giá TRƯỚC "Default Encryption"** (evaluated BEFORE)
 
-### What is CORS? (Trang 233-234)
+### CORS là gì? (What is CORS? - Trang 233-234)
 
-- **CORS** = Cross-Origin Resource Sharing
+- **CORS** = chia sẻ tài nguyên khác nguồn (Cross-Origin Resource Sharing)
 - **Origin** = scheme + host + port
   - Ví dụ: `https://www.example.com`
-- Web Browser mechanism cho phép requests đến **other origins**
-- Same origin: `http://example.com/app1` & `http://example.com/app2`
-- Different origins: `http://www.example.com` & `http://other.example.com`
+- Cơ chế (mechanism) của trình duyệt web cho phép request tới **các origin khác (other origins)**
+- Cùng origin (Same origin): `http://example.com/app1` & `http://example.com/app2`
+- Khác origin (Different origins): `http://www.example.com` & `http://other.example.com`
 
 ### Amazon S3 - CORS (Trang 235)
 
-- Enable **correct CORS headers** khi client makes cross-origin request
-- Allow specific origin hoặc `*` (all origins)
+- Bật **correct CORS headers** khi client thực hiện (makes) request khác nguồn (cross-origin)
+- Cho phép (Allow) origin cụ thể hoặc `*` (tất cả origin / all origins)
 
 ### Amazon S3 - MFA Delete (Trang 236)
 
-**MFA required for:**
-- **Permanently delete** an object version
-- **Suspend Versioning** on bucket
+**Các thao tác BẮT BUỘC MFA (MFA required for):**
+- **Xóa vĩnh viễn** (permanently delete) một version object
+- **Tạm dừng Versioning (Suspend Versioning)** trên bucket
 
-**MFA NOT required for:**
-- Enable Versioning
-- List deleted versions
+**Các thao tác KHÔNG cần MFA (MFA NOT required for):**
+- Bật Versioning (Enable Versioning)
+- Liệt kê (List) các version đã xóa
 
-**Requirements:**
-- Versioning must be enabled
-- Only **bucket owner (root account)** can enable/disable
+**Yêu cầu (Requirements):**
+- Phải bật (enable) Versioning trước
+- Chỉ **bucket owner (root account)** mới bật/tắt (enable/disable) được
 
 ### S3 Access Logs (Trang 237-238)
 
-- Log all access cho **audit purpose**
-- Log vào **another S3 bucket**
-- Target logging bucket phải **in same AWS region**
+- Ghi log (Log) mọi truy cập (all access) để **mục đích kiểm toán (audit purpose)**
+- Log vào **một S3 bucket khác (another S3 bucket)**
+- Bucket nhận log (Target logging bucket) phải **ở cùng AWS region (in same AWS region)**
 
-**⚠️ Warning:**
-- **Không set logging bucket là monitored bucket**
-- Will create **logging loop**
+**⚠️ Cảnh báo (Warning):**
+- **KHÔNG NÊN đặt logging bucket chính là bucket cần giám sát** (monitored bucket)
+- Sẽ tạo **vòng lặp log (logging loop)**
 
 ### Amazon S3 - Pre-Signed URLs (Trang 239)
 
@@ -413,53 +413,53 @@ bucket/2/file => /2/
 - AWS CLI
 - SDK
 
-**URL Expiration:**
-| Method | Expiration |
+**Thời gian hết hạn URL (URL Expiration):**
+| Cách tạo (Method) | Thời gian (Expiration) |
 |--------|-----------|
-| S3 Console | 1 min - 720 mins (12 hours) |
-| AWS CLI | default 3600 secs, max 604800 secs (~168 hours) |
+| S3 Console | 1 phút - 720 phút (12 giờ) |
+| AWS CLI | mặc định 3600 giây, tối đa 604800 giây (~168 giờ) |
 
-**Users inherit permissions** của user generated URL
+**Người dùng kế thừa (inherit) quyền (permissions)** của user tạo ra URL (generated URL)
 
-**Use cases:**
-- Allow logged-in users download premium video
-- Allow changing list of users download files
-- Allow temporarily upload to S3 bucket
+**Use cases (trên thực tế):**
+- Cho phép (Allow) user đã đăng nhập tải xuống (download) video premium
+- Cho phép (Allow) đổi danh sách user được tải file (download files)
+- Cho phép (Allow) tải lên (upload) tạm thời (temporarily) vào S3 bucket
 
 ### S3 Object Lock (Trang 240)
 
-**Adopt WORM model** (Write Once Read Many)
+**Áp dụng mô hình WORM (Adopt WORM model)** (Write Once Read Many - ghi một lần, đọc nhiều lần)
 
-**Modes:**
+**Các chế độ (Modes):**
 
-| Mode | Description |
+| Chế độ (Mode) | Mô tả (Description) |
 |------|-------------|
-| **Compliance** | Không ai overwrite/delete được, kể cả root |
-| **Governance** | Most users can't, some có special permissions |
+| **Compliance (Tuân thủ)** | Không ai overwrite/delete được, kể cả root |
+| **Governance (Quản trị)** | Đa số user không được (can't), một số có quyền đặc biệt (special permissions) |
 
-**Legal Hold:**
-- Protect object **indefinitely**
-- Can be placed/removed với `s3:PutObjectLegalHold` IAM permission
+**Legal Hold (Phong toả pháp lý):**
+- Bảo vệ (Protect) object **vĩnh viễn (indefinitely)**
+- Có thể đặt/bỏ (placed/removed) với quyền IAM `s3:PutObjectLegalHold`
 
 ### S3 Access Points (Trang 241-242)
 
-**Simplify security management:**
-- Each Access Point có:
-  - **Own DNS name**
-  - **Access point policy**
+**Đơn giản hoá quản lý bảo mật (Simplify security management):**
+- Mỗi Access Point có (Each Access Point has):
+  - **Tên DNS riêng (Own DNS name)**
+  - **Policy cho access point (Access point policy)**
 
-**VPC Origin:**
-- Accessible **only from within VPC**
-- Must create **VPC Endpoint** (Gateway hoặc Interface)
+**Nguồn từ VPC (VPC Origin):**
+- Chỉ truy cập được **từ bên trong VPC (only from within VPC)**
+- Phải tạo **VPC Endpoint** (Gateway hoặc Interface)
 
 ### S3 Object Lambda (Trang 243)
 
-- Use **Lambda Functions** để change object trước khi retrieve
+- Dùng **Lambda Functions** để chỉnh sửa (change) object trước khi truy xuất (retrieve)
 
-**Use cases:**
-- Redacting PII for analytics
-- Converting data formats (XML → JSON)
-- Resizing và watermarking
+**Use cases (trên thực tế):**
+- Che thông tin định danh cá nhân (Redacting PII) phục vụ phân tích
+- Chuyển đổi định dạng dữ liệu (Converting data formats) (XML → JSON)
+- Thu nhỏ và thêm dấu mờ (Resizing và watermarking)
 
 ---
 
@@ -482,64 +482,64 @@ VPC Endpoints (S3, DynamoDB)
 VPC Flow Logs → CloudWatch
 ```
 
-### Understanding CIDR - IPv4 (Trang 248-252)
+### Hiểu về CIDR - IPv4 (Understanding CIDR - IPv4, Trang 248-252)
 
-**CIDR = Classless Inter-Domain Routing**
+**CIDR = Classless Inter-Domain Routing** (tuyến tính liên miền không phân lớp)
 
 **Ví dụ:** `172.22.241.128/25`
 
-**IP Range calculation:**
+**Cách tính dải IP (IP Range calculation):**
 - `/24` = 256 IPs (254 usable)
 - `/25` = 128 IPs (126 usable)
 - `/26` = 64 IPs (62 usable)
 - `/27` = 32 IPs (30 usable)
 - `/28` = 16 IPs (14 usable)
 
-### VPC in AWS - IPv4 (Trang 254)
+### VPC trong AWS - IPv4 (Trang 254)
 
-- **VPC = Virtual Private Cloud**
-- Multiple VPCs per AWS region (max 5 - soft limit)
-- Max CIDR per VPC là **5**
-  - Min size: **/28** (16 IPs)
-  - Max size: **/16** (65536 IPs)
+- **VPC = Virtual Private Cloud** (đám mây riêng ảo)
+- Mỗi AWS region có nhiều VPC (Multiple VPCs per region) (tối đa 5 - soft limit, giới hạn mềm)
+- Số CIDR tối đa (Max CIDR) cho mỗi VPC là **5**
+  - Kích thước nhỏ nhất (Min size): **/28** (16 IP)
+  - Kích thước lớn nhất (Max size): **/16** (65536 IP)
 
-**Recommendation:**
-- Sử dụng **private IPv4 ranges** (RFC 1918):
+**Khuyến nghị (Recommendation):**
+- Dùng **các dải IPv4 riêng tư (private IPv4 ranges)** (RFC 1918):
   - `10.0.0.0/8`
   - `172.16.0.0/12`
   - `192.168.0.0/16`
 
-### Default VPC (Trang 253)
+### VPC Mặc định (Default VPC, Trang 253)
 
-- All new AWS accounts có **Default VPC**
-- New EC2 instances launched vào Default VPC nếu không specify subnet
-- Default VPC có **Internet connectivity** và instances có **public IPv4 addresses**
+- Mọi (All) AWS account mới đều có **Default VPC**
+- EC2 instances mới khởi tạo (launched) vào Default VPC nếu không chỉ định (specify) subnet
+- Default VPC có **kết nối Internet (Internet connectivity)** và instances có **địa chỉ IPv4 công cộng (public IPv4 addresses)**
 
 ### VPC - Subnet (Trang 257)
 
-**AWS reserves 5 IP addresses** trong mỗi subnet:
-1. `x.x.x.0` - Network Address
-2. `x.x.x.1` - VPC Router
-3. `x.x.x.2` - Amazon DNS
-4. `x.x.x.3` - Future use
-5. `x.x.x.255` - Broadcast
+**AWS giữ lại (reserves) 5 địa chỉ IP** trong mỗi subnet:
+1. `x.x.x.0` - Địa chỉ mạng (Network Address)
+2. `x.x.x.1` - Bộ định tuyến VPC (VPC Router)
+3. `x.x.x.2` - DNS của Amazon
+4. `x.x.x.3` - Dành cho tương lai (Future use)
+5. `x.x.x.255` - Trùng phát (Broadcast)
 
-**Exam Tip:**
-- Need **29 IPs** for EC2 → Can't use `/27` (32 IPs - 5 = 27)
-- Need use `/26` (64 IPs - 5 = 59)
+**Mẹo làm bài (Exam Tip):**
+- Cần **29 IP** cho EC2 → Không dùng được `/27` (32 IP - 5 = 27)
+- Cần dùng `/26` (64 IP - 5 = 59)
 
 ### Internet Gateway (IGW) (Trang 258-259)
 
-- Cho phép resources trong VPC **connect to Internet**
-- Must be **created separately** từ VPC
-- Một VPC chỉ attach được **một IGW**
+- Cho phép các resources trong VPC **kết nối Internet (connect to Internet)**
+- Phải **tạo riêng (created separately)** so với VPC
+- Một VPC chỉ gắn (attach) được **một IGW**
 
 **Lưu ý:**
-- IGW alone **does not allow** Internet access
-- **Route tables** must also be edited
+- IGW đơn lẻ **KHÔNG cho phép** (does not allow) truy cập Internet
+- **Route tables** (bảng định tuyến) cũng phải được sửa (edited)
 
-### Editing Route Tables (Trang 260)
+### Chỉnh sửa Route Tables (Editing Route Tables, Trang 260)
 
-- Route tables định hướng traffic
-- Public subnet cần route đến IGW
-- Private subnet không có direct route to IGW
+- Route tables (bảng định tuyến) định hướng traffic (lưu lượng)
+- Public subnet (subnet công cộng) cần một route (đường dẫn) đến IGW
+- Private subnet (subnet riêng tư) KHÔNG có route trực tiếp (direct route) tới IGW
