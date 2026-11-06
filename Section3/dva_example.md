@@ -1,269 +1,10 @@
-# Section 3 - DVA Practice Questions: ELB, ASG, RDS, Aurora, ElastiCache, Route 53
+# Section 3 - DVA Practice Questions: RDS, Aurora, ElastiCache, Route 53
 
 ---
 
-## 1. Elastic Load Balancer
-
-### Load Balancer Types and Selection
+## 1. RDS & Aurora
 
 ### Question 1:
-An application needs to route traffic based on the URL path (e.g., `/api` goes to one set of servers, `/web` goes to another). Which Load Balancer type should be used?
-
-```
-A. Network Load Balancer (NLB)
-B. Application Load Balancer (ALB)
-C. Classic Load Balancer (CLB)
-D. Gateway Load Balancer
-```
-
-### ✅ Answer: **B. Application Load Balancer (ALB)**
-
-### 📖 Explanation (Vietnamese):
-
-**Why choose ALB:**
-- **ALB** là Layer 7 (HTTP/HTTPS) Load Balancer, hỗ trợ **path-based routing** (`/api`, `/web`)
-- ALB có thể route dựa trên:
-  - URL path
-  - Hostname
-  - Query string
-  - HTTP headers
-- NLB chỉ hoạt động ở Layer 4 (TCP/UDP), không hỗ trợ routing dựa trên URL
-
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. NLB | Layer 4, không hỗ trợ path-based routing |
-| C. CLB | Deprecated, không hỗ trợ advanced routing features |
-| D. Gateway LB | Dùng cho network virtual appliances, không phải HTTP routing |
-
-### 📝 Vocabulary Analysis:
-- **Path-based routing**: routing dựa trên đường dẫn URL
-- **Layer 7**: Application layer trong OSI model
-- **Target group**: Nhóm các resources nhận traffic
-
-### 🔄 Context Variations:
-- **If routing by hostname** → Still ALB (host-based routing)
-- **If millions of requests, low latency** → NLB instead
-- **If routing TCP/UDP traffic** → NLB or CLB
-
----
-
-### Question 2:
-A company needs to expose a static IP address that can be whitelisted by their partners. Which Load Balancer type meets this requirement?
-
-```
-A. Application Load Balancer
-B. Network Load Balancer
-C. Classic Load Balancer
-D. Gateway Load Balancer
-```
-
-### ✅ Answer: **B. Network Load Balancer**
-
-### 📖 Explanation (Vietnamese):
-
-**Why choose NLB:**
-- **NLB** cung cấp **một static IP per Availability Zone**
-- Hỗ trợ **Elastic IP (EIP)** có thể attach đến NLB
-- Partner có thể whitelist static IP thay vì hostname
-- NLB hoạt động ở **Layer 4**, phù hợp cho TCP/UDP traffic
-
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. ALB | Cung cấp fixed hostname (XXX.region.elb.amazonaws.com), không có static IP |
-| C. CLB | Deprecated, không hỗ trợ EIP |
-| D. Gateway LB | Dùng cho transparent network gateway, không phải static IP |
-
-### 📝 Vocabulary Analysis:
-- **Elastic IP (EIP)**: Static IPv4 address có thể attach/detach
-- **Whitelist**: Danh sách IP được phép truy cập
-- **Layer 4**: Transport layer trong OSI model
-
----
-
-### Question 3:
-A web application uses HTTPS and needs to serve multiple domains with SSL certificates. Which feature allows the Load Balancer to select the correct certificate?
-
-```
-A. Connection Draining
-B. Cross-Zone Load Balancing
-C. Server Name Indication (SNI)
-D. Sticky Sessions
-```
-
-### ✅ Answer: **C. Server Name Indication (SNI)**
-
-### 📖 Explanation (Vietnamese):
-
-**Why choose SNI:**
-- **SNI** cho phép server host **multiple SSL certificates** trên cùng một IP
-- Khi client gửi request, nó gửi kèm **hostname** trong TLS handshake
-- Load Balancer đọc hostname và chọn đúng certificate
-- Được hỗ trợ bởi **ALB và NLB** (newer generation)
-
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. Connection Draining | Chờ hoàn thành requests khi instance deregister |
-| B. Cross-Zone LB | Phân phối traffic đều across AZs |
-| D. Sticky Sessions | Bind client to same instance |
-
-### 📝 Vocabulary Analysis:
-- **Server Name Indication (SNI)**: Extension của TLS cho phép client specify hostname
-- **SSL Certificate**: Digital certificate xác thực identity
-- **TLS handshake**: Quá trình thiết lập secure connection
-
-### 🔄 Context Variations:
-- **If using CLB** → SNI không hoạt động (CLB deprecated)
-- **If only one domain** → Default certificate cũng đủ
-
----
-
-### Question 4:
-Which statement about **Cross-Zone Load Balancing** is correct?
-
-```
-A. It is enabled by default for Network Load Balancers
-B. Application Load Balancer charges for inter-AZ data transfer when enabled
-C. Network Load Balancer charges for inter-AZ data transfer when enabled
-D. Cross-Zone LB cannot be disabled for Application Load Balancers
-```
-
-### ✅ Answer: **C. Network Load Balancer charges for inter-AZ data transfer when enabled**
-
-### 📖 Explanation (Vietnamese):
-
-**Why C is correct:**
-- **NLB**: Disabled by default, **có charge** cho inter-AZ data transfer khi enabled
-- **ALB**: Enabled by default, **không charge** cho inter-AZ data
-
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A | NLB disabled by default, không phải enabled |
-| B | ALB không charge cho inter-AZ data |
-| D | ALB có thể disable ở Target Group level |
-
----
-
-## 2. Auto Scaling Group
-
-### Question 5:
-A company wants to automatically scale their application based on the average CPU utilization, keeping it around 50%. Which scaling policy type is most appropriate?
-
-```
-A. Simple Scaling
-B. Step Scaling
-C. Target Tracking Scaling
-D. Scheduled Scaling
-```
-
-### ✅ Answer: **C. Target Tracking Scaling**
-
-### 📖 Explanation (Vietnamese):
-
-**Why choose Target Tracking Scaling:**
-- **Target Tracking Scaling** là **strongly recommended** cho việc scale dựa trên metric target
-- Set target value (ví dụ: CPU 50%) và ASG tự động scale out/in
-- AWS tự quản lý scaling actions dựa trên metric
-- Đơn giản và hiệu quả cho hầu hết use cases
-
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. Simple Scaling | Cần manual CloudWatch alarm, ít linh hoạt |
-| B. Step Scaling | Cho multiple step adjustments, phức tạp hơn cần thiết |
-| D. Scheduled Scaling | Cho predictable patterns, không phải reactive scaling |
-
-### 📝 Vocabulary Analysis:
-- **Target Tracking Scaling**: Tự động scale để đạt target metric value
-- **CPU Utilization**: Percentage of CPU đang được sử dụng
-- **Scaling policy**: Rules xác định khi nào scale out/in
-
-### 🔄 Context Variations:
-- **If scaling based on time** (e.g., 5PM daily) → Scheduled Scaling
-- **If need fine-grained control** → Step Scaling
-
----
-
-### Question 6:
-An ASG has a cooldown period of 300 seconds. After a scale-out event, how long will the ASG wait before launching another instance?
-
-```
-A. 0 seconds - can launch immediately
-B. 300 seconds
-C. 600 seconds
-D. Until CPU drops below threshold
-```
-
-### ✅ Answer: **B. 300 seconds**
-
-### 📖 Explanation (Vietnamese):
-
-**Why 300 seconds is correct:**
-- **Cooldown period** là thời gian ASG **chờ trước khi thực hiện** scaling activity khác
-- Default cooldown là **300 seconds**
-- Trong thời gian này, ASG không launch hoặc terminate instances
-- Cho phép metrics **stabilize** trước khi có thêm changes
-
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A | Cooldown ngăn launch immediately |
-| C | 600 seconds = 2x default, không phải correct |
-| D | Cooldown là fixed time, không phải metric-based |
-
-### 📝 Vocabulary Analysis:
-- **Cooldown period**: Thời gian chờ giữa các scaling activities
-- **Scale-out**: Thêm instances để tăng capacity
-- **Scale-in**: Xóa instances để giảm capacity
-
-### 🔄 Context Variations:
-- **If using pre-baked AMI** → Có thể reduce cooldown vì instances boot nhanh hơn
-- **If scale-in too aggressive** → Increase cooldown
-
----
-
-### Question 7:
-What happens during an **Instance Refresh** in an Auto Scaling Group?
-
-```
-A. EC2 instances are paused and memory is swapped
-B. All instances are terminated and new ones are launched from the Launch Template
-C. The Launch Template is updated and instances are re-created progressively
-D. Only the Auto Scaling Group configuration is updated
-```
-
-### ✅ Answer: **C. The Launch Template is updated and instances are re-created progressively**
-
-### 📖 Explanation (Vietnamese):
-
-**Why C is correct:**
-- **Instance Refresh** cho phép cập nhật Launch Template và **re-create instances** một cách từ từ
-- Instances được replaced **progressively** (một số tại một thời điểm)
-- Có thể set **minimum healthy percentage** (recommend 90%)
-- Có thể set **warm-up time** để instance ready trước khi nhận traffic
-
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A | Không pause instances, đây không phải how it works |
-| B | Instances được replaced progressively, không phải all at once |
-| D | Instance Refresh thay đổi instances, không phải chỉ configuration |
-
----
-
-## 3. RDS & Aurora
-
-### Question 8:
 A company has a production MySQL database experiencing high read traffic. Which solution provides the BEST read scalability?
 
 ```
@@ -279,7 +20,7 @@ D. Enable Amazon RDS Proxy
 
 **Why Read Replicas:**
 - **Read Replicas** cho phép **scale read capacity** lên đến **15 replicas**
-- Replication là **ASYNC** nên reads cuối cùng sẽ consistent
+- Replication **ASYNC** nên đọc từ replica có thể bị trễ; dữ liệu sẽ nhất quán cuối cùng (**eventually consistent**)
 - Read queries có thể distribute across replicas
 - Phù hợp cho **SELECT statements** (không phải writes)
 
@@ -298,11 +39,11 @@ D. Enable Amazon RDS Proxy
 
 ### 🔄 Context Variations:
 - **If need both HA and read scaling** → Read Replicas với Multi-AZ
-- **If need write scaling** → Sharding or Aurora (multiple writers)
+- **If need write scaling** → Cân nhắc sharding/partitioning ở ứng dụng; Aurora cluster thông thường có một primary writer, không mặc định hỗ trợ nhiều writer
 
 ---
 
-### Question 9:
+### Question 2:
 What is the main difference between **RDS Multi-AZ** and **RDS Read Replicas**?
 
 ```
@@ -339,7 +80,7 @@ D. Read Replicas cannot be in different AZs
 
 ---
 
-### Question 10:
+### Question 3:
 Which Aurora feature allows you to restore data to a specific point in time **without** using backups?
 
 ```
@@ -354,19 +95,16 @@ D. Replica lag
 ### 📖 Explanation (Vietnamese):
 
 **Why Backtrack:**
-- **Backtrack** là feature độc đáo của **Aurora** cho phép:
-  - Restore data **đến bất kỳ thời điểm nào** trong quá khứ
-  - **Không cần backup** để sử dụng
-  - Working directly với data trên storage
-  - Rất hữu ích cho việc undo mistakes
+- **Backtrack** cho phép Aurora quay lại một thời điểm nằm trong khoảng thời gian lưu trữ đã cấu hình, không cần khôi phục từ snapshot backup. Tính năng này hữu ích để hoàn tác thay đổi ngoài ý muốn.
 
-**Why other options were eliminated:**
+**Tại sao không chọn các đáp án khác:**
 
-| Option | Reason for Elimination |
-|--------|------------------------|
-| B. Point-in-time restore | Cần backup (snapshot) để restore |
-| C. Snapshot export | Export data ra S3, không phải restore feature |
-| D. Replica lag | Đo độ trễ replication, không phải restore feature |
+| Đáp án | Lý do loại bỏ |
+|--------|----------------|
+| B. Point-in-time restore | Khôi phục về một thời điểm cụ thể bằng các bản sao lưu liên tục và transaction logs; đây không phải chức năng Backtrack và tạo một DB instance để khôi phục. |
+| C. Snapshot export | Xuất dữ liệu ra S3, không phải chức năng khôi phục database. |
+| D. Replica lag | Đo độ trễ replication, không phải chức năng khôi phục. |
+ [Section3/dva_example.md#55F3]
 
 ### 📝 Vocabulary Analysis:
 - **Backtrack**: Tính năng của Aurora để revert về thời điểm trước
@@ -375,7 +113,7 @@ D. Replica lag
 
 ---
 
-### Question 11:
+### Question 4:
 How many copies of data does Aurora maintain across how many Availability Zones?
 
 ```
@@ -402,14 +140,14 @@ D. 6 copies across 6 AZs
 |--------|------------------------|
 | A | 3 copies là của standard RDS Multi-AZ, không phải Aurora |
 | B | Không đúng số lượng copies |
-| D | Không có 6 AZs, chỉ 3 AZs |
+| D | Aurora duy trì sáu bản sao dữ liệu trên ba AZ; không phải sáu AZ. |
 
 ---
 
-## 4. ElastiCache
+## 2. ElastiCache
 
-### Question 12:
-Which caching strategy **only caches requested data** and is **not affected by node failures**?
+### Question 5:
+Which caching strategy **only caches data that is requested** and lets the application recover from a **cache node failure** by loading the data again from the database?
 
 ```
 A. Write-Through
@@ -424,10 +162,10 @@ D. Cache-Aside with Refresh-Ahead
 
 **Why Lazy Loading:**
 - **Lazy Loading** (Cache-Aside):
-  - Chỉ cache data khi **có request**
-  - Only requested data được cached, không fill cache với unused data
-  - **Node failures không fatal** - chỉ tăng latency để warm cache
-  - Nếu node fail, cache miss sẽ get từ DB và repopulate
+- Chỉ đưa dữ liệu vào cache khi có yêu cầu.
+- Chỉ dữ liệu đã được yêu cầu mới được cache, không nạp sẵn dữ liệu chưa dùng.
+- Lỗi cache node không làm ứng dụng ngừng hoạt động; chỉ làm tăng độ trễ trong lúc nạp lại cache.
+- Khi cache node lỗi, cache miss sẽ đọc từ database rồi nạp lại dữ liệu vào cache.
 
 **Why other options were eliminated:**
 
@@ -448,44 +186,41 @@ D. Cache-Aside with Refresh-Ahead
 
 ---
 
-### Question 13:
+### Question 6:
 A company needs to implement **user session storage** with automatic failover. Which ElastiCache option is most appropriate?
 
 ```
 A. Memcached
-B. Redis Cluster Mode
+B. Redis replication group with Multi-AZ and automatic failover
 C. Redis (standalone)
 D. ElastiCache Auto Discovery
 ```
 
-### ✅ Answer: **B. Redis Cluster Mode**
+### ✅ Answer: **B. Redis replication group with Multi-AZ and automatic failover**
 
 ### 📖 Explanation (Vietnamese):
 
-**Why Redis Cluster Mode:**
-- **Redis Cluster Mode** cung cấp:
-  - **High availability** với automatic failover
-  - Data được replicated across multiple nodes
-  - Nếu primary node fail, replica được promoted
-  - **Session data được preserve** khi node fail
-  - Hỗ trợ **Multi-AZ** deployment
+**Why B is correct:**
+- Cấu hình một Redis replication group có replica và bật **Multi-AZ automatic failover** để chuyển vai trò primary sang replica khi primary gặp sự cố
+- Cluster mode là tùy chọn phân vùng dữ liệu (sharding), không phải điều kiện để bật automatic failover
 
 **Why other options were eliminated:**
 
 | Option | Reason for Elimination |
 |--------|------------------------|
-| A. Memcached | Không có replication hoặc failover support |
-| C. Redis standalone | Không có automatic failover - single point of failure |
-| D. Auto Discovery | Connection feature, không phải HA solution |
+| A. Memcached | Không cung cấp replication/failover tương đương Redis replication group |
+| C. Redis standalone | Không có replica để promote khi node lỗi |
+| D. Auto Discovery | Chỉ hỗ trợ tìm node/endpoint, không tự cung cấp HA |
 
 ### 📝 Vocabulary Analysis:
-- **Cluster Mode**: Phân phối data across multiple nodes
-- **Automatic failover**: Tự động chuyển sang replica khi primary fail
-- **Session storage**: Lưu trữ user session state
+- **Replication group**: Nhóm Redis primary và replicas
+- **Automatic failover**: Tự động promote replica khi primary gặp sự cố
+- **Session storage**: Lưu trạng thái phiên người dùng
+
 
 ---
 
-### Question 14:
+### Question 7:
 What is the main difference between **Redis** and **Memcached** in ElastiCache?
 
 ```
@@ -521,9 +256,9 @@ D. Both have the same feature set
 
 ---
 
-## 5. Route 53
+## 3. Route 53
 
-### Question 15:
+### Question 8:
 Which Route 53 **routing policy** would you use to route traffic to the resource that provides the **lowest latency**?
 
 ```
@@ -538,10 +273,8 @@ D. Geolocation Routing Policy
 ### 📖 Explanation (Vietnamese):
 
 **Why Latency Routing:**
-- **Latency Routing Policy** route traffic đến resource có **lowest latency** cho user
-- Route 53 kiểm tra latency từ user đến các regions/resources
-- Tự động chọn resource gần nhất hoặc có response nhanh nhất
-- Phù hợp cho applications deployed ở nhiều regions
+- **Latency Routing Policy** trả lời bằng resource có latency thấp nhất theo phép đo giữa người dùng và các AWS Regions
+- Phù hợp cho ứng dụng triển khai ở nhiều Region; resource gần nhất về địa lý không nhất thiết luôn có latency thấp nhất
 
 **Why other options were eliminated:**
 
@@ -563,7 +296,7 @@ D. Geolocation Routing Policy
 
 ---
 
-### Question 16:
+### Question 9:
 Which DNS record type is used to map a **root domain** (e.g., example.com) to an **AWS resource** (e.g., CloudFront distribution)?
 
 ```
@@ -599,28 +332,24 @@ D. MX record
 
 ---
 
-### Question 17:
-What is the purpose of a Route 53 **Health Check**?
+### Question 10:
+What capability can Route 53 health checks provide when they are associated with DNS routing records?
 
 ```
 A. To monitor the health of Route 53 DNS service itself
-B. To automatically remove unhealthy resources from DNS responses
+B. Enable DNS failover by evaluating resource health and returning healthy records
 C. To send alerts when resources become unavailable
 D. To backup Route 53 zone files
 ```
 
-### ✅ Answer: **B. To automatically remove unhealthy resources from DNS responses**
+### ✅ Answer: **B. Enable DNS failover by evaluating resource health and returning healthy records**
 
 ### 📖 Explanation (Vietnamese):
 
 **Why B is correct:**
-- **Health Checks** kiểm tra health của resources định kỳ
-- Nếu resource **unhealthy**, Route 53 **tự động loại bỏ** khỏi DNS responses
-- Traffic được route đến healthy resources
-- Có thể check:
-  - Endpoint (IP hoặc domain)
-  - CloudWatch alarm
-  - Calculated health checks
+- Health Check đánh giá tình trạng endpoint/alarm; khi được liên kết với DNS record có health evaluation, nó cho phép DNS failover tránh trả về resource không khỏe
+- HTTP Health Checks chỉ kiểm tra public resources; với endpoint private có thể dùng CloudWatch Alarm
+- Có thể theo dõi endpoint, CloudWatch Alarm hoặc Calculated Health Checks
 
 **Why other options were eliminated:**
 
@@ -637,23 +366,15 @@ D. To backup Route 53 zone files
 
 ---
 
-## 6. Combined Architecture Questions
+## 4. Combined Architecture Questions
 
-### Question 18:
-A company needs a **highly available web application** with:
-- Traffic distributed across multiple AZs
-- Automatic scaling based on CPU
-- Database with automatic failover
-- Low latency for global users
+### Question 11:
+A production database uses RDS. Which RDS feature provides automatic database failover to a standby instance?
 
-Which architecture component provides **automatic failover** for the database?
-
-```
-A. Auto Scaling Group
-B. Application Load Balancer
+A. RDS Read Replica
+B. Amazon RDS Proxy
 C. RDS Multi-AZ
-D. Route 53 Health Check
-```
+D. RDS Storage Auto Scaling
 
 ### ✅ Answer: **C. RDS Multi-AZ**
 
@@ -663,26 +384,23 @@ D. Route 53 Health Check
 - **RDS Multi-AZ** cung cấp **automatic failover** cho database
 - Khi primary instance fail:
   - Standby được promoted thành primary
-  - DNS endpoint tự động chuyển
-  - **Application reconnect** tự động
-- No manual intervention required
-- SYNC replication đảm bảo zero data loss
+- DB endpoint được cập nhật để trỏ đến primary mới sau failover; ứng dụng cần reconnect/retry để thiết lập kết nối mới
 
 **Why other options were eliminated:**
 
 | Option | Reason for Elimination |
 |--------|------------------------|
-| A. ASG | Tự động scale instances, không phải database failover |
-| B. ALB | Phân phối traffic, không có database failover |
-| D. Route 53 Health Check | Monitor health, nhưng không tự động failover database |
+| A. Read Replica | Dùng để mở rộng khả năng đọc, không tự động failover primary của database |
+| B. RDS Proxy | Quản lý/pool kết nối, không thay thế Multi-AZ cho failover |
+| D. Storage Auto Scaling | Tăng storage khi cần, không xử lý failover instance |
 
 ### 🔄 Context Variations:
-- **If need read scaling + failover** → Aurora với Read Replicas
-- **If need cross-region failover** → RDS Read Replica as standby
+- **Nếu cần mở rộng khả năng đọc và failover** → Aurora với Read Replicas
+- **Nếu cần failover cross-Region** → Cross-Region Read Replica được sao chép bất đồng bộ; cần promote rồi chuyển ứng dụng/DNS sang endpoint mới, hoặc cấu hình riêng một cơ chế DR khác
 
 ---
 
-### Question 19:
+### Question 12:
 Which AWS services work together to provide a **serverless, auto-scaling, highly available** web application architecture?
 
 ```
@@ -717,7 +435,7 @@ D. Lightsail + S3 + CloudFront
 
 ---
 
-### Question 20:
+### Question 13:
 A company is experiencing **high latency** when users read data from the database. The data changes infrequently. Which caching solution should be implemented?
 
 ```
@@ -759,13 +477,46 @@ D. Increase RDS instance size
 
 ---
 
+## 5. Route 53 DNS resolution (Source Page 160)
+
+### Question 14:
+A user enters `example.com`. Neither the browser nor its **local DNS server** has a cached answer. Which sequence resolves the hostname?
+
+```
+A. Browser → TLD DNS server → Root DNS server → authoritative DNS server
+B. Browser → local DNS server → Root DNS server → TLD DNS server → authoritative DNS server
+C. Browser → domain registrar → Root DNS server → TLD DNS server
+D. Browser → authoritative DNS server directly, without a DNS resolver
+```
+
+### ✅ Answer: **B**
+
+### 📖 Explanation (Vietnamese):
+
+**Tại sao chọn B:**
+- Browser gửi query đến **Local DNS Server**. Nếu không có cache, Local DNS Server hỏi **Root DNS Server** để tìm nameserver của `.com`.
+- **TLD DNS Server** trả về nameserver có thẩm quyền cho `example.com`; **SLD/authoritative DNS Server** trả về địa chỉ IP của hostname.
+- Local DNS Server cache câu trả lời theo **TTL**, rồi trả IP về browser. Đây là luồng được minh họa ở Trang 160.
+
+**Tại sao không chọn các đáp án khác:**
+
+| Đáp án | Lý do loại bỏ |
+|--------|----------------|
+| A | Đảo thứ tự Root và TLD; resolver cần tìm máy chủ của TLD trước khi hỏi TLD. |
+| C | Domain Registrar không nằm trong mỗi lần truy vấn phân giải hostname; Root DNS được hỏi trước TLD DNS. |
+| D | Browser thường gửi query đến Local DNS Server thay vì trực tiếp truy vấn authoritative server. |
+
+### 📝 Phân tích từ vựng:
+- **Local DNS Server / Resolver**: máy chủ nhận và thay mặt client phân giải DNS query.
+- **TLD DNS Server**: máy chủ cho miền cấp cao nhất như `.com`.
+- **Authoritative DNS Server**: máy chủ giữ DNS records chính thức cho domain.
+
+---
+
 ## Summary Table
 
 | Topic | Key Points |
 |-------|------------|
-| **ALB** | Layer 7, path/host routing, SNI, X-Forwarded-For |
-| **NLB** | Layer 4, static IP, EIP, extreme performance |
-| **ASG** | Launch Template, Target Tracking, Cooldown, Instance Refresh |
 | **RDS Multi-AZ** | SYNC replication, automatic failover, HA |
 | **RDS Read Replicas** | ASYNC replication, read scaling, 15 replicas |
 | **Aurora** | 6 copies/3 AZ, Backtrack, auto-storage scaling |

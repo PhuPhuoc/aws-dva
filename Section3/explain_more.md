@@ -1,324 +1,152 @@
-# Section 3 - Extended Knowledge: ELB, ASG, RDS, Aurora, ElastiCache, Route 53
+# Section 3 - Kiến thức mở rộng: RDS, Aurora, ElastiCache, Route 53
 
----
 
-## 1. Elastic Load Balancer (ELB)
+## 1. RDS (Relational Database Service)
 
-### ALB vs NLB vs CLB - Khi nào nên dùng?
+### Multi-AZ và Read Replicas
 
-**DO (NÊN):**
-- Sử dụng **Application Load Balancer (ALB)** cho hầu hết web applications vì:
-  - Hỗ trợ **Layer 7 routing** (HTTP/HTTPS)
-  - **Path-based routing** và **host-based routing**
-  - Tích hợp tốt với **microservices và containers**
-  - Hỗ trợ **Lambda** như target
-  - **Fixed hostname** dễ quản lý
+#### Giải thích cốt lõi
+**Multi-AZ** duy trì standby đồng bộ ở AZ khác và tự động failover qua cùng DNS endpoint để tăng tính sẵn sàng; nó không phân phối thao tác đọc. **Read Replicas** sao chép bất đồng bộ, có endpoint riêng để ứng dụng phân tải truy vấn đọc, có thể đặt khác AZ/Region và phải được promote khi cần dùng như database độc lập.
 
-- Sử dụng **Network Load Balancer (NLB)** khi:
-  - Cần **extreme performance** (millions requests/second)
-  - Cần **low latency** (~100ms vs 400ms của ALB)
-  - Cần **static IP per AZ** hoặc **Elastic IP**
-  - Cần forward **TCP/UDP traffic**
+| Cấu hình | Replication | Mục đích chính |
+|---|---|---|
+| Multi-AZ | SYNC | High Availability và failover |
+| Read Replica | ASYNC | Mở rộng đọc; có thể có replication lag |
 
-- Sử dụng **Gateway Load Balancer** khi:
-  - Cần deploy **firewalls, IDS/IPS**
-  - Cần **transparent network gateway**
-  - Cần inspect/modify traffic qua virtual appliances
+#### NÊN làm (DO)
+- Bật **Multi-AZ** cho database production cần HA, vì standby đồng bộ và failover tự động tốt hơn tự quản lý bản sao.
+- Dùng **Read Replicas** cho workload đọc nhiều, báo cáo hoặc phân tích vì chúng tách tải đọc khỏi primary; cùng Region không tính phí truyền dữ liệu cross-AZ theo tài liệu nguồn.
+- Cấu hình một Read Replica thành Multi-AZ khi cần dự phòng cho chính replica để DR → replica được triển khai với standby ở AZ khác; đây là bổ sung cho Read Replica chứ không biến nó thành cơ chế đồng bộ của primary.
 
-**DON'T (KHÔNG NÊN):**
-- Không dùng **Classic Load Balancer (CLB)** cho các application mới - đã deprecated
-- Không dùng NLB khi chỉ cần HTTP/HTTPS routing vì:
-  - Không hỗ trợ **path-based routing**
-  - Không hỗ trợ **host-based routing**
-  - Không tích hợp tốt với containers/microservices
-  - Chi phí cao hơn ALB
+#### KHÔNG NÊN làm (DON'T)
+- Không dùng Multi-AZ để mở rộng khả năng đọc/ghi; nó không phục vụ phân tải đọc, nên dùng Read Replicas cho workload đọc.
+- Không ghi vào Read Replica hoặc bỏ qua replication lag; truy vấn có thể thấy dữ liệu cũ, nên ghi vào primary và thiết kế ứng dụng chấp nhận độ trễ đọc khi phù hợp.
 
-### Security Groups Configuration Best Practices
+### Storage của RDS
 
-**DO (NÊN):**
-```
-Load Balancer Security Group:
-- Inbound: 0.0.0.0/0 (HTTP/HTTPS)
-- Outbound: 0.0.0.0/0
+#### Giải thích cốt lõi
+**Storage Auto Scaling** tự tăng dung lượng storage khi database sắp hết chỗ, trong giới hạn **Maximum Storage Threshold**; nó xử lý thiếu dung lượng chứ không tự tăng IOPS. gp3 có giá thấp hơn gp2 20% với mức cơ bản 3.000 IOPS, gp2 phù hợp workload burst, còn io1/io2 dành cho nhu cầu Provisioned IOPS cao.
 
-Application/EC2 Security Group:
-- Inbound: Chỉ từ Load Balancer SG (security group reference)
-- Outbound: 0.0.0.0/0
-```
+#### NÊN làm (DO)
+- Bật **Storage Auto Scaling** khi dung lượng khó dự đoán, đặt Maximum Storage Threshold đủ cao và giám sát **FreeStorageSpace**; cách này an toàn hơn chờ đầy storage rồi sửa thủ công.
+- Chọn gp3 cho workload phổ thông; chỉ chọn io1/io2 khi cần IOPS được cấp phát.
 
-**Lợi ích của Security Group referencing:**
-- Khi thêm instance mới, tự động được allow
-- Không cần hardcode IP addresses
-- Tự động cập nhật khi instances thay đổi
+#### KHÔNG NÊN làm (DON'T)
+- Không đặt Maximum Storage Threshold quá thấp hoặc coi Auto Scaling là cách tăng hiệu năng I/O; workload vẫn có thể lỗi khi hết hạn mức, nên dự báo dung lượng và chọn storage/IOPS phù hợp.
 
-**DON'T (KHÔNG NÊN):**
-- Không allow traffic trực tiếp từ Internet đến EC2
-- Không hardcode IP addresses trong rules
-- Không mở port 22 (SSH) ra Internet
+### Bảo mật RDS
 
-### SSL/TLS Certificates
+#### Giải thích cốt lõi
+Mã hóa **at rest** dùng KMS bảo vệ dữ liệu lưu trữ; **SSL/TLS** bảo vệ kết nối khi truyền; IAM Authentication, Security Groups và Secrets Manager lần lượt kiểm soát danh tính, mạng và credentials. Đây là các lớp bổ sung cho nhau, không thay thế lẫn nhau.
 
-**DO (NÊN):**
-- Luôn sử dụng **ACM (AWS Certificate Manager)** để quản lý certificates
-- Enable **HTTPS** trên Load Balancer
-- Sử dụng **SNI** để host multiple domains trên cùng ALB/NLB
-- Rotate certificates trước khi expired
+#### NÊN làm (DO)
+- Bật **Encryption at Rest**, bắt buộc **SSL/TLS**, giới hạn truy cập bằng **VPC Security Groups**, dùng IAM Authentication khi phù hợp và lưu mật khẩu trong **Secrets Manager**; so với public access/default credentials, các biện pháp này giảm lộ dữ liệu và credentials.
 
-**DON'T (KHÔNG NÊN):**
-- Không upload self-signed certificates cho production
-- Không ignore certificate expiration
-- Không dùng CLB nếu cần SNI (không hỗ trợ)
-
-**💡 Tip: X-Forwarded Headers**
-```
-X-Forwarded-For: Client IP
-X-Forwarded-Port: Client port
-X-Forwarded-Proto: HTTP/HTTPS
-```
-Luôn log X-Forwarded-For để track client IPs vì instances không thấy trực tiếp client IP.
-
-### Cross-Zone Load Balancing
-
-**DO (NÊN):**
-- Với ALB: **Enable by default** - không cần change
-- Với NLB: Consider enable nếu cần distribute traffic đều across all AZs
-
-**⚠️ NOTE:**
-- Với NLB, khi enable Cross-Zone LB, sẽ **tính phí** inter-AZ data transfer
-- Tính toán chi phí trước khi enable cho NLB
-
-### Connection Draining / Deregistration Delay
-
-**DO (NÊN):**
-- Set **30-60 seconds** cho general web applications
-- Set **5-10 seconds** cho applications với short requests
-- Set **300+ seconds** cho applications với long-running requests (file uploads)
-
-**DON'T (KHÔNG NÊN):**
-- Set quá ngắn cho applications với long requests
-- Disable completely trừ khi có lý do cụ thể
-
----
-
-## 2. Auto Scaling Group (ASG)
-
-### Launch Template vs Launch Configuration
-
-**DO (NÊN):**
-- Luôn dùng **Launch Template** (Launch Configurations đã deprecated)
-- Version control cho Launch Template
-- Sử dụng **latest version** hoặc specify version cụ thể
-
-**💡 Tip: User Data Optimization**
-```bash
-#!/bin/bash
-# Sử dụng pre-baked AMI thay vì bootstrap
-# Ví dụ: Codepipeline agent đã install sẵn
-# Giảm bootstrap time từ 5-10 phút xuống 30 giây
-```
-
-### Scaling Policies Best Practices
-
-**DO (NÊN):**
-- Sử dụng **Target Tracking Scaling** làm primary policy
-- Set **multiple metrics** để scale (CPU + RequestCountPerTarget)
-- Implement **scale-in policies** cùng với scale-out
-- Set **appropriate cooldown** (300-600 seconds thường OK)
-
-**Recommended Target Tracking Configurations:**
-| Metric | Target Value | Use Case |
-|--------|-------------|----------|
-| ASGAverageCPUUtilization | 40-50% | General web apps |
-| ALBRequestCountPerTarget | 100-500 | Load-balanced apps |
-| RDSReaderAverageCPUUtilization | 70% | Database reads |
-| ElastiCacheDatabaseMemoryUsagePercentage | 70-80% | Cache optimization |
-
-**DON'T (KHÔNG NÊN):**
-- Không scale out quá nhanh (step scaling với large increments)
-- Không set target quá thấp (ví dụ: CPU 20%) - tốn chi phí
-- Không ignore scale-in policies
-- Không set cooldown quá ngắn (dưới 60s)
-
-### Scheduled Scaling
-
-**DO (NÊN):**
-- Use for **predictable traffic patterns**
-- Scale up trước khi peak hours
-- Scale down sau khi peak hours kết thúc
-
-**Ví dụ:**
-```json
-{
-  "ScheduledAction": "Scale-Out-Before-Peak",
-  "Schedule": "0 17 * * 5",  // 5PM every Friday
-  "MinSize": 10,
-  "DesiredCapacity": 10
-}
-```
-
-### Instance Refresh
-
-**DO (NÊN):**
-- Always set **minimum healthy percentage** (recommend 90%)
-- Set **warm-up time** để instance ready trước khi receive traffic
-- Test in staging environment trước
-
-**DON'T (KHÔNG NÊN):**
-- Không run instance refresh trong production peak hours
-- Không set minimum healthy percentage = 0
-
----
-
-## 3. RDS (Relational Database Service)
-
-### Multi-AZ vs Read Replicas
-
-**DO (NÊN):**
-- Enable **Multi-AZ** cho production databases
-- Sử dụng **Read Replicas** để:
-  - Scale read-heavy workloads
-  - Run analytics/reporting queries
-  - Perform backups without impacting primary
-
-**DON'T (KHÔNG NÊN):**
-- Không coi Multi-AZ là scaling solution (nó chỉ cho HA)
-- Không sử dụng Read Replicas cho write operations
-- Không ignore replication lag khi app sensitive to stale data
-
-**⚠️ IMPORTANT:**
-```
-Multi-AZ: SYNC replication, automatic failover, same region (different AZ)
-Read Replicas: ASYNC replication, manual promotion, can be cross-region
-```
-
-### RDS Storage
-
-**DO (NÊN):**
-- Enable **Storage Auto Scaling** nếu workload unpredictable
-- Set **Maximum Storage Threshold** cao hơn expected peak
-- Monitor **FreeStorageSpace** metrics
-
-**💡 Tip: Storage Types**
-- **gp3**: 20% cheaper than gp2, baseline 3000 IOPS
-- **gp2**: Burstable, good for dev/test
-- **io1/io2**: For high IOPS requirements (need Provisioned IOPS)
-
-### RDS Security
-
-**DO (NÊN):**
-- Enable **Encryption at Rest** (KMS)
-- Enforce **SSL/TLS** for connections
-- Use **IAM Authentication** thay vì password
-- Store credentials trong **Secrets Manager**
-- Sử dụng **VPC Security Groups** để restrict access
-
-**DON'T (KHÔNG NÊN):**
-- Không public accessible RDS instances
-- Không dùng default credentials
-- Không ignore **Parameter Groups** settings
+#### KHÔNG NÊN làm (DON'T)
+- Không để RDS public accessible, dùng credentials mặc định hoặc bỏ qua Parameter Groups; các cấu hình này có thể làm lộ database hoặc áp dụng sai thiết lập bảo mật, nên chỉ cấp quyền mạng/danh tính cần thiết và quản lý cấu hình tập trung.
 
 ### RDS Proxy
 
-**DO (NÊN):**
-- Sử dụng RDS Proxy khi:
-  - Many short-lived connections
-  - Serverless applications
-  - Lambda functions connecting to RDS
-  - Cần reduce **failover time**
-- Enable IAM authentication qua RDS Proxy
+#### Giải thích cốt lõi
+RDS Proxy gom và tái sử dụng các kết nối database để giảm số kết nối mở, CPU/RAM và timeout; dịch vụ được quản lý, tự mở rộng, đa AZ và có thể giảm thời gian failover. So với kết nối trực tiếp, proxy đặc biệt hữu ích khi ứng dụng tạo nhiều kết nối ngắn hạn.
 
-**DON'T (KHÔNG NÊN):**
-- Không dùng khi cần long-running queries (> 60 seconds)
-- Không dùng với transactions spanning multiple connections
+#### NÊN làm (DO)
+- Dùng RDS Proxy cho workload nhiều kết nối ngắn hạn, ứng dụng serverless/Lambda hoặc khi cần giảm thời gian failover; bật IAM Authentication để tránh quản lý credentials trong ứng dụng.
+
+#### KHÔNG NÊN làm (DON'T)
+- Không dùng khi cần giữ truy vấn chạy dài hơn 60 giây hoặc transaction kéo dài qua nhiều kết nối; proxy có thể không phù hợp với các phiên làm việc đó, nên dùng kết nối database trực tiếp.
 
 ---
 
-## 4. Amazon Aurora
+## 2. Amazon Aurora
 
-### Aurora vs RDS
+### Aurora và RDS
 
-**DO (NÊN):**
-- Chọn **Aurora** khi cần:
-  - **High performance** (5x MySQL, 3x Postgres)
-  - **Auto-scaling storage** (10GB to 128TB)
-  - **Fast failover** (< 30 seconds)
-  - **Cross-region replication**
-  - **Backtrack feature** (restore without backups)
+#### Giải thích cốt lõi
+Aurora là database quan hệ độc quyền của AWS, tương thích PostgreSQL/MySQL, có storage tự mở rộng theo bước 10 GB (10 GB-128 TB theo tài liệu nguồn) và failover nhanh. Slide nêu mức hiệu năng gấp 5 lần MySQL và 3 lần PostgreSQL trên RDS, cùng chi phí cao hơn 20%; RDS thường đơn giản hơn và có thể phù hợp hơn khi đã có ứng dụng hiện hữu hoặc ngân sách hạn chế.
 
-- Chọn **RDS** khi:
-  - Đã có existing MySQL/Postgres apps
-  - Cần **simpler management**
-  - Budget constraints (Aurora đắt hơn 20%)
+#### NÊN làm (DO)
+- Chọn Aurora khi cần hiệu năng, storage tự mở rộng, failover nhanh, replication cross-Region hoặc Backtrack; chọn RDS khi cần cách quản lý đơn giản hơn hay muốn giữ ứng dụng MySQL/PostgreSQL hiện có.
+- Dùng Aurora Serverless cho workload gián đoạn/khó dự đoán hoặc môi trường dev/test cần khả năng tự tạm dừng khi idle.
 
-**Aurora Serverless:**
-- Good cho **intermittent/unpredictable workloads**
-- Auto-pause khi idle
-- Good cho dev/test environments
-
-**⚠️ NOTE: Aurora Storage**
-- Storage auto-scales từ 10GB increments
-- Không cần provision storage upfront
-- Tính phí theo actual usage
+#### KHÔNG NÊN làm (DON'T)
+- Không chọn Aurora chỉ vì cho rằng nó luôn rẻ hơn hoặc cần thiết cho mọi workload; chi phí theo slide cao hơn RDS 20%, nên so sánh hiệu năng/cost với RDS trước khi quyết định.
 
 ### Aurora Replicas
 
-**DO (NÊN):**
-- Tạo **Aurora Replicas** cho:
-  - Read scaling
-  - HA (automatic failover)
-  - Geographic distribution (Cross-region)
+#### Giải thích cốt lõi
+Aurora Replicas dùng chung storage với cluster, phục vụ truy vấn đọc và có thể được promote khi primary gặp sự cố. Slide nêu replica lag thường dưới 10 ms; đây là độ trễ thấp nhưng không đồng nghĩa mọi lần đọc đều tuyệt đối không trễ.
 
-**⚠️ IMPORTANT:**
-- Aurora replicas ** không có replication lag đáng kể** (< 10ms)
-- Replicas có thể be promoted **instantly**
-- Tất cả replicas có thể serve reads
+#### NÊN làm (DO)
+- Tạo Aurora Replicas khi cần mở rộng đọc, hỗ trợ HA/failover hoặc phân bố workload giữa các Region; chúng phù hợp hơn việc gửi mọi truy vấn đọc đến primary.
 
----
+#### KHÔNG NÊN làm (DON'T)
+- Không giả định replica luôn nhất quán tức thời hoặc đọc từ replica cho dữ liệu bắt buộc mới nhất; hãy đọc từ writer endpoint khi cần dữ liệu mới nhất và thiết kế theo replication lag.
 
-## 5. Amazon ElastiCache
+### Aurora Endpoints
 
-### Redis vs Memcached
+#### Giải thích cốt lõi
+Aurora endpoints là DNS names chọn DB instance cho từng kết nối; cluster/writer endpoint trỏ đến primary, reader endpoint cân bằng **kết nối** đọc giữa replicas (không cân bằng từng query), instance endpoint chỉ đến một instance cụ thể, còn custom endpoint đại diện nhóm instance do người vận hành chọn. Writer/reader endpoints cập nhật đích sau failover; client vẫn cần reconnect/retry.
 
-**DO (NÊN):**
-- Chọn **Redis** khi cần:
-  - **High availability** (replication, failover)
-  - **Data persistence** (AOF, RDB)
-  - **Advanced data types** (Sets, Sorted Sets, Streams)
-  - **Pub/Sub** capabilities
-  - **Lua scripting**
+| Endpoint | Dùng cho | Hành vi |
+|---|---|---|
+| **Cluster (writer) endpoint** | Đọc/ghi, đặc biệt mọi thao tác ghi | Trỏ đến primary hiện tại; cập nhật đích sau failover |
+| **Reader endpoint** | Kết nối chỉ đọc | Cân bằng kết nối giữa Aurora Replicas; nếu chưa có replica thì kết nối đến primary |
+| **Instance endpoint** | Chẩn đoán/tinh chỉnh một DB instance | Trỏ đến một instance cụ thể, không tự failover như cluster/reader endpoint |
+| **Custom endpoint** | Một nhóm instance do người vận hành chọn | Cân bằng kết nối trong nhóm đã chọn |
 
-- Chọn **Memcached** khi cần:
-  - **Simple key-value caching**
-  - **Multi-threaded** performance
-  - **Horizontal scaling** (sharding)
-  - **Lowest cost** per node
+#### NÊN làm (DO)
+- Dùng cluster endpoint cho workload ghi và reader endpoint cho workload đọc; đây là lựa chọn phù hợp hơn việc tự quản lý địa chỉ instance.
 
-**💡 Tip: Use Cases**
-| Use Case | Recommended |
+#### KHÔNG NÊN làm (DON'T)
+- Không dùng reader endpoint như thể nó phân phối từng query hoặc dùng instance endpoint làm đường kết nối chịu lỗi; mở kết nối mới khi cần phân tải đọc, và dùng cluster/reader endpoint khi cần chuyển hướng sau failover.
+
+Nguồn chính thức: [Amazon Aurora endpoint connections](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/Aurora.Overview.Endpoints.html)
+
+
+## 3. Amazon ElastiCache
+
+### Redis và Memcached
+
+#### Giải thích cốt lõi
+Redis và Memcached đều là cache trong bộ nhớ; Redis có replication, persistence và kiểu dữ liệu phong phú, còn Memcached tập trung vào cache key-value đơn giản, đa luồng và sharding. So sánh nhu cầu về HA, độ bền và cấu trúc dữ liệu trước khi chọn.
+
+#### NÊN làm (DO)
+- Chọn **Redis** khi cần tính sẵn sàng cao (replication, failover), lưu dữ liệu bền vững (AOF, RDB), kiểu dữ liệu nâng cao, Pub/Sub hoặc Lua scripting → các tính năng này phù hợp hơn Memcached cho cache có trạng thái và khả năng khôi phục.
+- Chọn **Memcached** khi cần cache key-value đơn giản, đa luồng và sharding → tránh độ phức tạp của Redis khi không cần persistence hoặc replication.
+
+**Gợi ý theo trường hợp sử dụng:**
+| Trường hợp sử dụng | Nên chọn |
 |----------|-------------|
-| Session store | Redis |
-| Caching query results | Redis or Memcached |
-| Real-time leaderboards | Redis (Sorted Sets) |
-| Chat/messaging | Redis (Pub/Sub) |
-| Rate limiting | Redis |
-| Simple HTML caching | Memcached |
+| Lưu session | Redis |
+| Cache kết quả truy vấn | Redis hoặc Memcached |
+| Bảng xếp hạng thời gian thực | Redis (Sorted Sets) |
+| Chat/nhắn tin | Redis (Pub/Sub) |
+| Giới hạn tốc độ request | Redis |
+| Cache HTML đơn giản | Memcached |
+#### KHÔNG NÊN làm (DON'T)
+- Không dùng Memcached khi cần persistence hoặc tự động failover → dữ liệu cache mất khi node lỗi; chọn Redis và cấu hình replication/persistence phù hợp.
+- Không chọn Redis chỉ vì có nhiều tính năng nếu chỉ cần cache key-value đơn giản → tăng độ phức tạp và chi phí; cân nhắc Memcached.
 
-### Caching Strategies
+### Chiến lược Caching
 
-**DO (NÊN):**
+#### Giải thích cốt lõi
+Với **Cache-Aside**, ứng dụng đọc cache trước, khi cache miss thì đọc database và nạp kết quả vào cache; **Write-Through** cập nhật cache cùng lúc với database. Cache-Aside ít ghi dữ liệu không được yêu cầu, còn Write-Through giảm nguy cơ đọc dữ liệu cũ sau thao tác ghi nhưng tăng chi phí ghi.
+
+#### NÊN làm (DO)
 
 **1. Cache-Aside (Lazy Loading):**
 ```python
 def get_user(user_id):
-    # 1. Check cache first
+    # 1. Kiểm tra cache trước
     user = cache.get(f"user:{user_id}")
     if user:
         return user
     
-    # 2. Cache miss - get from DB
+    # 2. Cache miss - lấy dữ liệu từ DB
     user = db.query("SELECT * FROM users WHERE id = ?", user_id)
     
-    # 3. Store in cache with TTL
+    # 3. Lưu vào cache kèm TTL
     cache.set(f"user:{user_id}", user, ttl=3600)
     return user
 ```
@@ -326,200 +154,135 @@ def get_user(user_id):
 **2. Write-Through:**
 ```python
 def update_user(user_id, data):
-    # 1. Write to DB
+    # 1. Ghi vào DB
     db.execute("UPDATE users SET ... WHERE id = ?", user_id, data)
     
-    # 2. Update cache immediately
+    # 2. Cập nhật cache ngay
     user = db.query("SELECT * FROM users WHERE id = ?", user_id)
     cache.set(f"user:{user_id}", user, ttl=3600)
 ```
 
-**When to use which:**
-| Strategy | Best For | Avoid When |
-|----------|----------|------------|
-| Cache-Aside | Read-heavy, tolerate stale data | Write-heavy, data must be fresh |
-| Write-Through | Data must be fresh, predictable writes | Write-heavy, many keys never read |
+**Khi nào dùng từng chiến lược:**
+| Chiến lược | Phù hợp nhất khi | Tránh dùng khi |
+|----------|------------|------------|
+| Cache-Aside | Đọc nhiều, chấp nhận dữ liệu cũ trong thời gian ngắn | Ghi nhiều, bắt buộc dữ liệu luôn mới |
+| Write-Through | Cần dữ liệu mới, tần suất ghi có thể dự đoán | Ghi nhiều, nhiều key không bao giờ được đọc |
 
-**DON'T (KHÔNG NÊN):**
-- Không cache **entire database tables**
-- Không set **TTL quá dài** cho frequently changing data
-- Không ignore **cache invalidation strategy**
-- Không dùng cache như primary data store
+#### KHÔNG NÊN làm (DON'T)
+- Không cache toàn bộ bảng → lãng phí bộ nhớ; chỉ cache dữ liệu được truy cập thường xuyên.
+- Không đặt TTL quá dài cho dữ liệu thay đổi nhanh hoặc bỏ qua invalidation → người dùng có thể đọc dữ liệu cũ; dùng TTL ngắn hơn hoặc xóa/cập nhật cache khi dữ liệu nguồn đổi.
+- Không dùng cache làm nguồn dữ liệu chính → eviction hoặc lỗi node có thể làm mất dữ liệu; lưu dữ liệu bền vững trong database.
 
-### TTL Best Practices
+### Thực hành tốt về TTL
+#### Giải thích cốt lõi
+TTL đặt thời gian một bản ghi cache được giữ trước khi hết hạn; TTL ngắn giảm thời gian dữ liệu cũ nhưng làm tăng cache miss, còn TTL dài cải thiện hit rate nhưng có thể trả dữ liệu stale. Quy tắc TTL bằng 0 khác nhau giữa các dịch vụ nên phải kiểm tra semantics của cache cụ thể.
 
-**DO (NÊN):**
-- Set TTL based on data freshness requirements:
-  - **Session data**: 15-30 minutes
-  - **User profiles**: 1-24 hours
-  - **Product catalog**: 1-24 hours
-  - **Real-time data**: No cache / very short TTL
 
-**⚠️ NOTE: TTL Anti-patterns**
-- TTL = 0: Item never expires (khiến cache stale)
-- TTL = infinite: Tương tự, cache forever
-- Always set explicit TTL
+#### NÊN làm (DO)
+Đặt TTL theo yêu cầu về độ mới của dữ liệu:
+- **Dữ liệu session**: 15-30 phút
+- **Hồ sơ người dùng**: 1-24 giờ
+- **Danh mục sản phẩm**: 1-24 giờ
+- **Dữ liệu thời gian thực**: không cache hoặc dùng TTL rất ngắn
 
-### Cache Eviction
+#### KHÔNG NÊN làm (DON'T)
+- Không dùng TTL quá dài cho dữ liệu thường xuyên thay đổi → cache có thể trả dữ liệu cũ; giảm TTL hoặc chủ động invalidation.
+- Không mặc định TTL bằng 0 hoặc vô hạn có cùng ý nghĩa ở mọi cache → item có thể không hết hạn, hết hạn ngay hoặc bị từ chối; xác nhận semantics của dịch vụ và đặt TTL rõ ràng.
 
-**DO (NÊN):**
-- Monitor **CacheHitRate** và **CurrItems**
-- Scale up (increase node size) khi memory pressure
-- Scale out (add nodes) khi need more throughput
+### Loại bỏ item khỏi cache (Cache Eviction)
+#### Giải thích cốt lõi
+Khi bộ nhớ cache đầy, eviction policy quyết định item nào bị loại; Redis hỗ trợ các policy như LRU hoặc từ chối ghi (`noeviction`), trong khi Memcached tự loại item theo chính sách của nó. Eviction giải phóng bộ nhớ nhưng làm tăng cache miss; scale up thêm RAM, scale out thêm node và tăng phân tán dữ liệu.
 
-**⚠️ IMPORTANT:**
-- Redis eviction policies: `allkeys-lru`, `volatile-lru`, `noeviction`
-- Set appropriate policy based on use case
-- Monitor **evictions** metric
+
+#### NÊN làm (DO)
+- Giám sát **CacheHitRate**, **CurrItems** và **evictions** → phát hiện sớm thiếu bộ nhớ hoặc tỷ lệ cache miss cao.
+- Scale up khi thiếu RAM; scale out khi cần thêm dung lượng hoặc thông lượng, đồng thời chọn policy phù hợp với khả năng tái tạo dữ liệu.
+
+#### KHÔNG NÊN làm (DON'T)
+- Không chọn `noeviction` nếu ứng dụng không xử lý lỗi hết bộ nhớ → thao tác ghi mới có thể thất bại; dùng policy phù hợp hoặc tăng capacity.
+- Không coi eviction là cơ chế lưu giữ dữ liệu → item bị loại phải có thể đọc lại từ nguồn bền vững; giữ dữ liệu chính trong database.
 
 ---
 
-## 6. Route 53
+## 4. Route 53
 
-### DNS Records Types
+### Các loại DNS Record
+#### Giải thích cốt lõi
+DNS record ánh xạ tên miền đến địa chỉ hoặc tên đích: A/AAAA trả địa chỉ IP, CNAME trỏ hostname khác, còn Route 53 Alias trỏ đến AWS resource và hỗ trợ zone apex. Chọn record type theo đích và việc có cần dùng tên miền gốc hay không.
 
-**DO (NÊN):**
-- **A Record**: Map domain to IPv4
-- **AAAA Record**: Map domain to IPv6
-- **CNAME**: Map subdomain to another domain
-- **Alias Record**: Map domain to AWS resource (ALB, S3, CloudFront)
 
-**⚠️ IMPORTANT: CNAME vs Alias**
-- CNAME: Chỉ cho non-root domains (www.example.com)
-- Alias: Cho cả root domains (example.com)
-- Alias: **Không charge** cho queries
-- Alias: Tự động resolve IP changes
+#### NÊN làm (DO)
+- Dùng A/AAAA cho địa chỉ IP, CNAME cho hostname không phải zone apex, và Alias cho AWS resource hoặc zone apex → tránh vi phạm giới hạn CNAME ở root domain; Alias tự theo dõi thay đổi IP của resource và không tính phí query theo tài liệu AWS.
 
-### Routing Policies
+#### KHÔNG NÊN làm (DON'T)
+- Không tạo CNAME ở zone apex → DNS không cho phép CNAME coexist với các record bắt buộc khác tại root; dùng Alias nếu đích là AWS resource.
+- Không dùng A/AAAA với IP cố định của AWS resource có thể đổi địa chỉ → record dễ lỗi khi IP thay đổi; dùng Alias.
 
-**DO (NÊN):**
+### Routing Policies (Chính sách định tuyến)
+#### Giải thích cốt lõi
+Routing Policy quyết định Route 53 trả lời DNS query như thế nào; nó không phân phối trực tiếp từng request như Load Balancer. Simple trả record tĩnh; Weighted chia tỷ lệ câu trả lời; Latency chọn Region có độ trễ thấp; Failover dùng trạng thái health để chuyển primary/secondary; các policy địa lý và IP dựa vào vị trí hoặc dải IP của client.
 
-| Policy | Use Case |
+
+#### NÊN làm (DO)
+- Chọn policy theo mục tiêu: **Weighted** cho thử nghiệm/blue-green, **Latency-based** cho độ trễ thấp, **Geolocation** cho yêu cầu theo vị trí → mỗi policy chọn câu trả lời theo tiêu chí khác nhau; so với Simple, cân nhắc DNS caching/TTL và health-check behavior.
+
+| Policy | Trường hợp sử dụng |
 |--------|----------|
-| **Simple** | Single resource |
-| **Weighted** | A/B testing, blue-green deployments |
-| **Latency-based** | Lowest latency for users |
-| **Failover** | Active-passive HA |
-| **Geolocation** | Regional content, compliance |
-| **Geoproximity** | Traffic flow based on geography |
-| **IP-based** | Custom routing based on IP ranges |
-| **Multi-value** | Multiple healthy resources |
+| **Simple** | Một resource |
+| **Weighted** | A/B testing, triển khai blue-green |
+| **Latency-based** | Chọn latency thấp nhất cho người dùng |
+| **Failover** | HA active-passive |
+| **Geolocation** | Nội dung theo khu vực, tuân thủ yêu cầu |
+| **Geoproximity** | Điều phối traffic theo vị trí địa lý |
+| **IP-based** | Định tuyến tùy chỉnh theo dải IP |
+| **Multi-value** | Nhiều resource khỏe mạnh |
 
-**Weighted Routing Example:**
+**Ví dụ Weighted Routing:**
 ```
 - version-1.example.com: Weight 90 (90% traffic)
 - version-2.example.com: Weight 10 (10% traffic)
 ```
+#### KHÔNG NÊN làm (DON'T)
+- Không dùng Weighted như thể nó đảm bảo phần trăm kết nối chính xác → DNS caching/TTL ảnh hưởng số client thực nhận mỗi endpoint; dùng nó để điều phối tương đối và theo dõi kết quả.
+- Không nhầm Geolocation với Latency-based → một policy chọn theo vị trí, policy kia theo latency đo được; chọn theo yêu cầu thực tế.
 
-### Health Checks
+### Health Checks (Kiểm tra tình trạng)
+#### Giải thích cốt lõi
+Route 53 Health Checks kiểm tra endpoint công khai, health check khác hoặc CloudWatch Alarm rồi cung cấp trạng thái để các policy như Failover loại record không khỏe khỏi câu trả lời. Health checker ở ngoài VPC nên không thể trực tiếp truy cập endpoint private; CloudWatch Alarm là lựa chọn thay thế cho tài nguyên riêng.
 
-**DO (NÊN):**
-- Enable **Health Checks** for all critical resources
-- Use **calculated health checks** for composite monitoring
-- Set appropriate **thresholds** (consecutive failures)
 
-**⚠️ IMPORTANT:**
-- Health checks check every 10/30 seconds (fastest)
-- 3xx responses are considered healthy
-- String matching requires response to contain string
+#### NÊN làm (DO)
+- Bật Health Checks cho resource cần failover và chọn ngưỡng phù hợp → Route 53 có thể ngừng trả record không khỏe; dùng Calculated Health Checks hoặc CloudWatch Alarm khi cần tổng hợp trạng thái hay kiểm tra tài nguyên private.
 
-**DON'T (KHÔNG NÊN):**
-- Không disable health checks trong production
-- Không point health check trực tiếp đến IP (dùng DNS name)
+#### KHÔNG NÊN làm (DON'T)
+- Không trỏ health check trực tiếp đến địa chỉ private hoặc tắt kiểm tra cho resource cần failover → checker không thể đánh giá đúng hoặc Route 53 tiếp tục trả endpoint lỗi; dùng CloudWatch Alarm cho endpoint private và liên kết trạng thái với record.
+- Không coi phản hồi redirect là lỗi mặc định → AWS xem mã 3xx là khỏe; kiểm tra cấu hình match code/string để tránh đánh dấu nhầm.
 
 ### Route 53 Resolver
+#### Giải thích cốt lõi
+Route 53 Resolver xử lý truy vấn DNS cho VPC; Resolver Endpoints mở luồng DNS hai chiều giữa VPC và mạng on-premises. Inbound nhận query từ on-premises, Outbound chuyển query từ VPC đến DNS server on-premises; đây là lựa chọn thay cho cấu hình DNS thủ công trên từng máy.
 
-**DO (NÊN):**
-- Sử dụng **Resolver Endpoints** cho hybrid DNS
-- Inbound Endpoints: Cho on-premises queries Route 53
-- Outbound Endpoints: Cho Route 53 queries on-premises
 
----
+#### NÊN làm (DO)
+- Dùng Inbound Endpoint khi on-premises cần phân giải tên trong VPC và Outbound Endpoint khi VPC cần phân giải tên on-premises → tách rõ hướng truy vấn, dễ quản lý bằng rules.
 
-## 7. Architecture Patterns Summary
-
-### High Availability Architecture
-
-```
-                    ┌─────────────────┐
-                    │   Route 53       │
-                    │  (Failover)     │
-                    └────────┬────────┘
-                             │
-              ┌──────────────┴──────────────┐
-              │                             │
-       ┌──────▼──────┐              ┌──────▼──────┐
-       │    ALB       │              │    ALB       │
-       │   (AZ 1)     │              │   (AZ 2)     │
-       └──────┬──────┘              └──────┬──────┘
-              │                             │
-       ┌──────▼──────┐              ┌──────▼──────┐
-       │    ASG       │              │    ASG       │
-       │ (Multi-AZ)   │              │ (Multi-AZ)   │
-       └──────┬──────┘              └──────┬──────┘
-              │                             │
-       ┌──────▼──────┐              ┌──────▼──────┐
-       │  RDS Master │ ───Replica──▶│ RDS Standby │
-       │   (AZ 1)    │              │   (AZ 2)    │
-       └─────────────┘              └─────────────┘
-```
-
-### Read-Heavy Architecture
-
-```
-                    ┌─────────────────┐
-                    │   Load Balancer  │
-                    └────────┬────────┘
-                             │
-              ┌──────────────┴──────────────┐
-              │                             │
-       ┌──────▼──────┐              ┌──────▼──────┐
-       │   EC2/Win    │              │   EC2/Win   │
-       │  Application │              │  Application │
-       └──────┬──────┘              └──────┬──────┘
-              │                             │
-       ┌──────▼──────────────────────────────▼──────┐
-       │              ElastiCache (Redis)            │
-       │                  (Read Replicas)             │
-       └───────────────────────┬──────────────────────┘
-                             │
-       ┌─────────────────────┴─────────────────────┐
-       │                  RDS Aurora                 │
-       │           (Master + 2 Read Replicas)       │
-       └────────────────────────────────────────────┘
-```
+#### KHÔNG NÊN làm (DON'T)
+- Không mở Resolver Endpoint rộng hơn các mạng cần thiết → có thể cho phép truy vấn DNS ngoài ý muốn; giới hạn Security Groups, rules và CIDR theo nguồn được phép.
 
 ---
 
-## Key Differences Summary Table
+## 5. Kiến trúc đọc nhiều với RDS và cache
 
-| Feature | ALB | NLB | CLB |
-|---------|-----|-----|-----|
-| Layer | 7 (HTTP/HTTPS) | 4 (TCP/UDP) | 4/7 |
-| Path Routing | ✅ | ❌ | ❌ |
-| Host Routing | ✅ | ❌ | ❌ |
-| SNI | ✅ | ✅ | ❌ |
-| Static IP | ❌ | ✅ | ❌ |
-| Zonal isolation | Per AZ | Per AZ | Cross-AZ |
-| Free Tier | ✅ | ❌ | ✅ (deprecated) |
+### Luồng đọc và ghi qua ElastiCache và Aurora
+
+#### Giải thích cốt lõi
+Luồng đọc dùng cache trước rồi đến Reader Endpoint khi cache miss; luồng ghi đi qua Writer/Cluster Endpoint đến primary. Cache giảm truy vấn lặp lại nhưng có thể stale; Aurora endpoints chọn instance cho kết nối mới, không tự thiết lập lại kết nối đã mất sau failover.
+
+#### NÊN làm (DO)
+- Dùng cache cho dữ liệu đọc lặp lại và Reader Endpoint cho truy vấn đọc cần phân tải kết nối; gửi thao tác ghi qua Writer/Cluster Endpoint để giữ đúng vai trò primary.
+
+#### KHÔNG NÊN làm (DON'T)
+- Không giả định cache luôn đồng bộ tức thời hoặc endpoint tự retry connection → ứng dụng có thể trả dữ liệu cũ hoặc lỗi sau failover; đặt TTL/invalidation phù hợp và triển khai reconnect/retry an toàn.
 
 ---
 
-## Exam Tips
-
-**High-Yield Topics:**
-1. ALB routing features (path, host, query string)
-2. ASG scaling policies (target tracking, scheduled)
-3. RDS Multi-AZ vs Read Replicas
-4. Aurora vs RDS differences
-5. ElastiCache strategies (lazy loading vs write-through)
-6. Route 53 routing policies
-7. SSL/TLS with ALB/NLB (SNI)
-
-**Common Exam Scenarios:**
-- "Need to route traffic based on URL path" → ALB
-- "Need to handle millions of requests with low latency" → NLB
-- "Need to improve read performance" → Read Replicas
-- "Need to cache database queries" → ElastiCache
-- "Need zero-downtime database migration" → Multi-AZ
-- "Need to test new version with small traffic" → Weighted routing

@@ -1,842 +1,310 @@
-# Section 6 - DVA Practice Questions: CloudFront Advanced, Elastic Beanstalk, CloudFormation, Messaging
+# Section 6 - DVA Practice Questions: ECS, ECR, Fargate and EKS
 
 ---
-
-## 1. CloudFront Advanced
+## 1. Amazon ECS
 
 ### Question 1:
-A company wants to distribute premium video content to paid subscribers only. What should be configured?
+What is the basic unit of work in ECS?
 
 ```
-A. CloudFront Geo Restriction
-B. CloudFront Signed URLs
-C. CloudFront Origin Groups
-D. CloudFront Price Classes
+A. Cluster
+B. Service
+C. Task Definition
+D. Task
 ```
 
-### ✅ Answer: **B. CloudFront Signed URLs**
+### ✅ Answer: **D. Task**
 
 ### 📖 Explanation (Vietnamese):
 
-**Why B is correct:**
-- **Signed URLs** cho phép:
-  - Distribute **paid shared content** to premium users
-  - Attach policy với **URL expiration**
-  - Include **IP ranges**
-  - Define **trusted signers**
+**Tại sao chọn D:**
+- **Task** là đơn vị công việc đang chạy trong ECS và có thể chứa một hoặc nhiều containers.
+- Task Definition là bản mô tả/cấu hình JSON; Task là lần chạy thực tế theo cấu hình đó.
 
-**Use cases:**
-- Premium video streaming
-- Private document downloads
-- User-specific content
+**Phân cấp ECS:**
+```
+Cluster
+  └── Service (duy trì các tasks)
+        └── Tasks (các lần chạy theo Task Definition)
+```
 
-**Signed URL vs Signed Cookies:**
-- **Signed URL**: Individual files
-- **Signed Cookies**: Multiple files
+**Tại sao loại các lựa chọn khác:**
 
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. Geo Restriction | Country-based access, không phải paid content |
-| C. Origin Groups | Failover giữa origins |
-| D. Price Classes | Chỉ giảm chi phí, không access control |
-
+| Lựa chọn | Lý do |
+|----------|-------|
+| A. Cluster | Nhóm các services và tasks, không phải đơn vị chạy container |
+| B. Service | Duy trì số lượng tasks mong muốn |
+| C. Task Definition | Bản mô tả cách chạy task, không phải task đang chạy |
 ---
 
 ### Question 2:
-Content was updated on the origin, but CloudFront is still serving old cached content. What should be done?
+In ECS, which IAM role is used by the ECS agent on EC2 instances?
 
 ```
-A. Update TTL
-B. Create CloudFront Invalidation
-C. Delete CloudFront distribution
-D. Update Security Groups
+A. ECS Task Role
+B. EC2 Instance Profile
+C. Service Role
+D. Task Execution Role
 ```
 
-### ✅ Answer: **B. Create CloudFront Invalidation**
+### ✅ Answer: **B. EC2 Instance Profile**
 
 ### 📖 Explanation (Vietnamese):
 
-**Why B is correct:**
-- **Invalidation** forces cache refresh
-- Bypasses TTL
-- Can invalidate specific paths or all files
+**Tại sao chọn B:**
+- Trên EC2 Launch Type, **EC2 Instance Profile** (container instance role) được ECS Agent sử dụng để giao tiếp với ECS.
+- **Task execution role** cho phép ECS/Fargate Agent thực hiện thao tác khởi chạy như tải image từ ECR, gửi logs và đọc secrets được khai báo trong Task Definition.
+- **Task role** cấp quyền AWS cho mã ứng dụng chạy bên trong container.
 
-**Commands:**
-```bash
-# Specific path
-aws cloudfront create-invalidation \
-  --distribution-id EDFDVBD6EXAMPLE \
-  --paths "/images/*"
+| Role | Bên sử dụng | Mục đích |
+|------|-------------|----------|
+| EC2 Instance Profile | ECS Agent trên EC2 | Giao tiếp giữa container instance và ECS |
+| Task Execution Role | ECS/Fargate Agent khi khởi chạy task | ECR, logging, secrets injection |
+| ECS Task Role | Mã ứng dụng trong container | Gọi AWS services thay mặt ứng dụng |
 
-# All files
-aws cloudfront create-invalidation \
-  --distribution-id EDFDVBD6EXAMPLE \
-  --paths "/*"
-```
-
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. Update TTL | TTL chỉ affects future caching |
-| C. Delete distribution | Extreme, unnecessary |
-| D. Security Groups | Không liên quan đến caching |
+**Tại sao loại các lựa chọn khác:**
+- A. ECS Task Role cấp quyền cho mã ứng dụng, không phải ECS Agent trên EC2.
+- C. Service Role không phải role mà ECS Agent dùng để đăng ký/giao tiếp với ECS.
+- D. Task Execution Role phục vụ thao tác khởi chạy, khác với container instance role.
 
 ---
-
-## 2. Elastic Beanstalk
 
 ### Question 3:
-Which Elastic Beanstalk deployment mode provides zero downtime with the **quickest rollback capability**?
+What are the two launch types supported by ECS?
 
 ```
-A. All at once
-B. Rolling
-C. Immutable
-D. Blue/Green
+A. EC2 and Fargate
+B. EC2 and Lambda
+C. Fargate and Lambda
+D. EC2 and EKS
 ```
 
-### ✅ Answer: **C. Immutable**
+### ✅ Answer: **A. EC2 and Fargate**
 
 ### 📖 Explanation (Vietnamese):
 
-**Why C is correct:**
-- **Immutable deployment**:
-  - **Zero downtime**
-  - New instances in **temporary ASG**
-  - New code deployed to new instances
-  - Swap instances when healthy
-  - **Quickest rollback**: Just terminate new ASG
-  - High cost (double capacity)
+**Tại sao chọn A:**
+- ECS hỗ trợ **EC2 Launch Type** (bạn quản lý EC2 instances) và **Fargate Launch Type** (AWS quản lý hạ tầng).
 
-**Rollback comparison:**
-| Mode | Rollback Speed |
-|------|---------------|
-| All at once | Manual redeploy |
-| Rolling | Manual rollback |
-| Immutable | **Instant** (terminate ASG) |
-| Blue/Green | Quick (CNAME swap) |
+| Đặc điểm | EC2 Launch Type | Fargate Launch Type |
+|----------|-----------------|---------------------|
+| Hạ tầng | Bạn quản lý | AWS quản lý |
+| Mở rộng | EC2/ASG và tasks | Tăng số tasks |
+| Security Group | Áp dụng theo cấu hình mạng; với `awsvpc` là theo task | Theo task |
 
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. All at once | Có downtime, rollback manual |
-| B. Rolling | Partial downtime, manual rollback |
-| D. Blue/Green | Nhanh nhưng không nhanh bằng terminate ASG |
-
+**Tại sao loại các lựa chọn khác:**
+- B và C. Lambda là dịch vụ compute khác, không phải ECS launch type.
+- D. EKS là dịch vụ Kubernetes, không phải ECS launch type.
 ---
 
+## 2. ECS Volumes and Fargate
+
 ### Question 4:
-A company wants to deploy a new version to a production environment with **zero downtime** and minimal additional cost. Which deployment option is best?
+An ECS task's application container writes temporary scratch files that a sidecar container must read. The data should be shared only within this task, not stored in a persistent network file system. Which volume type should the task use?
 
 ```
-A. All at once
-B. Rolling with additional batches
-C. Immutable
-D. Traffic Splitting
+A. EFS volumes
+B. Bind Mounts
+C. EBS volumes
+D. S3 buckets
 ```
 
-### ✅ Answer: **B. Rolling with additional batches**
+### ✅ Answer: **B. Bind Mounts**
 
 ### 📖 Explanation (Vietnamese):
 
-**Why B is correct:**
-- **Rolling with additional batches**:
-  - **Zero downtime**
-  - Maintains **full capacity** during deployment
-  - Small additional cost (additional batch instances)
-  - Good for **production**
+**Tại sao chọn B:**
+- **Bind Mounts** chia sẻ dữ liệu giữa nhiều container trong cùng task.
+- Với EC2, dữ liệu nằm trên ổ lưu trữ của EC2 instance; với Fargate, dữ liệu nằm trên vùng lưu trữ tạm thời (ephemeral storage).
+- Mẫu sử dụng điển hình là sidecar chia sẻ nhật ký và chỉ số (metrics) với tiến trình khác.
 
-**Comparison of options:**
-| Option | Zero Downtime | Additional Cost |
-|--------|--------------|-----------------|
-| All at once | ❌ | None |
-| Rolling | ⚠️ | None |
-| **Rolling+Batch** | ✅ | Small |
-| Immutable | ✅ | High |
-| Blue/Green | ✅ | Medium |
+| Loại volume | Dạng lưu trữ | Trường hợp sử dụng |
+|-------------|-------------|---------------------|
+| Bind Mounts | Ổ cục bộ hoặc lưu trữ tạm (ephemeral storage) | Chia sẻ dữ liệu tạm giữa containers |
+| EFS | Hệ thống tệp qua mạng | Lưu trữ bền vững dùng chung (Regional hoặc One Zone) |
+| EBS | Lưu trữ dạng khối | Volume bền vững gắn với EC2 instance |
+| S3 | Lưu trữ dạng đối tượng | Truy cập object qua API, không gắn như hệ thống tệp |
 
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. All at once | Có downtime |
-| C. Immutable | High cost (double capacity) |
-| D. Traffic Splitting | Có thể automated rollback, nhưng rolling+batch minimal cost |
+**Tại sao loại các lựa chọn khác:**
+- A. EFS cũng có thể được gắn vào nhiều containers, nhưng đây là hệ thống tệp dùng chung qua mạng, lưu trữ bền vững; đề bài yêu cầu dữ liệu tạm chỉ trong phạm vi một task.
+- C. EBS là lưu trữ dạng khối; D. S3 là lưu trữ dạng đối tượng.
 
 ---
 
 ### Question 5:
-An application is deployed on Elastic Beanstalk with RDS. For production, what is the **best practice** for database configuration?
+A company wants to run containers without managing any EC2 instances. Which ECS launch type should be used?
 
 ```
-A. Provision RDS within Beanstalk
-B. Create RDS separately and provide connection string
-C. Use DynamoDB instead
-D. Remove database entirely
+A. EC2 Launch Type
+B. Fargate Launch Type
+C. Both EC2 and Fargate
+D. EKS with Fargate
 ```
 
-### ✅ Answer: **B. Create RDS separately and provide connection string**
+### ✅ Answer: **B. Fargate Launch Type**
 
 ### 📖 Explanation (Vietnamese):
 
-**Why B is correct:**
-- **Production best practice**:
-  - Database lifecycle **separate** from Beanstalk
-  - Create RDS **independently**
-  - Provide connection string via environment variables
-  - RDS won't be deleted when environment is terminated
+**Tại sao chọn B:**
+- **Fargate Launch Type** chạy containers mà không cần quản lý EC2 instances.
+- Bạn chỉ định CPU/RAM; AWS quản lý hạ tầng bên dưới.
+- Mở rộng bằng cách tăng số tasks.
 
-**RDS with Beanstalk:**
-| Environment | Recommendation |
-|------------|----------------|
-| Dev/Test | Provision with Beanstalk ✓ |
-| **Production** | **Separate RDS** ✓ |
+**Đặc điểm:** không cần provision EC2 instances; tính phí theo tài nguyên task sử dụng; phù hợp khi ưu tiên giảm công việc quản lý hạ tầng.
 
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. Provision with Beanstalk | Ties database lifecycle to environment |
-| C. Use DynamoDB | Changes architecture, not always suitable |
-| D. Remove database | May be required for the application |
+**Tại sao loại các lựa chọn khác:**
+- A. EC2 Launch Type yêu cầu quản lý EC2 instances.
+- C. Lựa chọn cả hai không đáp ứng yêu cầu không quản lý EC2.
+- D. EKS là Kubernetes service, không phải ECS launch type.
 
 ---
+
+## 3. Amazon ECR
 
 ### Question 6:
-What file format is used for Elastic Beanstalk configuration extensions?
+A developer needs to push a Docker image to Amazon ECR. Which command authenticates Docker to ECR?
 
 ```
-A. JSON only
-B. YAML only
-C. YAML or JSON
-D. XML only
+A. aws ecr login
+B. aws ecr get-login-password | docker login
+C. docker login -u AWS
+D. aws ecr authorize
 ```
 
-### ✅ Answer: **C. YAML or JSON**
+### ✅ Answer: **B. aws ecr get-login-password | docker login**
 
 ### 📖 Explanation (Vietnamese):
 
-**Why C is correct:**
-- **Elastic Beanstalk Extensions**:
-  - `.ebextensions/` directory
-  - YAML or JSON format
-  - `.config` extension
-  - `option_settings` for modifying defaults
-
-**Example:**
-```yaml
-# .ebextensions/options.config
-option_settings:
-  aws:autoscaling:launchconfiguration:
-    InstanceType: t3.medium
+**Tại sao chọn B:**
+- AWS CLI v2 lấy mật khẩu đăng nhập ECR; Docker nhận mật khẩu qua `--password-stdin`:
+```bash
+aws ecr get-login-password --region us-east-1 | \
+  docker login --username AWS --password-stdin \
+  123456789012.dkr.ecr.us-east-1.amazonaws.com
 ```
+- Sau khi đăng nhập, dùng `docker push` để đẩy image hoặc `docker pull` để tải image.
 
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. JSON only | YAML also supported |
-| B. YAML only | JSON also supported |
-| D. XML | Not supported |
+**Tại sao loại các lựa chọn khác:**
+- A. `aws ecr login` và D. `aws ecr authorize` không phải lệnh đăng nhập ECR.
+- C. Cần truyền mật khẩu lấy từ AWS CLI bằng `--password-stdin`.
 
 ---
-
-## 3. CloudFormation
 
 ### Question 7:
-Which CloudFormation **intrinsic function** is used to reference parameters and return resource IDs?
+Which storage backend does Amazon ECR use?
 
 ```
-A. Fn::GetAtt
-B. Fn::Ref
-C. Fn::Sub
-D. Fn::ImportValue
+A. Amazon EBS
+B. Amazon S3
+C. Amazon EFS
+D. Amazon DynamoDB
 ```
 
-### ✅ Answer: **B. Fn::Ref**
+### ✅ Answer: **B. Amazon S3**
 
 ### 📖 Explanation (Vietnamese):
 
-**Why B is correct:**
-- **Ref function**:
-  - Reference **parameters** → returns value
-  - Reference **resources** → returns physical ID
-  - YAML shorthand: `!Ref`
+**Tại sao chọn B:**
+- ECR lưu trữ và quản lý Docker images; Amazon S3 là lớp lưu trữ hỗ trợ phía sau.
+- Image gồm các layers, manifest và metadata.
 
-**Examples:**
-```yaml
-# Reference parameter
-InstanceType: !Ref InstanceTypeParam
-
-# Reference resource
-VPCId: !Ref MyVPC
-InstanceId: !Ref MyInstance
-```
-
-**Intrinsic functions comparison:**
-| Function | Returns |
-|----------|--------|
-| `Ref` | Parameter value or resource ID |
-| `Fn::GetAtt` | Resource attributes |
-| `Fn::Sub` | String substitution |
-| `Fn::ImportValue` | Cross-stack value |
-
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. Fn::GetAtt | Returns attributes, không phải ID |
-| C. Fn::Sub | String substitution |
-| D. Fn::ImportValue | Import from other stacks |
+**Tại sao loại các lựa chọn khác:**
+- A. EBS là block storage; C. EFS là file system; D. DynamoDB là NoSQL database. Chúng không phải backend storage được slide nêu cho ECR.
 
 ---
+## 4. Amazon EKS
 
 ### Question 8:
-A CloudFormation stack update failed. What happens to the stack?
+Which AWS service is used to launch managed Kubernetes clusters on AWS?
 
 ```
-A. Stack is deleted
-B. Stack automatically rolls back to previous working state
-C. Stack remains in failed state
-D. Stack continues with failed resources
+A. Amazon ECS
+B. Amazon EKS
+C. Amazon ECR
+D. AWS Fargate
 ```
 
-### ✅ Answer: **B. Stack automatically rolls back to previous working state**
+### ✅ Answer: **B. Amazon EKS**
 
 ### 📖 Explanation (Vietnamese):
 
-**Why B is correct:**
-- **CloudFormation Rollback behavior:**
-  - **Stack Update fails**: Auto rolls back to previous working state
-  - Can view logs for error messages
-  - Resources deleted in reverse order
+**Tại sao chọn B:**
+- **Amazon EKS** cung cấp Kubernetes clusters được AWS quản lý.
+- **Kubernetes** là hệ thống mã nguồn mở để triển khai, mở rộng và quản lý ứng dụng containers.
+- EKS là lựa chọn thay thế ECS với mục tiêu tương tự nhưng API khác.
 
-**Stack Creation vs Update:**
-| Scenario | Behavior |
-|----------|----------|
-| Creation fails | Default: everything rolls back |
-| **Update fails** | **Auto rolls back to previous state** |
+| Dịch vụ | Vai trò |
+|---------|---------|
+| ECS | Nền tảng container của AWS |
+| EKS | Kubernetes được quản lý |
+| Fargate | Compute serverless cho containers |
+| ECR | Registry lưu trữ container images |
 
-**If rollback fails:**
-- Fix resources manually
-- Use `continue-update-rollback` API
-
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. Deleted | Only if explicitly deleted |
-| C. Remains failed | Can continue manually |
-| D. Continues with failed | CloudFormation prevents this |
+**Tại sao loại các lựa chọn khác:**
+- A. ECS là nền tảng container của AWS, không phải Kubernetes.
+- C. ECR lưu trữ images, không điều phối containers.
+- D. Fargate cung cấp compute serverless, không phải Kubernetes service.
 
 ---
+## 5. ECS workers consuming SQS
 
 ### Question 9:
-What CloudFormation feature prevents resources from being **accidentally updated** during a stack update?
+A team processes SQS messages with container workers and needs to scale the number of workers as the queue backlog changes. Which design is appropriate?
 
 ```
-A. DeletionPolicy
-B. Stack Policy
-C. Termination Protection
-D. Custom Resource
+A. Use EventBridge Scheduler to start a worker task at a fixed time, regardless of queue backlog.
+B. Run workers in an ECS Service; each task polls SQS, and scale the service using queue backlog per task.
+C. Put the SQS queue URL in the Task Definition so SQS pushes messages to containers.
+D. Use an ALB to distribute messages from SQS to ECS tasks.
 ```
 
-### ✅ Answer: **B. Stack Policy**
+### ✅ Answer: **B. Run workers in an ECS Service and scale from queue backlog per task**
 
 ### 📖 Explanation (Vietnamese):
 
-**Why B is correct:**
-- **Stack Policy**:
-  - JSON document defining update actions
-  - **Protect resources** from unintentional updates
-  - All resources **protected by default**
-  - Specify explicit **ALLOW** for updatable resources
+**Tại sao chọn B:**
+- Mỗi task trong ECS Service chạy worker code để nhận messages từ SQS, xử lý thành công rồi xóa messages.
+- ECS Service Auto Scaling tăng/giảm số worker tasks khi lượng công việc thay đổi.
+- Nên dựa trên backlog trên mỗi task; chỉ dùng queue depth có thể làm tăng số tasks quá mức so với nhu cầu.
 
-**Example:**
-```json
-{
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": "Update:*",
-      "Resource": "*"
-    },
-    {
-      "Effect": "Deny",
-      "Action": "Update:*",
-      "Resource": "AWS::RDS::DBInstance"
-    }
-  ]
-}
+**Kiến trúc:**
+```
+Producer → SQS Queue ← workers trong ECS Service (poll)
+                         ↑
+        Service Auto Scaling theo backlog/task
 ```
 
-**Why other options were eliminated:**
+**Tại sao loại các lựa chọn khác:**
+- A. EventBridge Scheduler chạy theo lịch định sẵn; nó không điều chỉnh số worker tasks theo queue backlog.
+- C. Task Definition không đăng ký consumer hoặc khiến SQS tự đẩy messages vào container.
+- D. ALB định tuyến HTTP requests, không phân phối SQS messages.
 
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. DeletionPolicy | Controls what happens when resource is deleted |
-| C. Termination Protection | Prevents stack deletion |
-| D. Custom Resource | Custom provisioning logic |
+**Tài liệu AWS:** [Scale Amazon ECS services based on an Amazon SQS queue](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-autoscaling-queue.html).
 
----
-
+## 6. ECS Secrets
 ### Question 10:
-A CloudFormation template needs to reference a VPC ID exported by another stack. Which function should be used?
+An application needs to store sensitive configuration data (API keys) and make it available to ECS tasks. Which service should be used?
 
 ```
-A. Fn::Ref
-B. Fn::GetAtt
-C. Fn::ImportValue
-D. Fn::FindInMap
+A. Amazon S3
+B. Amazon DynamoDB
+C. AWS Secrets Manager
+D. Amazon CloudWatch
 ```
 
-### ✅ Answer: **C. Fn::ImportValue**
+### ✅ Answer: **C. AWS Secrets Manager**
 
 ### 📖 Explanation (Vietnamese):
 
-**Why C is correct:**
-- **Fn::ImportValue**:
-  - Import values **exported by other stacks**
-  - Cross-stack references
-  - Enables **collaboration** between teams
+**Tại sao chọn C:**
+- **Secrets Manager** lưu trữ dữ liệu nhạy cảm như API keys và DB passwords.
+- Có thể khai báo secret trong Task Definition để ECS đưa giá trị vào container khi khởi chạy task.
+- Dùng SSM Parameter Store khi phù hợp với loại cấu hình; dùng secrets thay vì hardcode credentials.
 
-**Example:**
-```yaml
-# Stack 1 exports
-Outputs:
-  VPCId:
-    Value: !Ref VPC
-    Export:
-      Name: my-vpc-id
-
-# Stack 2 imports
-Resources:
-  Subnet:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !ImportValue my-vpc-id
-```
-
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. Fn::Ref | Reference within same stack |
-| B. Fn::GetAtt | Get resource attributes |
-| D. Fn::FindInMap | Get value from mapping |
+| Lựa chọn | Lý do loại trừ |
+|----------|----------------|
+| A. S3 | Lưu trữ object, không phải dịch vụ quản lý secret |
+| B. DynamoDB | Cơ sở dữ liệu, không phải nơi quản lý secret |
+| D. CloudWatch | Dịch vụ giám sát và ghi logs |
 
 ---
-
-### Question 11:
-Which CloudFormation **DeletionPolicy** creates a snapshot before deleting a resource?
-
-```
-A. Delete
-B. Retain
-C. Snapshot
-D. Backup
-```
-
-### ✅ Answer: **C. Snapshot**
-
-### 📖 Explanation (Vietnamese):
-
-**Why C is correct:**
-- **Snapshot policy**:
-  - Creates **final snapshot** before deletion
-  - For supported resources only
-
-**Supported resources:**
-| Resource | Snapshot Support |
-|----------|-----------------|
-| EBS Volume | ✅ |
-| ElastiCache Cluster | ✅ |
-| RDS DBInstance | ✅ |
-| RDS DBCluster | ✅ |
-| Redshift Cluster | ✅ |
-
-**DeletionPolicy options:**
-| Policy | Behavior |
-|--------|----------|
-| Delete (default) | Delete resource |
-| Retain | Keep resource |
-| **Snapshot** | **Create snapshot, then delete** |
-
----
-
-## 4. AWS Messaging - SQS
-
-### Question 12:
-An application processes messages from an SQS queue. If the consumer fails to process a message, what happens to that message?
-
-```
-A. Message is deleted
-B. Message reappears in the queue after visibility timeout
-C. Message is sent to DLQ
-D. Message is archived
-```
-
-### ✅ Answer: **B. Message reappears in the queue after visibility timeout**
-
-### 📖 Explanation (Vietnamese):
-
-**Why B is correct:**
-- **Visibility Timeout**:
-  - Message becomes invisible after being received
-  - Default: **30 seconds**
-  - If not deleted within timeout, message **reappears** in queue
-
-**Flow:**
-```
-1. Message received (visible) ✓
-2. Processing starts...
-3. If timeout expires (no delete):
-   → Message reappears in queue
-   → Can be processed again
-```
-
-**Best practice:**
-- Process message
-- Delete message after successful processing
-- Handle failures properly
-
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. Deleted | Only if explicitly deleted |
-| C. DLQ | Requires DLQ configuration |
-| D. Archived | No automatic archiving |
-
----
-
-### Question 13:
-What is the **default message retention period** for Amazon SQS?
-
-```
-A. 1 day
-B. 4 days
-C. 7 days
-D. 14 days
-```
-
-### ✅ Answer: **B. 4 days**
-
-### 📖 Explanation (Vietnamese):
-
-**Why B is correct:**
-- **SQS Message Retention:**
-  - Default: **4 days**
-  - Maximum: **14 days**
-  - Minimum: 1 minute
-
-**After retention expires:**
-- Message automatically deleted
-- Cannot be recovered
-
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. 1 day | Too short - default is 4 days |
-| C. 7 days | Optional setting, not default |
-| D. 14 days | Maximum, not default |
-
----
-
-### Question 14:
-Which SQS queue type guarantees **strict message ordering** and **exactly-once processing**?
-
-```
-A. Standard Queue
-B. FIFO Queue
-C. Priority Queue
-D. Dead Letter Queue
-```
-
-### ✅ Answer: **B. FIFO Queue**
-
-### 📖 Explanation (Vietnamese):
-
-**Why B is correct:**
-- **FIFO Queue**:
-  - **Strict ordering** (first-in-first-out)
-  - **Exactly-once processing**
-  - No duplicate messages
-  - Throughput: 300 messages/second
-
-**Standard vs FIFO:**
-| Feature | Standard Queue | FIFO Queue |
-|---------|---------------|-----------|
-| Ordering | Best effort | **Strict** |
-| Delivery | At least once | **Exactly once** |
-| Duplicates | Can occur | **No duplicates** |
-| Throughput | Unlimited | 300/s |
-
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. Standard Queue | At least once, best effort ordering |
-| C. Priority Queue | Not an SQS type |
-| D. Dead Letter Queue | For failed messages, not ordering |
-
----
-
-## 5. AWS Messaging - SNS
-
-### Question 15:
-An application needs to **fan-out** messages to multiple downstream systems. Which AWS service combination is best?
-
-```
-A. SQS Queue
-B. SNS Topic with multiple SQS subscriptions
-C. Kinesis Data Streams
-D. SNS Topic only
-```
-
-### ✅ Answer: **B. SNS Topic with multiple SQS subscriptions**
-
-### 📖 Explanation (Vietnamese):
-
-**Why B is correct:**
-- **SNS + SQS Fan-out Pattern**:
-  - SNS Topic receives messages
-  - Multiple SQS queues **subscribe** to topic
-  - Each queue processes independently
-  - **Decouples** producers from consumers
-
-**Architecture:**
-```
-Publisher → SNS Topic
-              ├── SQS Queue 1 → Consumer 1
-              ├── SQS Queue 2 → Consumer 2
-              └── SQS Queue 3 → Consumer 3
-```
-
-**Benefits:**
-- Each consumer processes at own pace
-- No coupling between consumers
-- Failed consumers don't affect others
-
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. SQS only | Single consumer |
-| C. Kinesis | For streaming, not fan-out |
-| D. SNS only | No persistent storage |
-
----
-
-## 6. Combined Scenarios
-
-### Question 16:
-A company wants to provision infrastructure using code that can be version-controlled. Which service should be used?
-
-```
-A. AWS CLI
-B. AWS CloudFormation
-C. AWS Elastic Beanstalk
-D. AWS OpsWorks
-```
-
-### ✅ Answer: **B. AWS CloudFormation**
-
-### 📖 Explanation (Vietnamese):
-
-**Why B is correct:**
-- **CloudFormation**:
-  - **Infrastructure as Code**
-  - Version control (Git)
-  - Declarative template
-  - Provision AWS resources
-  - Cost tracking
-
-**Benefits:**
-- No manual resource creation
-- Changes reviewed through code
-- Destroy and recreate infrastructure
-- Cost estimation
-
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. AWS CLI | Interactive, not version-controlled |
-| C. Elastic Beanstalk | Application deployment, not general infra |
-| D. OpsWorks | Chef/Puppet-based, less common |
-
----
-
-### Question 17:
-An application needs to process messages asynchronously with **guaranteed ordering**. The message volume is low. Which combination is best?
-
-```
-A. SQS Standard Queue
-B. SNS Topic
-C. SQS FIFO Queue
-D. Kinesis Data Streams
-```
-
-### ✅ Answer: **C. SQS FIFO Queue**
-
-### 📖 Explanation (Vietnamese):
-
-**Why C is correct:**
-- **SQS FIFO Queue**:
-  - **Guaranteed strict ordering**
-  - **Exactly-once processing**
-  - Low volume is acceptable
-  - Good for ordered processing
-
-**When to use FIFO:**
-- Message ordering critical
-- No duplicates allowed
-- Low to medium throughput
-
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. Standard Queue | No ordering guarantee |
-| B. SNS Topic | Push model, not queue |
-| D. Kinesis | Overkill for low volume, designed for streaming |
-
----
-
-### Question 18:
-A Lambda function processes S3 events. The function sometimes fails to process. What should be implemented to handle failures?
-
-```
-A. Increase Lambda timeout
-B. Configure SQS Dead Letter Queue
-C. Increase Lambda memory
-D. Disable SQS
-```
-
-### ✅ Answer: **B. Configure SQS Dead Letter Queue**
-
-### 📖 Explanation (Vietnamese):
-
-**Why B is correct:**
-- **Dead Letter Queue (DLQ)**:
-  - Failed messages sent to DLQ
-  - For inspection and reprocessing
-  - Prevents infinite retry loops
-
-**Lambda with SQS DLQ:**
-```yaml
-# Configure on SQS queue
-RedrivePolicy:
-  deadLetterTargetArn: !GetAtt MyDLQ.Arn
-  maxReceiveCount: 3
-```
-
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. Increase timeout | Addresses timeout, not general failures |
-| C. Increase memory | Addresses memory issues, not failures |
-| D. Disable SQS | Removes queue, doesn't handle failures |
-
----
-
-### Question 19:
-A company needs to deploy the same application to multiple AWS accounts. Which CloudFormation feature enables this?
-
-```
-A. Nested Stacks
-B. StackSets
-C. Cross-Stack References
-D. Custom Resources
-```
-
-### ✅ Answer: **B. StackSets**
-
-### 📖 Explanation (Vietnamese):
-
-**Why B is correct:**
-- **StackSets**:
-  - Create/update/delete stacks across **multiple accounts**
-  - Across **multiple regions**
-  - Single operation/template
-  - Can apply to **AWS Organization**
-
-**Use cases:**
-- Compliance requirements across accounts
-- Centralized infrastructure deployment
-- Multi-account deployments
-
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. Nested Stacks | Within same account |
-| C. Cross-Stack | Between stacks in same account |
-| D. Custom Resources | Custom provisioning logic |
-
----
-
-### Question 20:
-A web application needs to be deployed with zero downtime and the ability to quickly rollback. Which Elastic Beanstalk deployment is best?
-
-```
-A. All at once
-B. Rolling
-C. Immutable
-D. Traffic Splitting
-```
-
-### ✅ Answer: **C. Immutable**
-
-### 📖 Explanation (Vietnamese):
-
-**Why C is correct:**
-- **Immutable deployment**:
-  - **Zero downtime**
-  - New instances in temporary ASG
-  - Quickest rollback (terminate new ASG)
-  - High cost but safest for production
-
-**Deployment comparison:**
-| Mode | Downtime | Rollback Speed | Cost |
-|------|----------|---------------|------|
-| All at once | Yes | Manual | None |
-| Rolling | Partial | Manual | None |
-| **Immutable** | **None** | **Instant** | High |
-| Traffic Split | None | Auto | Medium |
-
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. All at once | Has downtime |
-| B. Rolling | Partial downtime, manual rollback |
-| D. Traffic Splitting | Good but immutable fastest rollback |
-
----
-
-## Summary Table
-
-| Topic | Key Points |
-|-------|------------|
-| **CloudFront Signed URLs** | Premium content, time-limited access |
-| **CloudFront Invalidation** | Force cache refresh |
-| **EB Deployments** | Immutable = fastest rollback |
-| **EB .ebextensions** | YAML/JSON, option_settings |
-| **CloudFormation Ref** | Returns parameter value or resource ID |
-| **CloudFormation Rollback** | Auto on update failure |
-| **Stack Policy** | Protect resources from updates |
-| **Fn::ImportValue** | Cross-stack references |
-| **DeletionPolicy Snapshot** | Creates snapshot before delete |
-| **SQS Visibility Timeout** | Message reappears if not deleted |
-| **SQS Retention** | Default 4 days, max 14 days |
-| **SQS FIFO** | Strict ordering, exactly-once |
-| **SNS + SQS Fan-out** | Decouple multiple consumers |
-| **StackSets** | Multi-account, multi-region |

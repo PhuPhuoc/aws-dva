@@ -1,558 +1,372 @@
-# Section 3 - Scalability & High Availability: ELB, ASG | RDS, Aurora & ElastiCache | Route 53
-
----
-
-## Phần 1: Scalability & High Availability (Trang 88-93)
-
-### Scalability & High Availability Overview (Trang 88-89)
-
-- **Scalability** nghĩa là một application/system có thể xử lý tải lớn hơn bằng cách thích ứng
-- Có hai loại scalability:
-  - **Vertical Scalability** (Scale up/down)
-  - **Horizontal Scalability** (= elasticity) (Scale out/in)
-- Scalability thường đi đôi với **High Availability**
-
-### Vertical Scalability (Trang 89)
-
-- Vertical scalability (= **scale up/down**) nghĩa là tăng kích thước của instance
-- Thường dùng cho các **non-distributed systems**, ví dụ như database
-- RDS, ElastiCache là các services có thể scale vertically
-
-> *Hình minh họa: EC2 Instance M5.large (2 vCPUs/8 GB) → T2.micro (1 vCPU/1 GB)*
-
-### Horizontal Scalability (Trang 90)
-
-- Horizontal Scalability (= **scale out/in**) nghĩa là tăng số lượng instances/systems cho application
-- Horizontal scaling ám chỉ **distributed systems**
-- Rất phổ biến cho **web applications** và **modern applications**
-- Sử dụng **Auto Scaling Group**
-
-> *Hình minh họa: Nhiều EC2 Instances T2.micro được thêm vào qua Auto Scaling Group*
-
-### High Availability (Trang 91-92)
-
-- High Availability thường đi đôi với horizontal scaling
-- High availability nghĩa là chạy application/system ở ít nhất **2 data centers (Availability Zones)**
-- Mục tiêu của high availability là **survive a data center loss**
-- High availability có thể là:
-  - **Passive** (ví dụ: RDS Multi AZ)
-  - **Active** (ví dụ: horizontal scaling)
-
-### High Availability & Scalability cho EC2 (Trang 92-93)
-
-- **Vertical Scaling**: Tăng instance size (= scale up/down)
-  - Từ: t2.nano (0.5 GB RAM, 1 vCPU) → u-12tb1.metal (12.3 TB RAM, 448 vCPUs)
-- **Horizontal Scaling**: Tăng số lượng instances (= scale out/in)
-  - Auto Scaling Group
-  - Load Balancer
-- **High Availability**: Chạy instances cho cùng một application qua nhiều AZ
-  - Auto Scaling Group multi AZ
-  - Load Balancer multi AZ
-
----
-
-## Phần 2: Elastic Load Balancer - ELB (Trang 94-118)
-
-### What is Load Balancing? (Trang 94)
-
-- **Load Balancers** là servers forward traffic đến nhiều servers (ví dụ: EC2 instances) downstream
-
-> *Sơ đồ: Client → Load Balancer → Multiple EC2 Instances*
-
-### Why use a Load Balancer? (Trang 95-96)
-
-- **Spread load** across multiple downstream instances
-- **Expose a single point of access** (DNS) to your application
-- **Seamlessly handle failures** of downstream instances
-- **Do regular health checks** to your instances
-- **Provide SSL termination** (HTTPS) for your websites
-- **Enforce stickiness** with cookies
-- **High availability** across zones
-- **Separate public traffic** from private traffic
-
-### Why use an Elastic Load Balancer? (Trang 96)
-
-- **Managed load balancer** - AWS đảm bảo nó sẽ hoạt động
-- AWS tự lo **upgrades, maintenance, high availability**
-- AWS cung cấp **few configuration knobs**
-- Tích hợp với nhiều AWS offerings/services:
-  - EC2, EC2 Auto Scaling Groups, Amazon ECS
-  - AWS Certificate Manager (ACM), CloudWatch
-  - Route 53, AWS WAF, AWS Global Accelerator
-
-### Health Checks (Trang 97-98)
-
-- Health Checks **rất quan trọng** cho Load Balancers
-- Cho phép load balancer biết instances có sẵn sàng reply requests không
-- Health check được thực hiện trên **port** và **route** (`/health` là phổ biến)
-- Nếu response **không phải 200 (OK)**, instance được coi là **unhealthy**
-
-### Load Balancer Security Groups (Trang 98)
-
-> *Sơ đồ: Security Groups configuration*
-> - Load Balancer Security Group: Allow traffic from anywhere
-> - Application Security Group: Allow traffic only from Load Balancer
-
-### Types of Load Balancer on AWS (Trang 99)
-
-| Feature | Application Load Balancer | Network Load Balancer | Gateway Load Balancer | Classic Load Balancer |
-|---------|-------------------------|----------------------|----------------------|----------------------|
-| **Layer** | Layer 7 | Layer 4 | Layer 3 Gateway + Layer 4 LB | Layer 4/7 |
-| **Target type** | IP, Instance, Lambda | IP, Instance, ALB | IP, Instance | IP, Instance |
-| **Protocol listeners** | HTTP, HTTPS, gRPC | TCP, UDP, TLS | IP | TCP, SSL/TLS, HTTP, HTTPS |
-
-### Application Load Balancer (ALB) - Layer 7 (Trang 100-102)
-
-- ALB là **Layer 7 (HTTP)** của OSI model (hỗ trợ HTTP/HTTPS)
-- Load balancing đến **nhiều HTTP applications** across machines (target groups)
-- Load balancing đến **nhiều applications trên cùng một machine** (ví dụ: containers)
-- Hỗ trợ **HTTP/2** và **WebSocket**
-- Hỗ trợ **redirects** (ví dụ: từ HTTP sang HTTPS)
-
-**Routing tables đến các target groups khác nhau:**
-- Routing dựa trên **path** trong URL (`example.com/users` & `example.com/posts`)
-- Routing dựa trên **hostname** trong URL (`one.example.com` & `other.example.com`)
-- Routing dựa trên **Query String, Headers** (`example.com/users?id=123&order=false`)
-- ALB phù hợp cho **micro services** & **container-based applications**
-- Có **port mapping feature** để redirect đến dynamic port trong ECS
-
-### ALB Target Groups (Trang 102-103)
-
-- **EC2 instances** (có thể được quản lý bởi Auto Scaling Group) - HTTP
-- **ECS tasks** (được quản lý bởi ECS) - HTTP
-- **Lambda functions** - HTTP request được translate thành JSON event
-- **IP Addresses** - phải là private IPs
-
-**Lưu ý:**
-- ALB có thể route đến **nhiều target groups**
-- Health checks được thực hiện ở **target group level**
-
-### ALB - Good to Know (Trang 105)
-
-- **Fixed hostname** (XXX.region.elb.amazonaws.com)
-- Application servers **không thấy trực tiếp IP** của client
-- **True IP** của client được chèn vào header **X-Forwarded-For**
-
-### Network Load Balancer (NLB) - Layer 4 (Trang 106-107)
-
-- **Layer 4** cho phép forward **TCP & UDP traffic** đến instances
-- Xử lý **millions of requests per seconds**
-- **Less latency** ~100 ms (so với 400 ms của ALB)
-- NLB có **một static IP per AZ**, hỗ trợ **Elastic IP** (hữu ích cho whitelisting)
-- Dùng cho **extreme performance, TCP or UDP traffic**
-- **Không nằm trong AWS free tier**
-
-**Target Groups cho NLB:**
-- EC2 instances
-- IP Addresses (phải là private IPs)
-- Application Load Balancer
-- Health Checks hỗ trợ **TCP, HTTP và HTTPS Protocols**
-
-### Gateway Load Balancer (Trang 109-110)
-
-- Deploy, scale, và manage fleet của **3rd party network virtual appliances**
-- Ví dụ: Firewalls, IDS/IPS, Deep Packet Inspection, payload manipulation
-- Hoạt động ở **Layer 3 (Network Layer)** - IP Packets
-- Kết hợp:
-  - **Transparent Network Gateway** - single entry/exit cho tất cả traffic
-  - **Load Balancer** - phân phối traffic đến virtual appliances
-- Sử dụng **GENEVE protocol** on port 6081
-
-**Target Groups:**
-- EC2 instances
-- IP Addresses (phải là private IPs)
-
-### Sticky Sessions (Session Affinity) (Trang 111)
-
-- Có thể implement stickiness để **cùng một client luôn được redirect đến cùng một instance**
-- Hoạt động với **Classic LB, ALB và NLB**
-- Cookie có **expiration date** mà bạn kiểm soát
-- **Use case:** Đảm bảo user không bị mất session data
-- **Cảnh báo:** Enabling stickiness có thể gây **imbalance** cho backend instances
-
-### Cross-Zone Load Balancing (Trang 112-113)
-
-**With Cross Zone Load Balancing:**
-- Mỗi load balancer instance phân phối **đều nhau** across tất cả registered instances **trong tất cả AZ**
-
-**Without Cross Zone Load Balancing:**
-- Requests được phân phối **chỉ trong instances của node** đó
-
-**Cấu hình:**
-- **Application Load Balancer:** Enabled by default (có thể disable ở Target Group level), không charge cho inter AZ data
-- **Network Load Balancer & Gateway Load Balancer:** Disabled by default, **có charge** cho inter AZ data nếu enabled
-
-### SSL/TLS - Basics (Trang 114)
-
-- **SSL Certificate** cho phép traffic giữa clients và load balancer được **encrypt in transit** (in-flight encryption)
-- **SSL** = Secure Sockets Layer, dùng để encrypt connections
-- **TLS** = Transport Layer Security, version mới hơn
-- Ngày nay chủ yếu dùng **TLS certificates**, nhưng mọi người vẫn gọi là SSL
-- **Public SSL certificates** được cấp bởi Certificate Authorities (CAs): Comodo, Symantec, GoDaddy, GlobalSign, Digicert, Letsencrypt
-- SSL certificates có **expiration date** và phải được **renew**
-
-### Load Balancer - SSL Certificates (Trang 115)
-
-- Load balancer sử dụng **X.509 certificate**
-- Quản lý certificates bằng **ACM (AWS Certificate Manager)**
-- Có thể upload certificates của riêng bạn
-- **HTTPS listener:**
-  - Phải specify **default certificate**
-  - Có thể add **optional list of certs** để hỗ trợ multiple domains
-  - Clients có thể dùng **SNI (Server Name Indication)** để specify hostname
-
-### SSL - Server Name Indication (SNI) (Trang 116)
-
-- **SNI** giải quyết vấn đề loading **multiple SSL certificates** onto one web server
-- **Lưu ý:**
-  - Chỉ hoạt động với **ALB & NLB** (newer generation), CloudFront
-  - **Không hoạt động** với CLB (older gen)
-
-### Connection Draining / Deregistration Delay (Trang 117)
-
-- **Feature naming:**
-  - Connection Draining - cho CLB
-  - Deregistration Delay - cho ALB & NLB
-
-- Thời gian để complete **"in-flight requests"** trong khi instance đang de-registering hoặc unhealthy
-- Ngừng gửi new requests đến EC2 instance đang de-registering
-- Thời gian: **1 đến 3600 seconds** (default: 300 seconds)
-- Có thể disable (set value = 0)
-- Nên set **low value** nếu requests ngắn
-
----
-
-## Phần 3: Auto Scaling Group - ASG (Trang 119-128)
-
-### What's an Auto Scaling Group? (Trang 118-119)
-
-- Trong thực tế, **load** trên websites và applications có thể thay đổi
-
-**Mục tiêu của ASG:**
-- **Scale out** (thêm EC2 instances) để match increased load
-- **Scale in** (xóa EC2 instances) để match decreased load
-- Đảm bảo có **minimum và maximum number** of EC2 instances running
-- **Automatically register** new instances đến load balancer
-- **Re-create** EC2 instance nếu instance trước bị terminated (ví dụ: nếu unhealthy)
-
-> *Sơ đồ: ASG kết hợp với Load Balancer*
-
-**Lưu ý:** ASG là **free** (chỉ trả tiền cho underlying EC2 instances)
-
-### Auto Scaling Group Attributes (Trang 121)
-
-**Launch Template** (Launch Configurations đã deprecated):
-- AMI + Instance Type
-- EC2 User Data
-- EBS Volumes
-- Security Groups
-- SSH Key Pair
-- IAM Roles cho EC2 Instances
-- Network + Subnets Information
-- Load Balancer Information
-- Min Size / Max Size / Initial Capacity
-- Scaling Policies
-
-### Auto Scaling - CloudWatch Alarms & Scaling (Trang 122)
-
-- Có thể scale ASG dựa trên **CloudWatch alarms**
-- Alarm theo dõi một **metric** (ví dụ: Average CPU, custom metric)
-- Metrics như **Average CPU** được tính cho **overall ASG instances**
-- Dựa trên alarm:
-  - Tạo **scale-out policies** (tăng số instances)
-  - Tạo **scale-in policies** (giảm số instances)
-
-### Auto Scaling Groups - Scaling Policies (Trang 123-124)
-
-**1. Dynamic Scaling:**
-
-- **Target Tracking Scaling** (strongly recommend)
-  - Scale resource dựa trên **target value** cho một specific CloudWatch metric
-  - Ví dụ: Giữ average ASG CPU ở khoảng 40%
-
-- **Simple / Step Scaling**
-  - Khi CloudWatch alarm triggered (CPU > 70%) → thêm 2 units
-  - Khi CloudWatch alarm triggered (CPU < 30%) → xóa 1
-
-- **Scheduled Scaling**
-  - Scale dựa trên **known usage patterns**
-  - Ví dụ: Tăng min capacity lên 10 vào 5pm thứ 6
-
-**2. Predictive Scaling:**
-- Sử dụng **machine learning** để predict capacity requirements dựa trên historical data từ CloudWatch
-
-### Good Metrics to Scale On (Trang 125)
-
-- **CPUUtilization**: Average CPU utilization across instances
-- **RequestCountPerTarget**: Đảm bảo số requests per EC2 instance ổn định
-- **Average Network In / Out** (nếu application bị network bound)
-- **Custom metrics** (push từ CloudWatch)
-
-### Auto Scaling Groups - Scaling Cooldowns (Trang 126)
-
-- Sau khi scaling activity xảy ra, bạn ở trong **cooldown period** (default: 300 seconds)
-- Trong cooldown period, ASG sẽ **không launch hoặc terminate** thêm instances
-- Cho phép metrics **stabilize**
-
-**Advice:** Sử dụng **ready-to-use AMI** để reduce configuration time, serve requests nhanh hơn và reduce cooldown period
-
-### Auto Scaling - Instance Refresh (Trang 127)
-
-- **Goal:** Update launch template và re-create tất cả EC2 instances
-- Sử dụng native feature **Instance Refresh**
-- Settings:
-  - **Minimum healthy percentage**
-  - **Warm-up time** (bao lâu cho đến khi instance ready to use)
-
----
-
-## Phần 4: RDS, Aurora & ElastiCache (Trang 131-156)
-
-### Amazon RDS Overview (Trang 131-132)
-
-- **RDS** = Relational Database Service
-- Managed DB service sử dụng **SQL** làm query language
-- Tạo databases trong cloud được **quản lý bởi AWS**
-- Hỗ trợ: PostgreSQL, MySQL, MariaDB, Oracle, Microsoft SQL Server, IBM DB2, Aurora
-
-**Ưu điểm so với DB trên EC2:**
-- **Automated provisioning, OS patching**
-- **Continuous backups** và restore đến specific timestamp (Point in Time Restore)
-- **Monitoring dashboards**
-- **Read replicas** cho improved read performance
-- **Multi AZ** setup cho DR (Disaster Recovery)
-- **Maintenance windows** cho upgrades
-- **Scaling capability** (vertical và horizontal)
-- **Storage backed by EBS** (gp2 hoặc io1)
-
-### RDS - Storage Auto Scaling (Trang 133)
-
-- Giúp **tự động tăng storage** khi cần
-- Khi RDS detect sắp hết free database storage, nó **scale tự động**
-- Phải set **Maximum Storage Threshold**
-- Tự động modify storage nếu:
-  - Free storage < 10% of allocated storage
-  - Low-storage kéo dài ít nhất 5 minutes
-  - Đã 6 hours kể từ lần modify cuối
-- Hữu ích cho **unpredictable workloads**
-- Hỗ trợ **tất cả RDS database engines**
-
-### RDS Read Replicas for Read Scalability (Trang 134-135)
-
-- Tối đa **15 Read Replicas**
-- Within AZ, Cross AZ hoặc Cross Region
-- Replication là **ASYNC** → reads cuối cùng sẽ consistent
-- Replicas có thể được **promoted** thành standalone DB
-- Applications phải **update connection string** để leverage read replicas
-
-**Use Cases:**
-- Production database đang xử lý normal load
-- Tạo Read Replica để **chạy reporting/analytics**
-- Production application **không bị ảnh hưởng**
-- Read replicas dùng cho **SELECT statements only** (không phải INSERT, UPDATE, DELETE)
-
-**Lưu ý:** Trong cùng region, **không tốn phí** cho cross-AZ data transfer
-
-### RDS Multi AZ (Disaster Recovery) (Trang 137-138)
-
-- **SYNC replication**
-- **Một DNS name** - automatic app failover to standby
-- Tăng **availability**
-- Failover khi:
-  - Loss of AZ
-  - Loss of network
-  - Instance failure
-  - Storage failure
-- **Không cần manual intervention** trong apps
-- **Không dùng cho scaling**
-
-**Zero Downtime Migration từ Single-AZ sang Multi-AZ:**
-1. Click "modify" cho database
-2. Snapshot được taken
-3. New DB được restore từ snapshot trong new AZ
-4. Synchronization được established giữa hai databases
-
-### Amazon Aurora (Trang 139-140)
-
-- **Proprietary technology** từ AWS (không open sourced)
-- Hỗ trợ cả **Postgres và MySQL**
-- **"AWS cloud optimized"** - 5x performance improvement over MySQL on RDS, 3x over Postgres on RDS
-- Aurora storage **tự động grow** in increments of 10GB, lên đến **128 TB**
-- Có thể có **đến 15 replicas** với replication **nhanh hơn MySQL** (< 10ms replica lag)
-- **Failover** gần như **instantaneous** - native HA
-- **Chi phí cao hơn RDS** (20% more) nhưng **hiệu quả hơn**
-
-### Aurora High Availability and Read Scaling (Trang 140-141)
-
-- **6 copies** của data across **3 AZ**:
-  - 4/6 copies cần thiết cho **writes**
-  - 3/6 copies cần thiết cho **reads**
-- **Self healing** với peer-to-peer replication
-- Storage **striped across 100s of volumes**
-
-**Architecture:**
-- Một Aurora Instance làm **master** (writes)
-- **Automated failover** cho master trong < 30 seconds
-- Master + **đến 15 Aurora Read Replicas** serve reads
-- Hỗ trợ **Cross Region Replication**
-
-### Features of Aurora (Trang 142)
-
-- Automatic fail-over
-- Backup and Recovery
-- Isolation and security
-- Industry compliance
-- Push-button scaling
-- Automated Patching with Zero Downtime
-- Advanced Monitoring
-- Routine Maintenance
-- **Backtrack**: restore data at any point without using backups
-
-### RDS & Aurora Security (Trang 143)
-
-**At-rest encryption:**
-- Database master & replicas sử dụng **AWS KMS** - phải define at launch time
-- Nếu master **không encrypted**, read replicas **không thể encrypted**
-- Để encrypt un-encrypted database: snapshot → restore as encrypted
-
-**In-flight encryption:**
-- **TLS-ready by default**
-- Sử dụng AWS TLS root certificates client-side
-
-**Authentication & Access:**
-- **IAM Authentication**: IAM roles để connect (thay vì username/password)
-- **Security Groups**: Kiểm soát Network access
-- **Không có SSH** (trừ RDS Custom)
-- **Audit Logs** có thể enabled và gửi đến CloudWatch Logs
-
-### Amazon RDS Proxy (Trang 144)
-
-- **Fully managed database proxy** cho RDS
-- Apps **pool và share DB connections**
-- **Improving database efficiency** - giảm stress trên CPU, RAM, minimize open connections
-- **Serverless**, autoscaling, highly available (multi-AZ)
-- **Giảm failover time** lên đến 66%
-- Hỗ trợ: RDS (MySQL, PostgreSQL, MariaDB, MS SQL Server) và Aurora (MySQL, PostgreSQL)
-- **Không cần code changes** cho hầu hết apps
-- Enforce **IAM Authentication**, lưu credentials trong **AWS Secrets Manager**
-- RDS Proxy **không public** - phải access từ VPC
-
-### Amazon ElastiCache Overview (Trang 145-146)
-
-- Giống như RDS cho managed Relational Databases...
-- **ElastiCache** cho managed **Redis hoặc Memcached**
-- Caches là **in-memory databases** với **high performance, low latency**
-- Giúp **giảm load** trên databases cho **read intensive workloads**
-- Giúp applications **stateless**
-- AWS lo: OS maintenance/patching, optimizations, setup, configuration, monitoring, failure recovery, backups
-- **Cần thay đổi code nhiều** khi sử dụng ElastiCache
-
-### ElastiCache Solution Architecture (Trang 146-147)
-
-**1. DB Cache Pattern:**
-- Application queries ElastiCache → nếu không có → get từ RDS → store in ElastiCache
-- Giúp **relieve load trong RDS**
-- Cần có **invalidation strategy** để đảm bảo chỉ data mới nhất được dùng
-
-**2. User Session Store Pattern:**
-- User login vào bất kỳ application instance nào
-- Application viết session data vào ElastiCache
-- User hit another instance → instance retrieve data → user đã logged in
-
-### ElastiCache - Redis vs Memcached (Trang 148)
-
-| Feature | **Redis** | **Memcached** |
+# Section 3 - RDS, Aurora & ElastiCache | Route 53
+
+
+## Phần 1: RDS, Aurora & ElastiCache (Trang 131-156)
+
+### Tổng quan Amazon RDS (Trang 132)
+
+- **RDS** là viết tắt của Relational Database Service
+- Dịch vụ database được quản lý, sử dụng **SQL** làm ngôn ngữ truy vấn
+- Cho phép tạo database trên cloud để AWS quản lý
+- Hỗ trợ: PostgreSQL, MySQL, MariaDB, Oracle, Microsoft SQL Server, IBM DB2 và Aurora
+
+### Ưu điểm của RDS so với việc triển khai database trên EC2 (Trang 133)
+
+- Cấp phát tự động và vá hệ điều hành
+- Sao lưu liên tục và khôi phục về một thời điểm cụ thể (**Point-in-Time Restore**)
+- Bảng điều khiển giám sát
+- **Read Replicas** cải thiện hiệu năng đọc
+- Cấu hình **Multi-AZ** hỗ trợ khôi phục sau thảm họa (**Disaster Recovery**)
+- Khung thời gian bảo trì cho các lần nâng cấp
+- Có thể mở rộng theo chiều dọc và chiều ngang
+- Storage được lưu trên EBS (gp2 hoặc io1)
+
+### RDS - Tự động mở rộng dung lượng lưu trữ (Trang 134)
+
+- Tự động tăng dung lượng lưu trữ cho RDS DB instance khi cần
+- Khi RDS phát hiện sắp hết dung lượng database còn trống, dịch vụ sẽ tự động mở rộng storage
+- Cần đặt ngưỡng storage tối đa (**Maximum Storage Threshold**)
+- RDS tự điều chỉnh storage khi:
+  - Dung lượng trống dưới 10% dung lượng đã cấp phát
+  - Tình trạng thiếu dung lượng kéo dài ít nhất 5 phút
+  - Đã qua 6 giờ kể từ lần điều chỉnh gần nhất
+- Hữu ích cho workload khó dự đoán
+- Hỗ trợ mọi RDS database engine
+
+### RDS Read Replicas để mở rộng khả năng đọc (Trang 135-137)
+
+- Có thể tạo tối đa **15 Read Replicas**
+- Có thể đặt trong cùng AZ, khác AZ hoặc khác Region
+- Replication là **ASYNC**, vì vậy dữ liệu ở replica có thể bị trễ và cuối cùng mới nhất quán (**eventually consistent**)
+- Có thể promote replica thành database độc lập
+- Ứng dụng cần cập nhật connection string để sử dụng Read Replicas
+
+**Trường hợp sử dụng:**
+- Database production đang xử lý tải thông thường
+- Tạo Read Replica để chạy ứng dụng báo cáo hoặc truy vấn phân tích
+- Workload của ứng dụng production không bị ảnh hưởng
+- Dùng Read Replicas cho câu lệnh đọc (`SELECT`), không dùng cho `INSERT`, `UPDATE` hay `DELETE`
+
+**Lưu ý:** Trong cùng một Region, không tính phí truyền dữ liệu cross-AZ cho RDS Read Replicas.
+
+### RDS Multi-AZ (Khôi phục sau thảm họa) (Trang 138)
+
+- Replication **SYNC**
+- Có một DNS endpoint; RDS tự động failover sang standby và cập nhật endpoint để ứng dụng reconnect
+- Tăng tính sẵn sàng (**availability**)
+- Failover có thể xảy ra khi mất AZ hoặc mạng, hay khi instance hoặc storage gặp sự cố
+- Ứng dụng không cần thay đổi thủ công
+- Không dùng Multi-AZ để mở rộng khả năng xử lý workload
+- Read Replicas cũng có thể được cấu hình **Multi-AZ** để phục vụ khôi phục sau thảm họa (DR).
+
+### Chuyển từ Single-AZ sang Multi-AZ (Trang 139)
+
+1. Chọn **Modify** cho database
+2. Tạo snapshot
+3. Khôi phục database mới từ snapshot tại AZ khác
+4. Thiết lập đồng bộ hóa giữa hai database
+
+### Amazon Aurora (Trang 140)
+
+- Aurora là công nghệ độc quyền của AWS, không phải phần mềm mã nguồn mở
+- Aurora hỗ trợ PostgreSQL và MySQL
+- AWS mô tả Aurora là dịch vụ được tối ưu cho AWS Cloud: hiệu năng được nêu là cao gấp 5 lần MySQL trên RDS và hơn 3 lần PostgreSQL trên RDS
+- Storage của Aurora tự tăng theo từng bước 10 GB, tối đa **128 TB**
+- Aurora hỗ trợ tối đa **15 replicas**; replication nhanh hơn MySQL (replica lag dưới 10 ms)
+- Failover gần như tức thời; khả năng sẵn sàng cao được tích hợp sẵn
+- Aurora có chi phí cao hơn RDS (20%) nhưng hiệu quả hơn
+
+### Aurora: Tính sẵn sàng cao và mở rộng khả năng đọc (Trang 141)
+
+- Có **6 bản sao** dữ liệu trên **3 AZ**:
+  - Cần 4/6 bản sao để xử lý thao tác ghi
+  - Cần 3/6 bản sao để xử lý thao tác đọc
+- Tự sửa chữa bằng replication ngang hàng
+- Dữ liệu được phân bố trên hàng trăm volume
+
+**Kiến trúc:**
+- Một Aurora instance làm primary để xử lý thao tác ghi
+- Tự động failover primary trong vòng dưới 30 giây
+- Primary và tối đa 15 Aurora Read Replicas phục vụ thao tác đọc
+- Hỗ trợ replication cross-Region
+
+### Aurora DB Cluster: Endpoints (Trang 142)
+
+> *Sơ đồ: Writer Endpoint trỏ đến primary để xử lý thao tác ghi; Reader Endpoint cân bằng kết nối đọc giữa các Aurora Replicas. Các instance dùng chung storage volume tự tăng từ 10 GB đến 128 TB.*
+
+### Các tính năng của Aurora (Trang 143)
+
+- Tự động failover
+- Sao lưu và khôi phục
+- Cách ly và bảo mật
+- Tuân thủ tiêu chuẩn ngành
+- Mở rộng chỉ bằng thao tác
+- Vá tự động, không downtime
+- Giám sát nâng cao
+- Bảo trì định kỳ
+- **Backtrack**: khôi phục dữ liệu về một thời điểm trước đó mà không cần dùng backup
+
+### Bảo mật RDS và Aurora (Trang 144)
+
+**Mã hóa khi lưu trữ:**
+- Database primary và replicas dùng AWS KMS; cần cấu hình lúc khởi tạo
+- Nếu primary không được mã hóa, không thể mã hóa các Read Replicas
+- Để mã hóa database chưa mã hóa: tạo snapshot rồi khôi phục thành database đã mã hóa
+
+**Mã hóa khi truyền:**
+- TLS sẵn sàng sử dụng theo mặc định
+- Dùng AWS TLS root certificates ở phía client
+
+**Xác thực và truy cập:**
+- **IAM Authentication**: dùng IAM roles để kết nối thay vì username/password
+- **Security Groups** kiểm soát quyền truy cập mạng
+- Không hỗ trợ SSH, ngoại trừ RDS Custom
+- Có thể bật Audit Logs và gửi đến CloudWatch Logs
+
+### Amazon RDS Proxy (Trang 145)
+
+- Database proxy được quản lý toàn phần cho RDS
+- Ứng dụng có thể gom nhóm và chia sẻ các kết nối database
+- Cải thiện hiệu quả database bằng cách giảm áp lực lên CPU/RAM, giảm số kết nối mở và hạn chế timeout
+- Không cần quản lý máy chủ, tự mở rộng và có tính sẵn sàng cao (Multi-AZ)
+- Có thể giảm thời gian failover của RDS và Aurora tới 66%
+- Hỗ trợ RDS (MySQL, PostgreSQL, MariaDB, MS SQL Server) và Aurora (MySQL, PostgreSQL)
+- Hầu hết ứng dụng không cần thay đổi code
+- Có thể bắt buộc dùng **IAM Authentication** cho database và lưu credentials an toàn trong **AWS Secrets Manager**
+- RDS Proxy không public; phải truy cập từ VPC
+
+### Tổng quan Amazon ElastiCache (Trang 146)
+
+- Tương tự RDS cung cấp database quan hệ được quản lý, **ElastiCache** cung cấp Redis hoặc Memcached được quản lý
+- Cache là database trong bộ nhớ, có hiệu năng cao và độ trễ thấp
+- Giảm tải cho database trong workload đọc nhiều
+- Giúp ứng dụng không lưu trạng thái cục bộ (**stateless**)
+- AWS quản lý bảo trì/vá hệ điều hành, tối ưu hóa, cài đặt, cấu hình, giám sát, khôi phục sự cố và backup
+- Sử dụng ElastiCache thường cần thay đổi đáng kể trong code ứng dụng
+
+### ElastiCache: Kiến trúc giải pháp - DB Cache (Trang 147)
+
+**1. Mẫu DB Cache:**
+- Ứng dụng truy vấn ElastiCache; nếu cache miss thì lấy dữ liệu từ RDS rồi lưu vào ElastiCache
+- Giúp giảm tải cho RDS
+- Cần có chiến lược vô hiệu hóa cache để bảo đảm dữ liệu dùng là mới nhất
+
+### ElastiCache: Kiến trúc giải pháp - User Session Store (Trang 148)
+
+- Người dùng đăng nhập vào bất kỳ application instance nào
+- Ứng dụng ghi dữ liệu session vào ElastiCache
+- Khi người dùng chuyển sang instance khác, instance đó đọc session từ ElastiCache và người dùng vẫn giữ trạng thái đăng nhập
+
+### ElastiCache - Redis và Memcached (Trang 149)
+
+| Đặc điểm | **Redis** | **Memcached** |
 |---------|-----------|---------------|
-| **Replication** | Multi AZ with Auto-Failover | Sharding (Multi-node) |
-| **High Availability** | Có (Read Replicas) | Không |
-| **Data Durability** | AOF persistence | Non-persistent |
-| **Backup & Restore** | Có | Không |
-| **Data Types** | Sets, Sorted Sets | Simple key-value |
-| **Architecture** | Replication | Sharding |
-| **Threading** | Single-threaded | Multi-threaded |
+| **Replication** | Multi-AZ, tự động failover | Sharding (nhiều node) |
+| **Tính sẵn sàng cao** | Có (Read Replicas) | Không |
+| **Độ bền dữ liệu** | AOF persistence | Không lưu bền |
+| **Backup và khôi phục** | Có | Không |
+| **Kiểu dữ liệu** | Sets, Sorted Sets | Key-value đơn giản |
+| **Kiến trúc** | Replication | Sharding |
+| **Mô hình luồng** | Đơn luồng | Đa luồng |
 
-### Caching Implementation Considerations (Trang 149)
+### Những điểm cần cân nhắc khi triển khai caching (Trang 150)
 
-**Câu hỏi cần đặt ra:**
-- **Is it safe to cache data?** Data có thể outdated, eventually consistent
-- **Is caching effective?** Pattern: data thay đổi chậm, vài keys được request thường xuyên
-- **Is data structured well?** Ví dụ: key-value caching, caching aggregations
+**Cần đặt ra các câu hỏi:**
+- Có an toàn khi cache dữ liệu không? Dữ liệu có thể cũ và chỉ nhất quán cuối cùng
+- Cache có hiệu quả không? Cache phù hợp khi dữ liệu thay đổi chậm và một số key được yêu cầu thường xuyên
+- Dữ liệu có cấu trúc phù hợp không? Ví dụ: key-value hoặc kết quả tổng hợp
 
-**Anti-patterns:**
-- Data thay đổi nhanh
-- All large key space được request thường xuyên
+**Các anti-pattern:**
+- Dùng với dữ liệu thay đổi nhanh
+- Dùng khi toàn bộ keyspace lớn đều được yêu cầu thường xuyên
 
-### Lazy Loading / Cache-Aside (Trang 150-151)
+### Lazy Loading / Cache-Aside (Trang 151-152)
 
-> *Sơ đồ: Cache-Aside Pattern Flow*
+> *Sơ đồ: Luồng xử lý theo mẫu Cache-Aside*
 
-**Pros:**
-- Chỉ **requested data được cached** (cache không bị fill với unused data)
-- **Node failures không fatal** (chỉ tăng latency để warm cache)
+**Ưu điểm:**
+- Chỉ cache dữ liệu được yêu cầu; không lấp cache bằng dữ liệu không sử dụng
+- Node gặp sự cố không làm hệ thống ngừng hoạt động; chỉ tăng độ trễ trong lúc làm nóng cache
 
-**Cons:**
-- **Cache miss penalty** → 3 round trips, noticeable delay
-- **Stale data**: Data có thể updated trong DB nhưng outdated trong cache
+**Nhược điểm:**
+- Cache miss làm tăng độ trễ vì cần 3 lượt trao đổi
+- Dữ liệu cũ: database có thể đã được cập nhật trong khi cache vẫn chứa dữ liệu cũ
 
-### Write Through (Trang 152-153)
+### Write-Through (Trang 153-154)
 
-- **Add hoặc Update cache** khi database được updated
+- Thêm hoặc cập nhật cache khi database được cập nhật
 
-**Pros:**
-- Data trong cache **không bao giờ stale**
-- Reads nhanh
+**Ưu điểm:**
+- Dữ liệu trong cache không bị cũ
+- Đọc nhanh
 
-**Cons:**
-- **Missing data** cho đến khi added/updated in DB
-- **Cache churn** - nhiều data không bao giờ được read
-- **Write penalty** (mỗi write cần 2 calls)
+**Nhược điểm:**
+- Dữ liệu chưa có trong cache cho đến khi được thêm/cập nhật trong database
+- Cache churn: nhiều dữ liệu được ghi vào cache nhưng không bao giờ được đọc
+- Tăng chi phí ghi vì mỗi lần ghi cần hai lời gọi
 
-### Cache Evictions and Time-to-Live (TTL) (Trang 154)
+### Cache Evictions và Time-to-Live (TTL) (Trang 155)
 
-**Cache eviction xảy ra theo 3 cách:**
-1. **Explicitly delete** item trong cache
-2. **Evicted** vì memory full và không recently used (**LRU**)
-3. **Set TTL** cho item
+**Cache eviction xảy ra theo ba cách:**
+1. Chủ động xóa item khỏi cache
+2. Xóa item vì bộ nhớ đầy và item không được dùng gần đây (**LRU**)
+3. Đặt **TTL** cho item
 
 **TTL hữu ích cho:**
-- Leaderboards
-- Comments
-- Activity streams
+- Bảng xếp hạng
+- Bình luận
+- Dòng hoạt động
 
-- TTL có thể từ **few seconds đến hours hoặc days**
-- Nếu quá nhiều evictions vì memory full → **scale up hoặc out**
+- TTL có thể từ vài giây đến vài giờ hoặc vài ngày
+- Nếu bộ nhớ đầy khiến có quá nhiều eviction, hãy mở rộng theo chiều dọc hoặc chiều ngang
 
-### Final Words on Caching (Trang 155)
+### Kết luận về Caching (Trang 156)
 
-- **Lazy Loading** dễ implement và hoạt động cho nhiều situations, đặc biệt cho **read side**
-- **Write-through** thường được kết hợp với Lazy Loading cho queries/workloads cần optimization
-- **Setting TTL** thường không phải ý tưởng tồi, trừ khi dùng Write-through
-- **Chỉ cache data hợp lý** (user profiles, blogs, etc.)
+- **Lazy Loading** dễ triển khai, phù hợp với nhiều tình huống, đặc biệt ở phía đọc
+- Thường kết hợp **Write-Through** với Lazy Loading cho các truy vấn/workload hưởng lợi từ cách tối ưu này
+- Đặt TTL thường là lựa chọn tốt, trừ khi dùng Write-Through; hãy chọn giá trị phù hợp với ứng dụng
+- Chỉ cache dữ liệu phù hợp, chẳng hạn hồ sơ người dùng hoặc blog
+## Phần 2: Amazon Route 53 (Trang 157-187)
 
----
+> *Chủ đề: DNS, DNS Records, Hosted Zones, Routing Policies và Health Checks.*
 
-## Phần 5: Amazon Route 53 (Trang 157-160+)
+### DNS là gì? (Trang 158)
 
-### What is DNS? (Trang 157-158)
-
-- **DNS** = Domain Name System - translate human-friendly hostnames thành machine IP addresses
+- **DNS** là viết tắt của Domain Name System, dịch hostname dễ đọc với con người thành địa chỉ IP của máy
 - Ví dụ: `www.google.com` → `172.217.18.36`
-- DNS là **backbone của Internet**
-- DNS sử dụng **hierarchical naming structure**
+- DNS là nền tảng của Internet
+- DNS sử dụng cấu trúc đặt tên theo cấp bậc
 
 > *Sơ đồ: .com → example.com → www.example.com → api.example.com*
 
-### DNS Terminologies (Trang 158-159)
+### Thuật ngữ DNS (Trang 159)
 
-| Term | Definition |
-|------|------------|
-| **Domain Registrar** | Amazon Route 53, GoDaddy, ... |
-| **DNS Records** | A, AAAA, CNAME, NS, ... |
-| **Zone File** | Chứa DNS records |
-| **Name Server** | Resolves DNS queries (Authoritative or Non-Authoritative) |
-| **Top Level Domain (TLD)** | .com, .us, .in, .gov, .org, ... |
-| **Second Level Domain (SLD)** | amazon.com, google.com, ... |
+| Thuật ngữ | Định nghĩa |
+|---|---|
+| **Domain Registrar** | Nhà đăng ký domain, ví dụ Amazon Route 53 hoặc GoDaddy |
+| **DNS Records** | Các bản ghi DNS như A, AAAA, CNAME, NS |
+| **Zone File** | Tệp chứa DNS records |
+| **Name Server** | Máy chủ phân giải DNS query (authoritative hoặc non-authoritative) |
+| **Top Level Domain (TLD)** | Miền cấp cao nhất, ví dụ .com, .us, .in, .gov, .org |
+| **Second Level Domain (SLD)** | Miền cấp hai, ví dụ amazon.com hoặc google.com |
 
-### How DNS Works (Trang 159-160)
+### DNS hoạt động như thế nào? (Trang 160)
 
-> *Sơ đồ: Client → Resolver → Root Server → TLD Server → Authoritative Server*
+> *Sơ đồ Trang 160: Web Browser hỏi Local DNS Server; Local DNS Server truy vấn Root DNS Server để tìm nameserver của `.com`, rồi TLD DNS Server để tìm nameserver của `example.com`, sau đó truy vấn SLD DNS Server (authoritative, do registrar quản lý) để lấy IP `9.10.11.12`. Local DNS Server cache kết quả theo TTL và trả IP cho browser; browser cũng có thể cache câu trả lời.*
+
+### Amazon Route 53 (Trang 161)
+
+- Dịch vụ DNS authoritative được quản lý toàn phần, có tính sẵn sàng và khả năng mở rộng cao
+- **Authoritative** nghĩa là khách hàng có thể cập nhật DNS records
+- Route 53 cũng là **Domain Registrar** và có thể kiểm tra tình trạng tài nguyên
+- Theo slide nguồn, đây là dịch vụ AWS duy nhất có SLA availability 100%
+
+### Route 53 - Records (Trang 162)
+
+- Mỗi record gồm tên domain/subdomain, loại record, giá trị, **Routing Policy** và **TTL** (thời gian DNS Resolver lưu record trong cache)
+- Các loại cần biết: **A, AAAA, CNAME, NS**; các loại nâng cao: **CAA, DS, MX, NAPTR, PTR, SOA, TXT, SPF, SRV**
+
+### Route 53 - Các loại Record (Trang 163)
+
+- **A** ánh xạ hostname sang IPv4; **AAAA** ánh xạ hostname sang IPv6
+- **CNAME** ánh xạ hostname sang hostname khác; hostname đích phải có A hoặc AAAA record
+- Không thể tạo CNAME ở đỉnh của DNS namespace (**Zone Apex**), ví dụ `example.com`; có thể tạo cho `www.example.com`
+- **NS** liệt kê Name Servers của Hosted Zone, xác định tổ chức quản lý domain và cách định tuyến traffic cho domain
+
+### Route 53 - Hosted Zones (Trang 164-165)
+
+- **Hosted Zone** là vùng chứa các records mô tả cách định tuyến traffic cho một domain và các subdomain
+- **Public Hosted Zone** chứa records định tuyến tên miền công khai trên Internet
+- **Private Hosted Zone** chứa records định tuyến tên miền riêng tư bên trong một hoặc nhiều VPC
+- Giá trên slide nguồn: **$0.50 mỗi tháng cho mỗi Hosted Zone**
+
+> *Sơ đồ: Public Hosted Zone phân giải domain công khai; Private Hosted Zone phân giải domain nội bộ trong VPC.*
+
+### Route 53 - TTL của Record (Trang 166)
+
+- **TTL cao** (ví dụ 24 giờ): giảm số truy vấn Route 53 nhưng record cũ có thể còn trong cache lâu hơn
+- **TTL thấp** (ví dụ 60 giây): tăng số truy vấn Route 53 nhưng thay đổi được nhận biết nhanh hơn
+- Bắt buộc đặt TTL cho DNS records, ngoại trừ **Alias records**
+
+### CNAME và Alias (Trang 167-168)
+
+- **CNAME** trỏ hostname sang hostname khác, chỉ dùng cho domain không phải root (ví dụ `app.example.com`)
+- **Alias** trỏ hostname đến AWS resource; dùng được cho cả root domain và subdomain, miễn phí theo slide nguồn và hỗ trợ health check native
+- Alias tự nhận biết khi IP của resource thay đổi; với AWS resource, Alias luôn là record loại **A/AAAA** và không đặt TTL thủ công
+
+### Route 53 - Routing Policies (Trang 169)
+
+- Routing Policy xác định cách Route 53 trả lời DNS query
+- DNS không định tuyến traffic như Load Balancer; DNS chỉ trả lời truy vấn phân giải tên
+- Các policy: **Simple, Weighted, Failover, Latency-based, Geolocation, Multi-Value Answer, Geoproximity**
+
+### Routing Policy - Simple (Trang 170)
+
+- Thường định tuyến đến một resource; có thể chỉ định nhiều giá trị trong cùng record, khi đó client chọn ngẫu nhiên một giá trị
+- Khi dùng Alias, chỉ định một AWS resource
+- Không hỗ trợ Health Checks
+
+### Routing Policy - Weighted (Trang 171)
+
+- Phân chia tỷ lệ truy vấn đến từng resource; các records phải cùng tên và cùng loại
+- Có thể gắn Health Checks; dùng để phân phối traffic giữa các Region hoặc thử phiên bản ứng dụng mới
+- Đặt weight bằng 0 để ngừng gửi traffic tới resource đó; nếu tất cả weight đều bằng 0, mọi record được trả về với tỷ lệ ngang nhau
+
+### Routing Policy - Latency-based (Trang 172)
+
+- Trả lời bằng resource có latency thấp nhất theo phép đo traffic giữa người dùng và các AWS Region
+- Phù hợp khi ưu tiên độ trễ; có thể kết hợp Health Checks để hỗ trợ failover
+
+### Route 53 - Health Checks (Trang 173-174)
+
+- HTTP Health Checks chỉ kiểm tra resource công khai
+- Có thể theo dõi endpoint, **Calculated Health Checks** hoặc CloudWatch Alarm
+- Health checkers nằm ngoài VPC nên không truy cập được endpoint riêng tư; với tài nguyên riêng tư, có thể tạo CloudWatch metric/alarm rồi gắn Health Check vào alarm
+
+### Routing Policy - Failover (Active-Passive) (Trang 175)
+
+> *Sơ đồ: Route 53 trả traffic về resource chính; khi Health Check báo resource chính không khỏe, DNS failover chuyển sang resource dự phòng.*
+
+### Routing Policy - Geolocation (Trang 176)
+
+- Định tuyến dựa trên vị trí người dùng, khác với Latency-based
+- Có thể chọn theo quốc gia hoặc tiểu bang của Hoa Kỳ; nên tạo record **Default** khi không khớp vị trí
+- Dùng cho nội dung theo khu vực, hạn chế phân phối nội dung hoặc cân bằng tải; có thể gắn Health Checks
+
+### Routing Policy - Geoproximity (Trang 177-179)
+
+- Định tuyến dựa trên vị trí địa lý của người dùng và resource; có thể điều chỉnh lượng traffic bằng **bias**
+- Bias từ **1 đến 99** mở rộng vùng phục vụ; bias từ **-1 đến -99** thu hẹp vùng phục vụ
+- Resource AWS được xác định bằng Region; resource ngoài AWS được xác định bằng vĩ độ/kinh độ
+- Cần dùng **Route 53 Traffic Flow** cho policy này
+
+> *Trang 178: bias 0 tại us-west-1 và us-east-1; Trang 179: tăng bias us-east-1 lên 50 để mở rộng vùng phục vụ về phía tây và thu hút thêm traffic.*
+
+### Route 53 - Traffic Flow (Trang 180)
+
+- Đơn giản hóa việc tạo và duy trì records trong cấu hình phức tạp bằng trình chỉnh sửa trực quan
+- Có thể lưu cấu hình thành **Traffic Flow Policy**, áp dụng cho nhiều Hosted Zones và quản lý phiên bản
+
+### Routing Policy - IP-based (Trang 181)
+
+- Định tuyến dựa trên địa chỉ IP của client
+- Cung cấp danh sách CIDR của client và endpoint/vị trí tương ứng (**user-IP-to-endpoint mappings**)
+- Có thể tối ưu hiệu năng hoặc chi phí mạng, ví dụ định tuyến người dùng của một ISP đến endpoint cụ thể
+
+### Routing Policy - Multi-Value (Trang 182)
+
+- Dùng để trả về nhiều resource; mỗi query có thể trả về tối đa **8 records khỏe mạnh**
+- Tương tự Simple nhưng hỗ trợ nhiều resource và Health Checks
+
+### Domain Registrar và DNS Service (Trang 183-186)
+
+- **Domain Registrar** là nơi đăng ký/mua domain, thường thu phí hằng năm; registrar thường cung cấp DNS service nhưng có thể dùng DNS provider khác
+- Ví dụ: mua domain ở GoDaddy nhưng dùng Route 53 để quản lý DNS records
+- Khi dùng registrar bên thứ ba với Route 53: tạo Hosted Zone trong Route 53, sau đó cập nhật **NS records** tại registrar để trỏ đến Name Servers của Route 53
+- **Domain Registrar** không đồng nghĩa với **DNS Service**
+
+> *Sơ đồ: Trước khi chuyển đổi, GoDaddy quản lý cả domain lẫn DNS; sau khi chuyển, GoDaddy vẫn quản lý domain còn Route 53 quản lý DNS.*
+
+### Bài thực hành: Tạo RDS for MySQL (Trang 187)
+
+- Tạo một database **Amazon RDS for MySQL**

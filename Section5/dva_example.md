@@ -1,8 +1,7 @@
-# Section 5 - DVA Practice Questions: VPC Advanced, ECS, ECR, Fargate, EKS, CloudFront
-
+# Section 5 - Câu hỏi ôn tập DVA: Amazon VPC
 ---
 
-## 1. VPC Advanced
+## 1. VPC Nâng cao
 
 ### Question 1:
 A company needs to SSH into private EC2 instances from the Internet. What should be implemented?
@@ -18,30 +17,27 @@ D. VPC Peering
 
 ### 📖 Explanation (Vietnamese):
 
-**Why C is correct:**
-- **Bastion Host** là EC2 instance trong public subnet
-- Cho phép SSH vào private instances từ Internet
-- Bastion Host phải:
-  - Nằm trong **public subnet**
-  - Allow inbound SSH từ Internet (port 22)
-  - Private instances allow SSH từ Bastion Security Group
+**Tại sao chọn C:**
+- **Bastion Host** là EC2 instance trong public subnet, dùng làm máy trung gian để SSH đến các EC2 instances trong private subnets.
+- Luồng kết nối: Internet → Bastion Host → EC2 instance riêng tư.
+- Security Group của Bastion chỉ nên cho phép SSH từ CIDR cần thiết; Security Group của EC2 riêng tư cho phép traffic từ Security Group của Bastion.
 
-**Architecture:**
+**Kiến trúc:**
 ```
 Internet → Bastion Host (Public) → Private EC2 Instances
 ```
 
-**Why other options were eliminated:**
+**Tại sao loại các lựa chọn khác:**
 
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. NAT Gateway | Chỉ cho phép outbound traffic, không phải SSH access |
-| B. IGW | Cần EC2 có public IP, không cho phép SSH trực tiếp |
-| D. VPC Peering | Kết nối VPCs, không phải SSH access |
+| Lựa chọn | Lý do loại trừ |
+|----------|----------------|
+| A. NAT Gateway | Chỉ cung cấp kết nối outbound, không cho phép SSH vào private instances |
+| B. Internet Gateway | Không tự tạo đường SSH đến EC2 riêng tư; cần Bastion hoặc cơ chế quản trị khác |
+| D. VPC Peering | Kết nối hai VPCs, không phải giải pháp SSH vào private instance |
 
-### 📝 Vocabulary Analysis:
-- **Bastion Host**: Jump server trong public subnet
-- **Jump server**: Server để access vào private network
+### 📝 Phân tích thuật ngữ:
+- **Bastion Host**: máy trung gian trong public subnet để truy cập mạng riêng.
+- **Jump server**: máy chủ trung gian để truy cập mạng riêng.
 
 ---
 
@@ -59,26 +55,22 @@ D. Both are stateless
 
 ### 📖 Explanation (Vietnamese):
 
-**Why B is correct:**
+**Tại sao chọn B:**
 
-| Feature | Security Group | NACL |
-|---------|---------------|------|
-| **Level** | Instance | Subnet |
-| **State** | **Stateful** | **Stateless** |
-| **Rules** | Allow only | Allow + Deny |
-| **Evaluation** | All rules | By order |
-| **Return traffic** | Auto-allowed | Must explicitly allow |
+| Đặc điểm | Security Group | NACL |
+|----------|----------------|------|
+| **Cấp áp dụng** | Instance | Subnet |
+| **Trạng thái** | **Stateful** | **Stateless** |
+| **Rules** | Chỉ ALLOW | ALLOW và DENY |
+| **Đánh giá** | Xét tất cả rules | Theo thứ tự tăng dần; rule khớp đầu tiên quyết định kết quả |
+| **Traffic phản hồi** | Tự động được cho phép | Cần rule cho cả hai chiều |
 
-**Stateful vs Stateless:**
-- **Stateful**: Nếu allow inbound, return traffic auto-allowed
-- **Stateless**: Phải allow cả outbound traffic cho return traffic
+- **Stateful:** khi cho phép inbound, traffic phản hồi tự động được phép.
+- **Stateless:** cần cho phép riêng traffic phản hồi ở chiều ngược lại.
 
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A | Ngược lại - Security Groups là stateful |
-| C, D | Một cái stateful, một stateless |
+**Tại sao loại các lựa chọn khác:**
+- A đảo ngược đặc điểm: Security Groups stateful, NACLs stateless.
+- C và D đều sai vì một loại stateful, loại còn lại stateless.
 
 ---
 
@@ -96,27 +88,21 @@ D. VPC Peering
 
 ### 📖 Explanation (Vietnamese):
 
-**Why C is correct:**
-- **VPC Gateway Endpoint** cho phép:
-  - Private access đến S3/DynamoDB
-  - Traffic không qua Internet
-  - **Free** (không tốn phí)
-  - Sử dụng route table
+**Tại sao chọn C:**
+- **VPC Gateway Endpoint** cho phép truy cập riêng tư đến S3/DynamoDB mà không đi qua Internet.
+- Gateway Endpoint không tính phí sử dụng endpoint và dùng route table để định tuyến.
 
-**Two types of VPC Endpoints:**
+**So sánh hai loại VPC Endpoints:**
 
-| Type | Services | Cost | Uses |
-|------|----------|------|------|
-| **Gateway** | S3, DynamoDB | Free | Route table |
-| **Interface** | Other services | $ per hour | ENI + SG |
+| Loại | Services | Chi phí | Cách kết nối |
+|------|----------|--------|--------------|
+| **Gateway** | S3, DynamoDB | Miễn phí | Route table |
+| **Interface** | Các dịch vụ khác | Phí theo giờ và GB | ENI và Security Group |
 
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. NAT Gateway | Cho phép Internet access, không phải S3 access |
-| B. IGW | Traffic qua Internet, không phải private access |
-| D. VPC Peering | Kết nối VPCs, không phải AWS services |
+**Tại sao loại các lựa chọn khác:**
+- A. NAT Gateway cung cấp outbound Internet, không phải private access đến S3.
+- B. Internet Gateway đưa traffic ra Internet công cộng.
+- D. VPC Peering kết nối VPCs, không phải AWS services.
 
 ---
 
@@ -134,26 +120,26 @@ D. Route Table
 
 ### 📖 Explanation (Vietnamese):
 
-**Why B is correct:**
-- **NACLs** supports **DENY rules**
-- Applied ở **subnet level**
-- Rules evaluated by order (lowest number first)
-- Perfect để block specific IP addresses
+**Tại sao chọn B:**
+- **NACLs** hỗ trợ rule **DENY** và áp dụng ở cấp subnet.
+- Rules được xét theo số thứ tự tăng dần; việc xét dừng tại rule khớp đầu tiên.
+- Đặt rule chặn trước các rule ALLOW rộng hơn để chặn IP độc hại trên mọi port cần thiết.
 
-**Example NACL:**
+**Ví dụ NACL:**
 ```
-Rule #: 100 - Allow HTTP (80)
-Rule #: 200 - Deny specific IP
-Rule #: *  - Deny all
+Rule #: 100 - DENY IP độc hại trên mọi traffic
+Rule #: 110 - ALLOW HTTP (80)
+Rule #: 120 - ALLOW HTTPS (443)
+Rule #: *   - DENY traffic còn lại
 ```
 
-**Why other options were eliminated:**
+**Tại sao loại các lựa chọn khác:**
 
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. Security Group | Chỉ supports ALLOW rules, không có DENY |
-| C. VPC Peering | Kết nối VPCs, không block IPs |
-| D. Route Table | Định hướng traffic, không block IPs |
+| Lựa chọn | Lý do loại trừ |
+|----------|----------------|
+| A. Security Group | Chỉ hỗ trợ ALLOW rules, không có DENY |
+| C. VPC Peering | Kết nối VPCs, không chặn IP |
+| D. Route Table | Định tuyến traffic, không phải tường lửa chặn IP |
 
 ---
 
@@ -171,655 +157,113 @@ D. 10 Gbps
 
 ### 📖 Explanation (Vietnamese):
 
-**Why C is correct:**
-- **NAT Gateway** specs:
-  - Starts at **5 Gbps**
-  - **Auto-scales** up to **100 Gbps**
-  - **No Security Groups** needed
-  - AWS managed, high availability
-  - Pay per hour + bandwidth
+**Tại sao chọn C:**
+- **NAT Gateway** bắt đầu ở mức **5 Gbps** và tự động mở rộng đến **100 Gbps**.
+- Do AWS quản lý nên không cần cấu hình Security Groups; tính phí theo giờ và lượng dữ liệu truyền.
 
-**Why other options were eliminated:**
+**Tại sao loại các lựa chọn khác:**
 
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A | Too low - NAT Gateway has higher bandwidth |
-| B | Correct bandwidth, wrong max (45 Gbps) |
-| D | Wrong - doesn't scale to 10 Gbps |
+| Lựa chọn | Lý do loại trừ |
+|----------|----------------|
+| A | Thấp hơn băng thông ban đầu của NAT Gateway |
+| B | Băng thông tối đa 45 Gbps không đúng; mức tối đa trong đáp án đúng là 100 Gbps |
+| D | 10 Gbps không phải giới hạn mở rộng tối đa được nêu trong slide |
 
 ---
 
-## 2. ECS Fundamentals
+## 2. CIDR và NAT Gateway
 
 ### Question 6:
-What is the basic unit of work in ECS?
+A company uses the subnet `10.0.0.0/28`. How many IPv4 addresses can it assign to EC2 instances?
 
 ```
-A. Cluster
-B. Service
-C. Task Definition
-D. Task
+A. 16
+B. 14
+C. 11
+D. 8
 ```
 
-### ✅ Answer: **D. Task**
-
-### 📖 Explanation (Vietnamese):
-
-**Why D is correct:**
-- **Task** = basic unit of work in ECS
-- Task contains **one or more containers**
-- Running container với settings từ Task Definition
-- Task Definition = metadata (JSON) describing how to run
-
-**ECS Hierarchy:**
-```
-Cluster
-  └── Service (keeps tasks running)
-        └── Task Definition (how to run)
-              └── Task (running instance)
-```
-
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. Cluster | Group of services and tasks |
-| B. Service | Supervises tasks, keeps them running |
-| C. Task Definition | Blueprint/metadata for tasks |
-
----
-
-### Question 7:
-In ECS, which IAM role is used by the ECS agent on EC2 instances?
-
-```
-A. ECS Task Role
-B. EC2 Instance Profile
-C. Service Role
-D. Task Execution Role
-```
-
-### ✅ Answer: **B. EC2 Instance Profile**
-
-### 📖 Explanation (Vietnamese):
-
-**Why B is correct:**
-- **EC2 Instance Profile** used by ECS agent:
-  - Makes API calls to ECS service
-  - Send container logs to CloudWatch
-  - Pull Docker images from ECR
-  - Access Secrets Manager/SSM Parameter Store
-
-**Two types of ECS IAM Roles:**
-
-| Role | Who Uses | Purpose |
-|------|---------|---------|
-| **EC2 Instance Profile** | ECS Agent (EC2 Launch Type) | Agent operations |
-| **ECS Task Role** | Tasks themselves | Task permissions |
-
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. ECS Task Role | Cho permissions của task, không phải agent |
-| C. Service Role | Cho ECS service, không phải agent |
-| D. Task Execution Role | Cho pulling images, không phải agent |
-
----
-
-### Question 8:
-What are the two launch types supported by ECS?
-
-```
-A. EC2 and Fargate
-B. EC2 and Lambda
-C. Fargate and Lambda
-D. EC2 and EKS
-```
-
-### ✅ Answer: **A. EC2 and Fargate**
-
-### 📖 Explanation (Vietnamese):
-
-**Why A is correct:**
-- **ECS supports two launch types:**
-  - **EC2 Launch Type**: You manage EC2 instances
-  - **Fargate Launch Type**: AWS manages infrastructure (Serverless)
-
-**Comparison:**
-
-| Feature | EC2 Launch Type | Fargate Launch Type |
-|---------|----------------|-------------------|
-| Infrastructure | You manage | AWS manages |
-| Scaling | Manual + ASG | Automatic |
-| Cost | EC2 instance hours | Per-task |
-| Security Groups | Per instance | Per task (awsvpc) |
-
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| B, C. Lambda | Lambda là serverless compute khác, không phải ECS launch type |
-| D. EKS | EKS là Kubernetes service, không phải ECS launch type |
-
----
-
-## 3. ECS Fargate
-
-### Question 9:
-Which ECS feature allows tasks to share data between multiple containers in the same task?
-
-```
-A. EFS volumes
-B. Bind Mounts
-C. EBS volumes
-D. S3 buckets
-```
-
-### ✅ Answer: **B. Bind Mounts**
-
-### 📖 Explanation (Vietnamese):
-
-**Why B is correct:**
-- **Bind Mounts**:
-  - Share data between containers in same task
-  - EC2: Uses EC2 instance storage
-  - Fargate: Uses ephemeral storage (20-200 GiB)
-  - Good for **sidecar pattern** (logs/metrics)
-
-**Volume types comparison:**
-
-| Type | Storage | Use Case |
-|------|---------|----------|
-| **Bind Mounts** | Host/Ephemeral | Shared data, sidecar |
-| **EFS** | Network file system | Persistent, multi-AZ |
-| **EBS** | Block storage | Single instance |
-| **S3** | Object storage | Not mountable |
-
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. EFS | Persistent shared storage, not between containers in same task |
-| C. EBS | Block storage, not for container sharing |
-| D. S3 | Object storage, cannot be mounted |
-
----
-
-### Question 10:
-A company wants to run containers without managing any EC2 instances. Which ECS launch type should be used?
-
-```
-A. EC2 Launch Type
-B. Fargate Launch Type
-C. Both EC2 and Fargate
-D. EKS with Fargate
-```
-
-### ✅ Answer: **B. Fargate Launch Type**
-
-### 📖 Explanation (Vietnamese):
-
-**Why B is correct:**
-- **Fargate Launch Type**:
-  - **No EC2 instances** to manage
-  - **Serverless** - AWS handles infrastructure
-  - Just specify **CPU and memory**
-  - AWS runs containers based on requirements
-  - Scale by increasing **number of tasks**
-
-**Fargate characteristics:**
-- No provisioning
-- No cluster management
-- Pay per task (vCPU + memory used)
-- Good for microservices
-
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. EC2 | Requires managing EC2 instances |
-| C. Both | Doesn't match "without managing any EC2" |
-| D. EKS | EKS là Kubernetes, không phải ECS |
-
----
-
-## 4. ECR
-
-### Question 11:
-A developer needs to push a Docker image to Amazon ECR. Which command authenticates Docker to ECR?
-
-```
-A. aws ecr login
-B. aws ecr get-login-password | docker login
-C. docker login -u AWS
-D. aws ecr authorize
-```
-
-### ✅ Answer: **B. aws ecr get-login-password | docker login**
-
-### 📖 Explanation (Vietnamese):
-
-**Why B is correct:**
-- **ECR Docker login command (AWS CLI v2):**
-```bash
-aws ecr get-login-password --region us-east-1 | \
-  docker login --username AWS --password-stdin \
-  123456789.dkr.ecr.us-east-1.amazonaws.com
-```
-
-**Steps:**
-1. Get ECR password via AWS CLI
-2. Pipe to docker login
-3. Docker authenticates with ECR
-
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. aws ecr login | Không tồn tại command này |
-| C. docker login -u AWS | Không đúng format |
-| D. aws ecr authorize | Không tồn tại command này |
-
-### 📝 Vocabulary Analysis:
-- **Docker login**: Authenticate Docker client to registry
-- **ECR endpoint**: Account-specific registry URL
-
----
-
-### Question 12:
-Which storage backend does Amazon ECR use?
-
-```
-A. Amazon EBS
-B. Amazon S3
-C. Amazon EFS
-D. Amazon DynamoDB
-```
-
-### ✅ Answer: **B. Amazon S3**
-
-### 📖 Explanation (Vietnamese):
-
-**Why B is correct:**
-- **Amazon ECR is backed by Amazon S3**
-- S3 provides durable storage for container images
-- Combined with other AWS services for reliability
-- ECR stores:
-  - Image layers
-  - Manifests
-  - Metadata
-
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. EBS | Block storage, không phải cho container registry |
-| C. EFS | File system, không phải cho images |
-| D. DynamoDB | NoSQL database, không phải image storage |
-
----
-
-## 5. CloudFront
-
-### Question 13:
-What is the main benefit of using CloudFront?
-
-```
-A. Reduces EC2 costs
-B. Improves read performance by caching content at edge locations
-C. Provides database storage
-D. Manages container deployments
-```
-
-### ✅ Answer: **B. Improves read performance by caching content at edge locations**
-
-### 📖 Explanation (Vietnamese):
-
-**Why B is correct:**
-- **CloudFront** là CDN (Content Delivery Network)
-- **Benefits:**
-  - Content cached at **600+ edge locations** globally
-  - Improved **read performance**
-  - Reduced latency for users
-  - DDoS protection
-  - Integration with **Shield, WAF**
-
-**How it works:**
-```
-User → Edge Location → Origin (S3/ALB)
-           ↓
-       Cached content (for subsequent requests)
-```
-
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. Reduces EC2 costs | Không phải primary benefit |
-| C. Database storage | CloudFront không cung cấp storage |
-| D. Container deployments | ECS/EKS làm việc này |
-
----
-
-### Question 14:
-Which CloudFront feature allows traffic to failover to a secondary origin when the primary fails?
-
-```
-A. Cache Behaviors
-B. Origin Groups
-C. Field-Level Encryption
-D. Lambda@Edge
-```
-
-### ✅ Answer: **B. Origin Groups**
-
-### 📖 Explanation (Vietnamese):
-
-**Why B is correct:**
-- **Origin Groups** provide:
-  - **High availability**
-  - **Failover** capability
-  - One **primary** and one **secondary** origin
-  - Auto failover when primary fails
-
-**Use case:**
-- S3 bucket + CloudFront (primary)
-- S3 bucket in another region (secondary)
-- Automatic failover if primary region unavailable
-
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. Cache Behaviors | Different settings for URL patterns |
-| C. Field-Level Encryption | Encrypt data at field level |
-| D. Lambda@Edge | Run Lambda at edge locations |
-
----
-
-### Question 15:
-When origin content is updated, but CloudFront still serves old cached content. How can you force cache refresh?
-
-```
-A. Update TTL
-B. Create CloudFront Invalidation
-C. Delete CloudFront distribution
-D. Update Security Groups
-```
-
-### ✅ Answer: **B. Create CloudFront Invalidation**
-
-### 📖 Explanation (Vietnamese):
-
-**Why B is correct:**
-- **CloudFront Invalidation**:
-  - Forces cache refresh
-  - Bypasses TTL
-  - Can invalidate specific paths or all files
-
-**CLI command:**
-```bash
-# Invalidate specific path
-aws cloudfront create-invalidation \
-  --distribution-id EDFDVBD6EXAMPLE \
-  --paths "/images/*"
-
-# Invalidate everything
-aws cloudfront create-invalidation \
-  --distribution-id EDFDVBD6EXAMPLE \
-  --paths "/*"
-```
-
-**Note:** Invalidation takes time; charged for many invalidations
-
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. Update TTL | TTL chỉ expiry sau thời gian, không immediate |
-| C. Delete distribution | Extreme, unnecessary |
-| D. Security Groups | Không liên quan đến caching |
-
----
-
-### Question 16:
-Which type of CloudFront origin requires enabling static website hosting on S3?
-
-```
-A. S3 bucket
-B. S3 bucket as static website endpoint
-C. Application Load Balancer
-D. EC2 instance
-```
-
-### ✅ Answer: **B. S3 bucket as static website endpoint**
-
-### 📖 Explanation (Vietnamese):
-
-**Why B is correct:**
-- **S3 static website hosting**:
-  - Must enable on S3 bucket
-  - Uses website endpoint format
-  - Requires bucket policy for public access
-  - Block Public Access must be OFF
-
-**S3 endpoints comparison:**
-
-| Origin Type | Endpoint | Use Case |
-|------------|----------|----------|
-| S3 bucket (REST) | `s3.amazonaws.com` | General |
-| S3 website | `s3-website.region.amazonaws.com` | Static website |
-
-**Configuration needed:**
-1. Enable Static Website Hosting
-2. Set index document
-3. Block Public Access: OFF
-4. Bucket policy (public read)
-
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. S3 bucket (REST) | Không cần static website hosting |
-| C. ALB | Custom origin HTTP, không phải S3 |
-| D. EC2 | Custom origin HTTP, không phải S3 |
-
----
-
-## 6. EKS
-
-### Question 17:
-Which AWS service is used to launch managed Kubernetes clusters on AWS?
-
-```
-A. Amazon ECS
-B. Amazon EKS
-C. Amazon ECR
-D. AWS Fargate
-```
-
-### ✅ Answer: **B. Amazon EKS**
-
-### 📖 Explanation (Vietnamese):
-
-**Why B is correct:**
-- **EKS** = Elastic Kubernetes Service
-- Launch managed **Kubernetes clusters** on AWS
-- **Kubernetes**:
-  - Open-source system
-  - Automatic deployment, scaling
-  - Management of containerized apps
-- Alternative to ECS, **same goal, different API**
-
-**AWS Container Services:**
-
-| Service | Description |
-|---------|-------------|
-| **ECS** | AWS's own container platform |
-| **EKS** | Managed Kubernetes |
-| **Fargate** | Serverless containers |
-| **ECR** | Container image registry |
-
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. ECS | AWS's own platform, không phải Kubernetes |
-| C. ECR | Container registry, không phải orchestration |
-| D. Fargate | Serverless compute, không phải Kubernetes |
-
----
-
-## 7. Combined Scenarios
-
-### Question 18:
-A company needs to process messages from an SQS queue using containers. Which ECS feature allows tasks to be triggered by SQS?
-
-```
-A. ECS Service
-B. ECS Task Definition
-C. EventBridge Scheduler
-D. ECS Task invoked by EventBridge
-```
-
-### ✅ Answer: **D. ECS Task invoked by EventBridge**
-
-### 📖 Explanation (Vietnamese):
-
-**Why D is correct:**
-- **EventBridge** can trigger ECS tasks:
-  - SQS → EventBridge → ECS Task
-  - Configure EventBridge rule
-  - Target = ECS task
-  - Supports:
-    - Scheduled tasks
-    - Event-based triggers (S3, SQS, etc.)
-
-**Architecture:**
-```
-SQS Queue
-    ↓
-EventBridge Rule
-    ↓
-ECS Task (runs, processes, exits)
-```
-
-**Use cases:**
-- Process SQS messages
-- Batch jobs
-- Scheduled workloads
-
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. ECS Service | Long-running tasks, không phải event-triggered |
-| B. Task Definition | Blueprint, không trigger tasks |
-| C. EventBridge Scheduler | Chỉ scheduled, không event-based |
-
----
-
-### Question 19:
-An application needs to store sensitive configuration data (API keys) and make it available to ECS tasks. Which service should be used?
-
-```
-A. Amazon S3
-B. Amazon DynamoDB
-C. AWS Secrets Manager
-D. Amazon CloudWatch
-```
-
-### ✅ Answer: **C. AWS Secrets Manager**
+### ✅ Answer: **C. 11**
 
 ### 📖 Explanation (Vietnamese):
 
 **Why C is correct:**
-- **Secrets Manager**:
-  - Store **sensitive data** (API keys, DB passwords)
-  - Integrated với ECS Task Definition
-  - Retrieve using `secrets` field in task definition
-  - Encrypted at rest
-  - Rotation support
+- Subnet `/28` có tổng cộng **16 địa chỉ IP**.
+- AWS **giữ lại 5 địa chỉ IP** trong mỗi subnet:
+  1. `10.0.0.0` - địa chỉ mạng (Network Address)
+  2. `10.0.0.1` - VPC Router
+  3. `10.0.0.2` - Amazon DNS
+  4. `10.0.0.3` - địa chỉ dành cho mục đích tương lai
+  5. `10.0.0.15` - địa chỉ cuối cùng của subnet `/28`, được AWS giữ lại
+- **Số IP khả dụng** = 16 - 5 = **11**
 
-**ECS Environment Variables:**
+**Tham khảo nhanh:**
+| CIDR | Tổng số IP | IP khả dụng |
+|------|-----------|------------|
+| /28 | 16 | **11** |
+| /27 | 32 | 27 |
+| /26 | 64 | 59 |
+| /24 | 256 | 251 |
 
-| Source | Use Case |
-|--------|----------|
-| Hardcoded | URLs, non-sensitive |
-| SSM Parameter Store | Configs, some sensitive |
-| **Secrets Manager** | Sensitive (passwords, keys) |
-| S3 | Bulk data |
+**Mẹo làm bài:**
+- Cần 29 IP → Không thể dùng `/27` (32 - 5 = 27 < 29).
+- Cần dùng `/26` (64 - 5 = 59 > 29).
 
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. S3 | Object storage, not secrets management |
-| B. DynamoDB | Database, not secrets management |
-| D. CloudWatch | Monitoring/logging, not secrets |
-
----
-
-### Question 20:
-Which feature allows CloudFront to deliver content from a private ALB in a VPC?
+### Question 7:
+A private EC2 instance needs to **download software from the Internet** but should not be directly accessible from the Internet. What is needed?
 
 ```
-A. VPC Endpoints
-B. VPC Origins
-C. Origin Shield
-D. Private Origins
+A. Internet Gateway
+B. NAT Gateway in public subnet
+C. VPC Peering
+D. Direct Connect
 ```
 
-### ✅ Answer: **B. VPC Origins**
+### ✅ Answer: **B. NAT Gateway in public subnet**
 
 ### 📖 Explanation (Vietnamese):
 
 **Why B is correct:**
-- **VPC Origins** (Private Origins):
-  - Deliver content from **private VPC** resources
-  - No need to expose on Internet
-  - Supports:
-    - Application Load Balancer
-    - Network Load Balancer
-    - EC2 Instances
-  - Uses AWS PrivateLink
+- **NAT Gateway** cho phép:
+  - EC2 trong private subnet **chủ động khởi tạo** lưu lượng đi ra Internet.
+  - Lưu lượng phản hồi cho kết nối đã khởi tạo đi ngược về qua NAT.
+  - Không cho phép kết nối mới được khởi tạo từ Internet đi vào private instance.
 
-**Use case:**
-- Internal applications
-- Private APIs
-- No public exposure needed
+**Sơ đồ luồng:**
+```
+Private EC2 → Private Subnet Route → NAT Gateway → IGW → Internet
+```
 
-**Configuration:**
-1. Create VPC origin in CloudFront
-2. Set up PrivateLink/VPC endpoint
-3. Route traffic through CloudFront
+**Vị trí NAT Gateway:**
+- NAT Gateway phải nằm trong **public subnet**.
+- Public subnet phải có route đến **Internet Gateway**.
 
 **Why other options were eliminated:**
 
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. VPC Endpoints | Private access to AWS services, không phải CloudFront |
-| C. Origin Shield | Reduces origin load, không phải VPC origins |
-| D. Private Origins | Không phải tên chính thức |
+| Lựa chọn | Lý do loại trừ |
+|--------|----------------|
+| A. IGW | Chỉ cho phép instance có public IP kết nối Internet, không thực hiện NAT. |
+| C. VPC Peering | Kết nối các VPC, không cung cấp truy cập Internet. |
+| D. Direct Connect | Kết nối tại chỗ với AWS, không thực hiện NAT cho instance. |
+
+### 📝 Vocabulary Analysis:
+- **NAT Gateway**: Network Address Translation Gateway
+- **Outbound traffic**: Traffic từ private network ra Internet
+- **Public subnet**: Subnet có route đến IGW
 
 ---
 
-## Summary Table
 
-| Topic | Key Points |
-|-------|------------|
-| **Bastion Host** | Jump server in public subnet for SSH |
-| **NACL** | Stateless, subnet-level, supports DENY |
-| **Security Groups** | Stateful, instance-level, ALLOW only |
-| **VPC Endpoint** | Gateway (free) for S3/DynamoDB |
-| **NAT Gateway** | 5-100 Gbps, outbound Internet |
-| **ECS Task** | Basic unit of work |
-| **ECS IAM** | Instance Profile (agent), Task Role |
-| **ECS Launch Types** | EC2 or Fargate |
-| **Bind Mounts** | Container-to-container sharing |
-| **ECR** | Backed by S3 |
-| **CloudFront** | CDN, 600+ edge locations |
-| **Origin Groups** | Failover between origins |
-| **Invalidation** | Force cache refresh |
-| **EKS** | Managed Kubernetes |
+
+## Bảng tóm tắt
+
+| Chủ đề | Điểm chính |
+|--------|------------|
+| **Bastion Host** | Máy trung gian trong public subnet để SSH đến EC2 instances riêng tư |
+| **CIDR/Subnet** | /28 có 11 IP khả dụng; AWS giữ lại 5 địa chỉ trong mỗi subnet |
+| **NACL** | Stateless, cấp subnet, hỗ trợ DENY; rule khớp đầu tiên quyết định kết quả |
+| **Security Groups** | Stateful, cấp instance, chỉ có ALLOW |
+| **VPC Endpoint** | Gateway Endpoint cho phép truy cập riêng tư đến S3/DynamoDB |
+| **NAT Gateway** | Managed outbound Internet access cho workload IPv4 trong private subnet |
+| **VPC Peering** | Kết nối riêng, không bắc cầu, CIDRs không chồng lấn |
+| **VPC Flow Logs** | Ghi traffic ACCEPT/REJECT ở cấp VPC, subnet hoặc ENI |

@@ -1,4 +1,4 @@
-# Section 4 - DVA Practice Questions: Amazon S3, S3 Advanced, S3 Security, Amazon VPC
+# Section 4 - DVA Questions: Amazon S3, S3 Advanced, S3 Security
 
 ---
 
@@ -19,16 +19,14 @@ D. 99.999999999% (11 9's)
 ### 📖 Explanation (Vietnamese):
 
 **Why D is correct:**
-- S3 cung cấp **99.999999999% (11 9's)** durability
-- Nghĩa là nếu lưu 10 triệu objects, có thể mất trung bình **1 object sau 10,000 năm**
-- Durability này **giống nhau cho tất cả storage classes**
-- Đạt được nhờ lưu trữ data trên **nhiều AZs**
+- S3 có durability **99.999999999% (11 9's)**; slide nêu mức này cho các storage classes
+- Nhiều storage classes lưu dữ liệu trên ít nhất 3 AZ, nhưng **S3 One Zone-IA chỉ lưu trong một AZ** và không chống chịu được việc mất AZ đó
 
 **Why other options were eliminated:**
 
 | Option | Reason for Elimination |
 |--------|------------------------|
-| A | 99.9% là availability của S3 One Zone-IA |
+| A | 99.9% là availability của S3 Standard-IA; S3 One Zone-IA có 99.5% availability |
 | B | 99.99% là availability của S3 Standard |
 | C | 7 9's không phải specification của S3 |
 
@@ -206,7 +204,7 @@ D. The object is deleted
 ## 3. S3 Encryption
 
 ### Question 6:
-A company needs to encrypt S3 objects and **manage encryption keys outside of AWS**. Which encryption method should be used?
+A company needs to encrypt S3 objects and **manage encryption keys outside of AWS**. Which **server-side encryption (SSE) method** uses a key the customer provides with each request and Amazon S3 does not store?
 
 ```
 A. SSE-S3 (S3-Managed Keys)
@@ -334,12 +332,14 @@ D. S3 Bucket Policy
   - Time-limited downloads
   - User-specific access
 
-**Expiration:**
-| Method | Max Expiration |
+**Thời hạn tối đa:**
+| Cách tạo | Thời hạn tối đa |
 |--------|----------------|
-| S3 Console | 12 hours |
-| AWS CLI | 168 hours (7 days) |
-| SDK | 168 hours (7 days) |
+| S3 Console | 12 giờ |
+| AWS CLI | 168 giờ (7 ngày) |
+| SDK | 168 giờ (7 ngày) |
+
+URL dùng temporary credentials sẽ hết hạn khi credentials hết hạn, kể cả khi thời hạn URL được đặt dài hơn. [AWS documentation](https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-presigned-url.html)
 
 **Why other options were eliminated:**
 
@@ -373,13 +373,13 @@ D. Versioning
   - Allow requests từ `example.com`
   - Specify allowed methods (GET, PUT, etc.)
 
-**CORS configuration example:**
+**Ví dụ cấu hình CORS:**
 ```json
 [
   {
-    "AllowedOrigin": "https://example.com",
-    "AllowedMethod": ["GET", "PUT"],
-    "AllowedHeader": ["*"]
+    "AllowedOrigins": ["https://example.com"],
+    "AllowedMethods": ["GET", "PUT"],
+    "AllowedHeaders": ["*"]
   }
 ]
 ```
@@ -414,18 +414,17 @@ D. S3 Lifecycle Rules
 ### 📖 Explanation (Vietnamese):
 
 **Why B is correct:**
-- **S3 Object Lock** với **Compliance mode**:
-  - Objects **cannot be overwritten hoặc deleted**
-  - Không ai có thể xóa, **kể cả root account**
-  - Retention period phải được set (ví dụ: 1 year)
-  - Sử dụng cho **regulatory compliance**
+- **S3 Object Lock** với **Compliance mode** ngăn ghi đè/xóa object version trong retention period, kể cả bởi root
+- Bucket phải bật **Versioning**; phải cấu hình retention period, ví dụ một năm
+- Dùng cho yêu cầu **regulatory compliance** không cho phép rút ngắn kỳ hạn bảo vệ
 
-**Mode comparison:**
-| Mode | Overwrite | Delete | Change Retention |
-|------|-----------|--------|-----------------|
-| **Compliance** | ❌ (even root) | ❌ | ❌ |
-| **Governance** | ❌ (most users) | ❌ (most users) | ✅ |
-| Legal Hold | ❌ | ❌ | ❌ (until removed) |
+**Khác biệt giữa retention mode và Legal Hold:**
+| Chế độ | Ghi đè/xóa object version | Thay đổi thời hạn |
+|--------|---------------------------|------------------|
+| **Compliance** | Không ai, kể cả root | Không thể đổi mode hoặc rút ngắn retention period |
+| **Governance** | Người dùng thường không được; người có quyền đặc biệt có thể bypass | Người có quyền đặc biệt có thể đổi retention settings |
+
+**Legal Hold** là lớp bảo vệ riêng, không phải retention mode; nó giữ object vô thời hạn cho đến khi được gỡ, độc lập với retention period.
 
 **Why other options were eliminated:**
 
@@ -470,173 +469,9 @@ D. They are deleted from source bucket
 
 ---
 
-## 6. Amazon VPC
+## 6. Kịch bản ôn tập S3
 
 ### Question 13:
-A company needs to calculate usable IP addresses for a /28 subnet. How many usable IPs are available?
-
-```
-A. 16
-B. 14
-C. 11
-D. 8
-```
-
-### ✅ Answer: **C. 11**
-
-### 📖 Explanation (Vietnamese):
-
-**Why C is correct:**
-- /28 subnet = **16 total IPs**
-- AWS **reserves 5 IPs** trong mỗi subnet:
-  1. x.x.x.0 - Network Address
-  2. x.x.x.1 - VPC Router
-  3. x.x.x.2 - Amazon DNS
-  4. x.x.x.3 - Future use
-  5. x.x.x.255 - Broadcast
-- **Usable IPs** = 16 - 5 = **11**
-
-**Quick reference:**
-| CIDR | Total IPs | Usable IPs |
-|------|-----------|------------|
-| /28 | 16 | **11** |
-| /27 | 32 | 27 |
-| /26 | 64 | 59 |
-| /24 | 256 | 251 |
-
-**Exam Tip:**
-- Need 29 IPs → Can't use /27 (32-5=27 < 29)
-- Need use /26 (64-5=59 > 29)
-
----
-
-### Question 14:
-A private EC2 instance needs to **download software from the Internet** but should not be directly accessible from the Internet. What is needed?
-
-```
-A. Internet Gateway
-B. NAT Gateway in public subnet
-C. VPC Peering
-D. Direct Connect
-```
-
-### ✅ Answer: **B. NAT Gateway in public subnet**
-
-### 📖 Explanation (Vietnamese):
-
-**Why B is correct:**
-- **NAT Gateway** cho phép:
-  - Private instances **initiate outbound** traffic to Internet
-  - Internet resources response back (via NAT)
-  - **Inbound connections** from Internet are blocked
-
-**Architecture:**
-```
-Private EC2 → Private Subnet Route → NAT Gateway → IGW → Internet
-```
-
-**NAT Gateway location:**
-- Must be in **public subnet**
-- Public subnet phải có route đến **Internet Gateway**
-
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. IGW | Chỉ cho phép instances có public IP, không NAT |
-| C. VPC Peering | Kết nối VPCs, không Internet access |
-| D. Direct Connect | Kết nối on-premises, không NAT |
-
-### 📝 Vocabulary Analysis:
-- **NAT Gateway**: Network Address Translation Gateway
-- **Outbound traffic**: Traffic từ private network ra Internet
-- **Public subnet**: Subnet có route đến IGW
-
----
-
-### Question 15:
-What is the difference between **Security Groups** and **Network ACLs (NACLs)**?
-
-```
-A. Security Groups are stateless, NACLs are stateful
-B. Security Groups are stateful, NACLs are stateless
-C. Both are stateful
-D. Both are stateless
-```
-
-### ✅ Answer: **B. Security Groups are stateful, NACLs are stateless**
-
-### 📖 Explanation (Vietnamese):
-
-**Why B is correct:**
-
-| Feature | Security Group | NACL |
-|---------|---------------|------|
-| **Level** | Instance | Subnet |
-| **State** | Stateful | Stateless |
-| **Rule evaluation** | All rules | By order (lowest # first) |
-| **Default** | Deny all inbound, Allow all outbound | Allow all |
-| **Reference SG** | ✅ Yes | ❌ No |
-
-**Stateful vs Stateless:**
-- **Stateful**: Return traffic auto-allowed (chỉ cần allow outbound response)
-- **Stateless**: Must explicitly allow return traffic
-
-**Example:**
-- Allow HTTP (port 80) inbound → Response automatically allowed (SG)
-- Allow HTTP inbound → Must also explicitly allow response (NACL)
-
-### 🔄 Context Variations:
-- **Need to block specific IP** → NACL (subnet-level)
-- **Instance-level security** → Security Group
-
----
-
-### Question 16:
-A private EC2 instance needs to access S3 without going through the Internet. What is the best solution?
-
-```
-A. NAT Gateway
-B. Internet Gateway
-C. S3 VPC Endpoint (Gateway)
-D. VPC Peering
-```
-
-### ✅ Answer: **C. S3 VPC Endpoint (Gateway)**
-
-### 📖 Explanation (Vietnamese):
-
-**Why C is correct:**
-- **VPC Endpoint** cho phép:
-  - Private access đến S3/DynamoDB **từ trong VPC**
-  - Traffic không qua Internet
-  - **Free** khi dùng Gateway endpoint
-  - Route table modification
-
-**Two types:**
-| Type | Services | Cost |
-|------|----------|------|
-| **Gateway** | S3, DynamoDB | Free |
-| **Interface** | Other AWS services | Per hour + data |
-
-**Why other options were eliminated:**
-
-| Option | Reason for Elimination |
-|--------|------------------------|
-| A. NAT Gateway | Cho phép Internet access, không phải private S3 |
-| B. IGW | Cho phép Internet access, traffic qua public Internet |
-| D. VPC Peering | Kết nối VPCs, không phải AWS services |
-
-### 📝 Vocabulary Analysis:
-- **VPC Endpoint**: Private connection đến AWS services
-- **Gateway Endpoint**: Free endpoint cho S3 và DynamoDB
-- **Interface Endpoint**: ENI-based endpoint cho các services khác
-
----
-
-## 7. Combined Scenarios
-
-### Question 17:
 A company needs to host a **static website** with images stored in S3. The website should be accessible via a custom domain. What configuration is needed?
 
 ```
@@ -679,47 +514,37 @@ Route 53
 
 ---
 
-### Question 18:
-An application requires **audit logging** of all S3 access. Which feature should be configured?
+### Question 14:
+An audit team needs detailed records of **object-level S3 API activity** for a specific bucket, including reads and writes. Which feature should it enable?
 
 ```
 A. S3 Versioning
-B. S3 Access Logs
-C. AWS CloudTrail
-D. Both B and C
+B. S3 server access logging
+C. CloudTrail data events for the bucket
+D. CloudTrail management events only
 ```
 
-### ✅ Answer: **D. Both B and C**
+### ✅ Answer: **C. CloudTrail data events for the bucket**
 
 ### 📖 Explanation (Vietnamese):
 
-**Why D is correct:**
-- **S3 Access Logs**:
-  - Log all requests đến S3 bucket
-  - Lưu vào another S3 bucket
-  - Target bucket phải **same region**
+**Why C is correct:**
+- CloudTrail data events có thể ghi lại hoạt động API ở cấp object như `GetObject`, `PutObject` và `DeleteObject` trong bucket được chọn.
+- S3 data events không được ghi mặc định và có thể phát sinh thêm phí; dùng event selectors để giới hạn tài nguyên và loại event cần ghi.
 
-- **AWS CloudTrail**:
-  - Log S3 API calls
-  - Lưu vào S3 bucket
-  - Cung cấp **who** made request
-  - Bao gồm management events
+**Tại sao không chọn các đáp án khác:**
 
-**Difference:**
-| Feature | S3 Access Logs | CloudTrail |
-|---------|---------------|------------|
-| Granularity | Object-level | API-level |
-| Who made request | Limited | Full details |
-| Delivery | Real-time | Near real-time |
-| Cost | Storage cost | Free for S3 data events |
+| Đáp án | Lý do loại bỏ |
+|--------|----------------|
+| A. S3 Versioning | Giữ lại các version của object, không ghi lại ai đã gửi từng API request ở cấp object. |
+| B. S3 server access logging | Việc chuyển log theo cơ chế best-effort nên có thể bị trễ, trùng hoặc thiếu; không phải bản ghi kiểm toán đầy đủ. |
+| D. CloudTrail management events only | Management events không bao gồm data events ở cấp object như `GetObject` và `PutObject`. |
 
-**⚠️ Warning:**
-- Không set logging bucket là monitored bucket
-- Sẽ tạo **logging loop**
+**Lưu ý vận hành:** Nếu bật S3 server access logging, hãy dùng một bucket đích riêng; ghi log bucket vào chính nó có thể tạo vòng lặp log.
 
 ---
 
-### Question 19:
+### Question 15:
 A company needs to **prevent public access** to an S3 bucket. Which settings should be reviewed?
 
 ```
@@ -744,57 +569,14 @@ D. S3 Versioning
   - Có thể Allow hoặc Deny access
   - Có thể Allow public access
 
-**Order of evaluation:**
-1. Block Public Access (check first)
-2. Bucket Policy
-3. IAM Policies
-4. ACLs
+- **Block Public Access** có thể đặt ở cấp account, bucket, access point hoặc organization; S3 áp dụng cấu hình hạn chế nhất và từ chối request bị cấm.
+- Bucket Policy và ACL có thể cấp public access; cần rà soát chúng cùng với các Block Public Access settings đang có hiệu lực.
+- Để chặn public access, bật các Block Public Access settings phù hợp và kiểm tra policies/ACLs; Block Public Access không thay thế việc rà soát quyền IAM.
 
-**Best practice:**
-- Enable **Block Public Access** for all buckets
-- Use Bucket Policy only for specific access needs
-- Review both settings when preventing public access
+AWS mô tả rằng Block Public Access overrides các policy/permission public và kết hợp mức cấu hình áp dụng để chọn giới hạn nghiêm ngặt nhất. [AWS Block Public Access](https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html)
 
 ---
 
-### Question 20:
-An EC2 instance in a **private subnet** needs to access an S3 bucket. The security group allows all outbound traffic. What is needed for S3 access?
-
-```
-A. Internet Gateway
-B. NAT Gateway + VPC Endpoint
-C. VPC Endpoint (Gateway type)
-D. Nothing - it already has access
-```
-
-### ✅ Answer: **C. VPC Endpoint (Gateway type)**
-
-### 📖 Explanation (Vietnamese):
-
-**Why C is correct:**
-- Private subnet instances **cannot reach Internet** (no IGW route)
-- Need **VPC Endpoint (Gateway)** for S3:
-  - Creates route entry in route table
-  - Traffic stays within AWS network
-  - **Free** for S3 Gateway Endpoint
-
-**Option comparison:**
-| Solution | Use Case | Cost |
-|---------|----------|------|
-| IGW | Instances có public IP cần Internet | Free |
-| NAT Gateway | Private instances cần outbound Internet | $ |
-| **VPC Endpoint** | Private instances cần S3/DynamoDB | Free |
-
-**Architecture:**
-```
-Private EC2 → Route Table → VPC Endpoint → S3
-```
-
-**⚠️ IMPORTANT:**
-- NAT Gateway ở public subnet cho Internet access
-- VPC Endpoint cho S3/DynamoDB access
-
----
 
 ## Summary Table
 
@@ -808,8 +590,3 @@ Private EC2 → Route Table → VPC Endpoint → S3
 | **Pre-Signed URLs** | Temporary access |
 | **Object Lock** | WORM model, Compliance/Governance |
 | **Replication** | CRR/SRR, only new objects |
-| **VPC CIDR** | /28 = 11 usable IPs |
-| **NAT Gateway** | Private → Internet outbound |
-| **Security Groups** | Stateful, instance-level |
-| **NACLs** | Stateless, subnet-level |
-| **VPC Endpoints** | Gateway (free) for S3/DynamoDB |

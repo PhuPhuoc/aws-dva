@@ -4,7 +4,41 @@
 
 ---
 
-## IAM Policies - Explicit Deny
+## AWS Global Infrastructure - Choosing a Region (Source Page 11)
+
+### Question:
+
+A company is launching an application for customers in Asia. It must meet **data governance and legal requirements**, provide a required AWS service, and keep latency and cost reasonable. How should the company choose its AWS Region?
+
+**A)** Choose the lowest-priced Region, even if it is far from customers or does not offer the required service.
+**B)** First confirm legal/data requirements and service availability, then compare customer proximity and pricing.
+**C)** Always choose the Region with the most Availability Zones.
+**D)** Always choose the geographically closest Region, even if it violates legal/data requirements or lacks the required service.
+
+### ✅ Answer: **B**
+
+### 📖 Giải thích:
+
+**Tại sao chọn B:**
+- Trang 11 nêu bốn yếu tố chọn Region: tuân thủ yêu cầu quản trị dữ liệu/pháp lý, khoảng cách đến khách hàng, dịch vụ hiện có và giá.
+- Xác nhận ràng buộc pháp lý và dịch vụ bắt buộc trước; sau đó cân nhắc độ trễ và chi phí trong các Region phù hợp.
+
+**Tại sao không chọn các đáp án khác:**
+
+| Đáp án | Lý do loại bỏ |
+|--------|----------------|
+| A | Giá thấp không bù được việc vi phạm yêu cầu lưu trú dữ liệu hoặc thiếu dịch vụ cần thiết. |
+| C | Số lượng AZ không phải tiêu chí duy nhất; Region phải đáp ứng yêu cầu dữ liệu, dịch vụ, độ trễ và chi phí. |
+| D | Không thể chỉ chọn theo vị trí địa lý; cần thỏa mãn yêu cầu pháp lý và dịch vụ trước khi cân nhắc độ trễ. |
+
+### 📝 Phân tích từ vựng:
+- **Data governance**: yêu cầu quản trị và kiểm soát vị trí/xử lý dữ liệu.
+- **Proximity to customers**: mức độ gần khách hàng, ảnh hưởng đến độ trễ.
+- **Available services**: các dịch vụ AWS đang được cung cấp trong Region.
+
+---
+
+## IAM Policies - Từ chối tường minh
 
 ### Question:
 
@@ -37,58 +71,58 @@ User Policy (directly attached):
 
 **Tại sao chọn A:**
 
-Trong AWS IAM, **Explicit Deny** ln override (ghi đè) **Explicit Allow**. Khi có cả Allow và Deny trên cùng resource/action → **Deny thắng**.
+Trong AWS IAM, **Explicit Deny** luôn được ưu tiên hơn **Explicit Allow**. Khi có cả Allow và Deny trên cùng resource/action → **Deny thắng**.
 
-AWS evaluates policies theo thứ tự:
-1. Check explicit Deny → **DENY** (dừng lại, không xét tiếp)
-2. Check explicit Allow → ALLOW
-3. Default → DENY (implicit deny)
+AWS đánh giá policies theo thứ tự:
+1. Kiểm tra Explicit Deny → **DENY** (dừng lại, không xét tiếp).
+2. Kiểm tra Explicit Allow → **ALLOW**.
+3. Mặc định → **DENY** (implicit deny).
 
 Trong trường hợp này:
-- Developers Group: Allow `s3:GetObject`
-- User Policy: Deny `s3:*` (bao gồm cả GetObject)
+- **Policy của Developers Group:** Allow `s3:GetObject`.
+- **Policy gắn trực tiếp vào user:** Deny `s3:*` (bao gồm cả GetObject).
 
-→ Explicit Deny → **Access denied**
+→ Explicit Deny → **Bị từ chối truy cập**.
 
 **Tại sao không chọn các đáp án khác:**
 
 | Đáp án | Lý do loại bỏ |
 |--------|----------------|
-| **B** | User policy không override group policy. AWS kết hợp tất cả policies, nhưng Deny thắng. Khái niệm này gọi là **policy aggregation** |
-| **C** | JSON syntax không có lỗi - cú pháp hoàn toàn đúng |
-| **D** | `s3:GetObject` là action để download object. Không cần `ListBucket` vì đó là action để list objects trong bucket, không liên quan đến việc get object |
+| **B** | User policy không ghi đè group policy. AWS kết hợp tất cả policies, nhưng Deny luôn thắng. Đây gọi là **policy aggregation**. |
+| **C** | Cú pháp JSON hợp lệ, không có lỗi. |
+| **D** | `s3:GetObject` dùng để tải object. Không cần `ListBucket`, vì action đó dùng để liệt kê objects trong bucket, không liên quan đến việc lấy object. |
 
 ### 📝 Phân tích từ vựng:
 
-- **Explicit Deny**: từ chối rõ ràng, không ambiguous
-- **Override**: ghi đè, có trọng lượng hơn
-- **Priority**: thứ tự ưu tiên
-- **Syntax error**: lỗi cú pháp, sai format
-- **Policy aggregation**: tổng hợp policy từ nhiều nguồn
+- **Explicit Deny**: từ chối rõ ràng, không mơ hồ.
+- **Override**: ghi đè, được ưu tiên hơn.
+- **Priority**: thứ tự ưu tiên.
+- **Syntax error**: lỗi cú pháp, sai định dạng.
+- **Policy aggregation**: tổng hợp policy từ nhiều nguồn.
 
-### 🔄 Thay đổi context:
+### 🔄 Thay đổi ngữ cảnh:
 
-- **Nếu bỏ deny policy** → User sẽ access được (Allow từ group có hiệu lực)
-- **Nếu muốn allow dù có deny** → Không thể. Không có cách nào override explicit deny
-- **Nếu chỉ có Allow policy** → Access được
+- **Nếu bỏ deny policy** → User sẽ truy cập được (Allow từ group có hiệu lực).
+- **Nếu muốn cho phép dù có deny** → Không thể. Không có cách nào ghi đè explicit deny.
+- **Nếu chỉ có Allow policy** → Truy cập được.
 
 ---
 
-## EC2 Security Groups - Reference by SG
+## EC2 Security Groups - Tham chiếu bằng SG
 
 ### Question:
 
 A web application runs on **EC2 instances** and needs to connect to an **RDS database**. The current **security group configuration** is:
 
-- **EC2 Security Group (sg-web):** Inbound: 0.0.0.0/0 port 80
-- **RDS Security Group (sg-db):** Inbound: 0.0.0.0/0 port 3306
+- **EC2 Security Group (sg-web):** Inbound: `0.0.0.0/0` port 80; outbound: allow all (default)
+- **RDS Security Group (sg-db):** Inbound: port 3306 from `sg-admin` only
 
-The developer reports that the application cannot connect to the database. What is the best way to fix this while maintaining **security best practices**?
+The application cannot connect to the database. What is the best way to fix this while maintaining **security best practices**?
 
-**A)** Change RDS SG inbound rule to reference sg-web
-**B)** Change EC2 SG outbound rule to reference sg-db
-**C)** Add a rule to RDS SG allowing port 3306 from sg-web
-**D)** Add a rule to EC2 SG allowing port 3306 to sg-db
+**A)** Allow inbound port 3306 to the RDS SG from `0.0.0.0/0`
+**B)** Add an inbound port 3306 rule to the EC2 SG from `sg-db`
+**C)** Add an inbound port 3306 rule to the RDS SG with source `sg-web`
+**D)** Add an outbound port 3306 rule to the EC2 SG with destination `sg-db`
 
 ### ✅ Answer: **C**
 
@@ -96,105 +130,87 @@ The developer reports that the application cannot connect to the database. What 
 
 **Tại sao chọn C:**
 
-RDS chạy trong VPC (thường là private subnet). Để EC2 kết nối đến RDS:
+Outbound rule mặc định của `sg-web` đã cho phép traffic đi ra. `sg-db` chỉ nhận kết nối port 3306 từ `sg-admin`, nên cần cho phép inbound port 3306 từ đúng **Security Group** của ứng dụng (`sg-web`).
 
-1. EC2 SG check **outbound** → default allow all ✅
-2. RDS SG check **inbound** → phải allow traffic từ EC2
-
-**Best practice cho Security Groups:**
-- Thay vì dùng IP address (0.0.0.0/0), nên reference **security group khác**
-- Khi EC2 scale, mọi instances có SG `sg-web` sẽ tự động được allow vào RDS
-
-**Cách implement đúng:**
-```
+```text
 RDS SG Inbound:
   - Type: MySQL/Aurora (port 3306)
   - Source: sg-web (EC2 Security Group)
 ```
 
+**Thực hành tốt nhất:** Tham chiếu Security Group thay vì địa chỉ IP; các EC2 instances gắn `sg-web` được phép kết nối mà không cần cập nhật rule khi IP thay đổi.
+
 **Tại sao không chọn các đáp án khác:**
 
 | Đáp án | Lý do loại bỏ |
 |--------|----------------|
-| **A** | Không có option "change to sg-web" - phải add rule mới, không phải change |
-| **B** | Outbound của EC2 đã allow all default. Vấn đề nằm ở RDS inbound |
-| **D** | EC2 cần outbound đến database, nhưng outbound đã allow all. SG của EC2 không cần thay đổi |
+| **A** | Mở database cho mọi địa chỉ Internet là quá rộng và không cần thiết; chỉ cho phép `sg-web`. |
+| **B** | Inbound của EC2 kiểm soát traffic đi vào EC2, không mở quyền truy cập vào RDS. |
+| **D** | Outbound của EC2 đã cho phép traffic đi ra; thiếu quyền là inbound của `sg-db`. |
 
 ### 📝 Phân tích từ vựng:
 
-- **Reference by security group**: thay vì dùng IP, dùng SG ID để allow
-- **Inbound rule**: rule kiểm soát traffic đi vào
-- **Outbound rule**: rule kiểm soát traffic đi ra
-- **Best practice**: phương pháp tốt nhất được khuyến nghị
+- **Tham chiếu bằng Security Group**: dùng SG ID làm nguồn/đích thay vì địa chỉ IP.
+- **Inbound rule**: quy tắc kiểm soát lưu lượng đi vào.
+- **Outbound rule**: quy tắc kiểm soát lưu lượng đi ra.
+- **Least privilege**: chỉ cho phép đúng nguồn và cổng cần thiết.
 
-### 🔄 Thay đổi context:
+### 🔄 Thay đổi ngữ cảnh:
 
-- **Nếu RDS SG đã allow 0.0.0.0/0** → Vẫn không work có thể do:
-  - RDS không publicly accessible (cần enable)
-  - Network ACL blocking
-  - Database credentials sai
+- **Nếu RDS SG đã cho phép `0.0.0.0/0`** → Kết nối vẫn có thể lỗi do:
+  - RDS không public (cần bật khả năng truy cập công khai).
+  - Network ACL chặn lưu lượng.
+  - Thông tin xác thực database sai.
 
 ---
 
-## EC2 Purchasing Options - Reserved vs Spot
+## Lựa chọn hình thức mua EC2 - Reserved và Savings Plans
 
 ### Question:
 
-A company has an application running **24/7** with **steady workload**. The backend uses 4 **EC2 instances** (m5.large) running continuously. The team wants to **optimize costs**. They are currently using **On-Demand**. Which option provides the **most cost savings**?
+A company runs **24/7 EC2 instances** in the **M5 family** in **us-east-1**. It wants a term-based discount that **automatically applies without exchanging a reservation** when it changes instance **size**, **operating system**, or **tenancy** within that family and Region. Which option best matches these requirements?
 
-**A)** Spot Instances with 4 instances
-**B)** Convertible Reserved Instances 1-year, All Upfront
-**C)** Savings Plans 3-year, All Upfront
-**D)** Standard Reserved Instances 3-year, All Upfront
+**A)** Spot Instances
+**B)** Convertible Reserved Instances (3-year)
+**C)** EC2 Instance Savings Plan (3-year)
+**D)** Standard Reserved Instances (3-year)
 
-### ✅ Answer: **D**
+### ✅ Answer: **C**
 
 ### 📖 Giải thích:
 
-**Tính toán tiết kiệm (approximate):**
+**Tại sao chọn C (EC2 Instance Savings Plan):**
 
-| Option | Discount so với On-Demand | Chi phí/year (est.) |
-|--------|---------------------------|---------------------|
-| On-Demand | 0% | ~$2,800 |
-| Convertible RI 1yr | ~54% | ~$1,288 |
-| Savings Plans 3yr | ~72% | ~$784 |
-| **Standard RI 3yr** | **~72%** | **~$784** |
+EC2 Instance Savings Plans áp dụng cho mức sử dụng trong một **instance family** và **Region** đã chọn, đồng thời linh hoạt giữa các instance size, hệ điều hành và tenancy trong phạm vi đó. Cam kết chi tiêu theo giờ giúp giảm giá so với On-Demand khi workload chạy ổn định.
 
-**Tại sao Standard RI 3-year All Upfront là best choice:**
-
-1. **72% discount** - giống Savings Plans nhưng thường có giá tốt hơn cho steady workload
-2. **3-year commitment** - discount cao nhất
-3. **All Upfront** - thanh toán toàn bộ → discount cao nhất trong các payment options
-4. **Standard RI** - được thiết kế cho steady state, không cần flexibility như Convertible
+Không thể khẳng định trước một mức tiết kiệm hay chi phí năm cụ thể chỉ từ các lựa chọn này: giá phụ thuộc Region, family, thời hạn, phương thức thanh toán và mức sử dụng thực tế. Hãy so sánh giá hiện hành cho workload cụ thể.
 
 **Tại sao không chọn các đáp án khác:**
 
 | Đáp án | Lý do loại bỏ |
 |--------|----------------|
-| **A (Spot)** | Ứng dụng chạy 24/7, steady workload → Spot không phù hợp vì có thể bị **interrupted** (terminated) bất cứ lúc nào. Database không nên dùng Spot |
-| **B (Convertible 1yr)** | Discount thấp hơn (54% vs 72%), chỉ commit 1 year |
-| **C (Savings Plans 3yr)** | Discount tương đương nhưng Savings Plans linh hoạt hơn (có thể change instance type/family). Với steady workload không đổi, Standard RI có giá tốt hơn |
+| **A (Spot)** | Spot có thể bị gián đoạn và không phù hợp với yêu cầu chạy ổn định 24/7. |
+| **B (Convertible RI)** | Có thể trao đổi Reserved Instance theo các điều kiện áp dụng, nhưng việc đổi reservation không tự động áp dụng cho các thay đổi về size/OS/tenancy như EC2 Instance Savings Plan. |
+| **D (Standard RI)** | Gắn với cấu hình đặt trước hẹp hơn, không phù hợp với các thay đổi nhóm dự kiến. |
 
 ### 📝 Phân tích từ vựng:
 
-- **Steady workload**: workload ổn định, không dao động nhiều
-- **On-Demand**: theo yêu cầu, trả tiền theo giờ sử dụng
-- **Reserved Instance**: đặt trước, cam kết thời gian để được giảm giá
-- **Savings Plans**: cam kết chi tiêu theo giờ
-- **All Upfront**: thanh toán toàn bộ trước
-- **Convertible**: có thể chuyển đổi sang instance type khác
-- **Interrupted**: bị ngắt giữa chừng (Spot Instance)
+- **Steady workload**: workload ổn định, chạy đều.
+- **Savings Plan**: cam kết một mức chi tiêu theo giờ để nhận mức giá chiết khấu.
+- **Instance family**: họ instance, ví dụ M5.
+- **Tenancy**: cách instance sử dụng phần cứng shared hoặc dedicated.
+- **Convertible Reserved Instance**: RI có thể trao đổi theo các điều kiện của AWS.
 
-### 🔄 Thay đổi context:
+### 🔄 Thay đổi ngữ cảnh:
 
-- **Nếu workload có thể thay đổi instance type** → Savings Plans tốt hơn vì flexible
-- **Nếu cần guarantee capacity** → Reserved Instance (Standard hoặc Zonal)
-- **Nếu startup chỉ có budget hàng tháng** → All Upfront không khả thi → Partial Upfront
-- **Nếu workload có thể bị interrupt** → Spot Instances là lựa chọn tiết kiệm nhất
+- **Nếu cần linh hoạt giữa các instance family hoặc Region** → Xem xét Compute Savings Plan.
+- **Nếu cần capacity reservation trong một AZ cụ thể** → Xem xét Zonal Reserved Instance hoặc Capacity Reservation; Savings Plans tự thân không dự trữ capacity.
 
 ---
 
-## IAM Role vs Access Key
+
+
+## IAM Role và Access Key
 
 ### Question:
 
@@ -211,16 +227,16 @@ A **Lambda function** needs to access an **S3 bucket** to read files. The develo
 
 **Tại sao chọn B (IAM Role):**
 
-Lambda chạy trên AWS infrastructure → có thể **assume IAM Role** để nhận temporary credentials tự động.
+Lambda chạy trên hạ tầng AWS → có thể **assume IAM Role** để tự động nhận temporary credentials.
 
-**Benefits của IAM Role cho Lambda:**
+**Lợi ích của IAM Role cho Lambda:**
 
 | Lợi ích | Giải thích |
 |----------|------------|
-| **No credentials management** | AWS tự động provide temporary credentials |
-| **Auto-rotation** | Credentials được rotate tự động, không cần developer quản lý |
-| **Audit trail** | CloudTrail log ai đã access, khi nào |
-| **Least privilege** | Role có permissions vừa đủ cho function đó |
+| **Không phải quản lý credentials** | AWS tự động cung cấp temporary credentials |
+| **Tự động luân chuyển** | Credentials được rotate tự động, developer không cần quản lý |
+| **Audit trail** | CloudTrail ghi lại ai truy cập và vào thời điểm nào |
+| **Least privilege** | Role chỉ có các quyền function cần |
 
 **Cách implement đúng:**
 ```json
@@ -234,33 +250,33 @@ Lambda chạy trên AWS infrastructure → có thể **assume IAM Role** để n
 }
 ```
 
-Attach policy này vào Lambda's **execution role**.
+Gắn policy này vào **execution role** của Lambda.
 
 **Tại sao không chọn các đáp án khác:**
 
 | Đáp án | Lý do loại bỏ |
 |--------|----------------|
-| **A (Environment variables)** | Vẫn là static credentials, có thể bị leak qua **CloudWatch logs** (logs có thể ghi lại environment variables) |
-| **C (KMS encrypt)** | Phức tạp không cần thiết. Access key vẫn cần decrypt mỗi lần chạy |
-| **D (Parameter Store)** | Vẫn cần credentials để access Parameter Store → vấn đề nằm ở chỗ **hard-code** chưa được giải quyết triệt để |
+| **A (Environment variables)** | Vẫn là static credentials; Lambda có thể đọc chúng khi chạy, nhưng AWS không tự quản lý hoặc luân chuyển chúng như temporary credentials của IAM Role. Chúng không tự động được ghi vào CloudWatch Logs. |
+| **C (KMS encrypt)** | Mã hóa key không bỏ nhu cầu quản lý/giải mã static credentials; IAM Role tránh dùng access key cho quyền truy cập AWS. |
+| **D (Parameter Store)** | Parameter Store có thể lưu secret, nhưng Lambda vẫn không cần access key để đọc S3; dùng execution role thay vì lưu static credentials. |
 
 ### 📝 Phân tích từ vựng:
 
-- **Hard-coding**: viết cố định giá trị vào code
-- **IAM Role**: vai trò IAM, cho phép nhận temporary credentials
-- **Execution role**: vai trò thực thi (dùng cho Lambda)
-- **Least privilege**: nguyên tắc chỉ cấp quyền vừa đủ
-- **Audit trail**: nhật ký kiểm tra, theo dõi ai làm gì
+- **Hard-coding**: ghi cố định giá trị vào code.
+- **IAM Role**: vai trò IAM, cho phép nhận temporary credentials.
+- **Execution role**: role thực thi (dùng cho Lambda).
+- **Least privilege**: nguyên tắc chỉ cấp quyền vừa đủ.
+- **Audit trail**: nhật ký theo dõi ai đã làm gì.
 
-### 🔄 Thay đổi context:
+### 🔄 Thay đổi ngữ cảnh:
 
-- **Nếu Lambda cần access external API** → Vẫn cần credentials nhưng nên store trong **Secrets Manager**
-- **Nếu Lambda cần cross-account access** → Use IAM Role với **STS assume role**
-- **Nếu EC2 cần access S3** → Cũng nên dùng IAM Role thay vì Access Key
+- **Nếu Lambda cần truy cập external API** → Vẫn cần credentials nhưng nên lưu trong **Secrets Manager**.
+- **Nếu Lambda cần truy cập giữa các accounts** → Dùng IAM Role với **STS assume role**.
+- **Nếu EC2 cần truy cập S3** → Cũng nên dùng IAM Role thay vì Access Key.
 
 ---
 
-## AWS CLI - Multiple Accounts
+## AWS CLI - Nhiều tài khoản
 
 ### Question:
 
@@ -277,7 +293,7 @@ A developer needs to configure **AWS CLI** to access **multiple AWS accounts** (
 
 **Tại sao chọn B (Named Profiles):**
 
-AWS CLI hỗ trợ **named profiles** - cho phép lưu nhiều bộ credentials và configuration:
+AWS CLI hỗ trợ **profiles có tên**, cho phép lưu nhiều bộ credentials và cấu hình:
 
 ```bash
 # Configure dev profile
@@ -306,30 +322,30 @@ aws s3 ls --profile prod
 
 | Đáp án | Lý do loại bỏ |
 |--------|----------------|
-| **A** | Phải nhớ thêm flag mỗi lần → dễ sai, không lưu được credentials, không lưu được default region |
-| **C** | Environment variables cần set/unset mỗi lần → không tiện lợi, dễ quên |
-| **D** | Không bảo mật, không phân biệt được environment (dev vs prod), rất nguy hiểm |
+| **A** | Phải nhớ thêm flag mỗi lần → dễ sai; không lưu được credentials hoặc Region mặc định. |
+| **C** | Mỗi lần phải đặt/hủy environment variables → bất tiện và dễ quên. |
+| **D** | Không bảo mật, không phân biệt được môi trường (dev và prod), rất nguy hiểm. |
 
 ### 📝 Phân tích từ vựng:
 
-- **Named profile**: hồ sơ đặt tên, lưu cấu hình riêng
-- **Environment variables**: biến môi trường
-- **Credentials**: thông tin xác thực (Access Key)
-- **Configure**: cấu hình AWS CLI
+- **Named profile**: profile có tên, lưu cấu hình riêng.
+- **Environment variables**: biến môi trường.
+- **Credentials**: thông tin xác thực (Access Key).
+- **Configure**: cấu hình AWS CLI.
 
-### 🔄 Thay đổi context:
+### 🔄 Thay đổi ngữ cảnh:
 
-- **Nếu muốn tự động switch profile** → Có thể dùng `aws-vault` hoặc `aws-sso`
-- **Nếu dùng CI/CD** → Use IAM Role assumption thay vì static credentials
-- **Nếu muốn set default profile** → Set `AWS_PROFILE` environment variable
+- **Nếu muốn tự động chuyển profile** → Có thể dùng `aws-vault` hoặc `aws-sso`.
+- **Nếu dùng CI/CD** → Dùng cơ chế IAM Role thay cho credentials tĩnh.
+- **Nếu muốn đặt profile mặc định** → Đặt biến môi trường `AWS_PROFILE`.
 
 ---
 
-## EC2 User Data - Only Runs Once
+## EC2 User Data - Chỉ chạy một lần
 
 ### Question:
 
-A developer wants to **automate** the installation of Apache web server each time an EC2 instance launches. They use the following **User Data script**:
+A developer wants to **run a bootstrap script on every boot** of a Linux EC2 instance. The instance uses the default **User Data** behavior, and the script is:
 
 ```bash
 #!/bin/bash
@@ -338,12 +354,12 @@ yum install -y httpd
 systemctl start httpd
 ```
 
-The script works when the instance first launches. However, after the instance is **restarted**, Apache is not running. Why?
+The script ran during the instance's **initial boot**, but did not run again when the instance was rebooted. Which statement explains this behavior?
 
-**A)** User Data only runs when an instance is **first launched**
-**B)** yum command has incorrect syntax
-**C)** systemctl command requires sudo
-**D)** HTTP port is not open in Security Group
+**A)** By default, User Data runs only during the instance's **first boot**
+**B)** The `yum` command has incorrect syntax
+**C)** The `systemctl` command requires `sudo`
+**D)** The HTTP port is not open in the Security Group
 
 ### ✅ Answer: **A**
 
@@ -351,57 +367,50 @@ The script works when the instance first launches. However, after the instance i
 
 **Tại sao chọn A:**
 
-EC2 User Data script có đặc điểm quan trọng:
+EC2 User Data script có một đặc điểm quan trọng:
 
-| Thời điểm | Chạy User Data? |
+| Thời điểm | User Data có chạy không? |
 |------------|-----------------|
 | Instance **launch lần đầu** | ✅ Có |
 | Instance **restart/reboot** | ❌ Không |
-| Instance **stop và start** | ❌ Không |
-| Instance **launch từ stopped state** | ❌ Không |
+| Instance **stop rồi start** | ❌ Không |
 
-User Data được thiết kế cho **bootstrapping** - chỉ chạy một lần khi instance được tạo.
+User Data được thiết kế để **bootstrapping** - chỉ chạy một lần khi instance được tạo.
 
-**Để re-run script sau restart:**
+**Để dịch vụ tự khởi động sau reboot:**
 
-| Phương pháp | Mô tả |
-|-------------|--------|
-| **cloud-init** | Dùng `runcmd` block để chạy mỗi boot |
-| **SSM State Manager** | Apply configuration định kỳ |
-| **Systems Manager Run Command** | Chạy command on-demand |
+User Data không cần chạy lại để khởi động service đã cài đặt. Với Apache, bật service để systemd tự khởi động khi boot:
 
-**Ví dụ với cloud-init:**
-```yaml
-#cloud-config
-runcmd:
-  - [systemctl, start, httpd]
-  - [systemctl, enable, httpd]
+```bash
+sudo systemctl enable --now httpd
 ```
+
+Nếu cần chạy tác vụ mỗi lần boot, cấu hình **systemd service** hoặc cloud-init chạy mỗi boot; `runcmd` thông thường chỉ chạy một lần cho mỗi instance.
 
 **Tại sao không chọn các đáp án khác:**
 
 | Đáp án | Lý do loại bỏ |
 |--------|----------------|
-| **B** | yum syntax đúng cho Amazon Linux |
-| **C** | User Data chạy với quyền root → không cần sudo |
-| **D** | Đúng là cần open port nhưng đó không phải lý do script không chạy |
+| **B** | Cú pháp `yum` hợp lệ trên Amazon Linux. |
+| **C** | User Data chạy với quyền root theo mặc định, nên script không cần `sudo`. |
+| **D** | Security Group có thể ảnh hưởng kết nối HTTP, nhưng không quyết định User Data có chạy lại sau reboot hay không. |
 
 ### 📝 Phân tích từ vựng:
 
-- **Bootstrapping**: khởi tạo, cấu hình ban đầu khi khởi động
-- **User Data**: dữ liệu người dùng, script chạy khi launch
-- **Restart vs Stop/Start**: restart = reboot, stop/start = shutdown rồi khởi động lại
-- **cloud-init**: công cụ cloud initialization
+- **Bootstrapping**: khởi tạo, cấu hình ban đầu khi khởi động.
+- **User Data**: dữ liệu người dùng, script chạy khi launch.
+- **Restart vs Stop/Start**: restart = reboot; stop/start = tắt rồi khởi động lại.
+- **cloud-init**: công cụ khởi tạo cloud.
 
-### 🔄 Thay đổi context:
+### 🔄 Thay đổi ngữ cảnh:
 
-- **Nếu cần chạy script mỗi boot** → Dùng cloud-init hoặc systemd service
-- **Nếu cần install packages mỗi boot** → Nên dùng **Launch Template** với bootstrap script hoặc **AMI** đã custom
-- **Nếu muốn manage configuration** → Dùng SSM State Manager hoặc Ansible/Chef
+- **Nếu cần chạy service mỗi boot** → Dùng systemd service hoặc cấu hình cloud-init chạy ở mỗi boot; `runcmd` mặc định chỉ chạy một lần.
+- **Nếu cần cài package trên từng instance mới** → Đặt bootstrap script trong User Data của Launch Template hoặc tạo AMI đã tùy chỉnh.
+- **Nếu muốn quản lý cấu hình** → Dùng SSM State Manager hoặc Ansible/Chef.
 
 ---
 
-## IAM Password Policy - Built-in Feature
+## IAM Password Policy - Tính năng tích hợp sẵn
 
 ### Question:
 
@@ -422,7 +431,7 @@ Which AWS service should they use?
 
 ### 📖 Giải thích:
 
-**IAM Password Policy** là **built-in feature** (tính năng có sẵn) cho IAM users:
+**IAM Password Policy** là tính năng tích hợp sẵn cho IAM users:
 
 ```json
 {
@@ -443,35 +452,36 @@ Which AWS service should they use?
 
 | Đáp án | Lý do loại bỏ |
 |--------|----------------|
-| **B (Secrets Manager)** | Dùng để store secrets (API keys, DB passwords, certificates), không phải cho IAM user passwords |
-| **C (Parameter Store)** | Dùng để store parameters/configuration (như database URLs, feature flags), không liên quan đến password policy |
-| **D (Cognito)** | Dùng cho **end-user authentication** (web/mobile apps), không phải cho IAM users trong AWS account |
+| **B (Secrets Manager)** | Dùng để lưu secrets (API keys, mật khẩu DB, certificates), không dùng để quản lý mật khẩu IAM user. |
+| **C (Parameter Store)** | Dùng để lưu parameters/cấu hình (như database URLs, feature flags), không liên quan đến password policy. |
+| **D (Cognito)** | Dùng cho xác thực người dùng cuối (ứng dụng web/di động), không dành cho IAM users trong AWS account. |
 
 ### 📝 Phân tích từ vựng:
 
-- **Password Policy**: chính sách mật khẩu
-- **Built-in feature**: tính năng có sẵn, tích hợp sẵn
-- **Password reuse prevention**: ngăn chặn tái sử dụng mật khẩu
-- **Password expiration**: thời hạn mật khẩu
+- **Password Policy**: chính sách mật khẩu.
+- **Built-in feature**: tính năng tích hợp sẵn.
+- **Password reuse prevention**: ngăn sử dụng lại mật khẩu.
+- **Password expiration**: thời hạn mật khẩu.
 
-### 🔄 Thay đổi context:
+### 🔄 Thay đổi ngữ cảnh:
 
-- **Nếu cần password policy cho end-users (web app)** → Dùng Cognito User Pool với password policy
-- **Nếu cần store database passwords** → Dùng Secrets Manager
-- **Nếu cần store application configuration** → Dùng Parameter Store
+- **Nếu cần password policy cho người dùng cuối (ứng dụng web)** → Dùng Cognito User Pool với password policy.
+- **Nếu cần lưu mật khẩu database** → Dùng Secrets Manager.
+- **Nếu cần lưu cấu hình ứng dụng** → Dùng Parameter Store.
 
 ---
 
-## EC2 Instance Type Selection - Database
+## Chọn EC2 Instance Type - Cơ sở dữ liệu
 
 ### Question:
 
-A developer needs to select an **EC2 instance** for a **MySQL database** with:
+A developer needs to select an **EC2 instance** for a MySQL database backed by EBS, with:
 - **32GB RAM**
-- **High IOPS** (20,000+)
-- Need **99.99% durability**
+- **20,000+ EBS IOPS**
+- Persistent storage with at least **99.99% durability**
 
-Which instance is the **best fit**?
+The EBS volume and instance-level EBS bandwidth can be configured to meet the storage requirements. Which instance type provides the required memory?
+
 
 **A)** t3.large
 **B)** r5.xlarge
@@ -484,58 +494,54 @@ Which instance is the **best fit**?
 
 **Phân tích từng instance:**
 
-| Instance | Family | Use Case | RAM | Storage |
+| Instance | Họ | Trường hợp sử dụng | RAM | Lưu trữ |
 |----------|--------|----------|-----|---------|
-| t3.large | General (Burstable) | Web, Dev/Test | 8GB | EBS only |
-| **r5.xlarge** | **Memory Optimized** | **Database, Cache** | **32GB** | **EBS optimized** |
-| i3.2xlarge | Storage Optimized | NoSQL, Data warehousing | 61GB | NVMe SSD |
-| c5.2xlarge | Compute Optimized | Batch, ML | 16GB | EBS only |
-
-**Tại sao r5.xlarge:**
-
-| Yêu cầu | r5.xlarge đáp ứng? |
+| t3.large | Mục đích chung (có khả năng burst) | Web, phát triển/kiểm thử | 8GB | Chỉ EBS |
+| **r5.xlarge** | **Tối ưu cho bộ nhớ** | **Cơ sở dữ liệu, cache** | **32GB** | **Tối ưu cho EBS** |
+| i3.2xlarge | Tối ưu cho lưu trữ | NoSQL, kho dữ liệu | 61GB | NVMe SSD |
+| c5.2xlarge | Tối ưu cho tính toán | Xử lý theo lô, ML | 16GB | Chỉ EBS |
+| Yêu cầu | r5.xlarge có đáp ứng? |
 |----------|---------------------|
 | 32GB RAM | ✅ Chính xác 32GB |
-| High IOPS | ✅ EBS optimized, hỗ trợ io2 với 256000 IOPS |
-| 99.99% durability | ✅ Kết hợp với EBS io2 Block Express |
+| IOPS và độ bền | Cần volume EBS phù hợp; xác nhận IOPS/băng thông mà volume và instance hỗ trợ cùng đáp ứng yêu cầu. |
 
 **Tại sao không chọn các đáp án khác:**
 
 | Đáp án | Lý do loại bỏ |
 |--------|----------------|
-| **A (t3.large)** | Chỉ có 8GB RAM → không đủ. Là burstable instance → không phù hợp cho production database 24/7 |
-| **C (i3.2xlarge)** | Storage optimized với NVMe, nhưng 61GB RAM → overkill cho 32GB requirement. NVMe không phải best choice cho database có yêu cầu durability cao |
-| **D (c5.2xlarge)** | Compute optimized → thiếu RAM (chỉ 16GB), không phù hợp cho database |
+| **A (t3.large)** | Chỉ có 8GB RAM → không đủ. Đây là burstable instance, không phù hợp cho cơ sở dữ liệu production 24/7. |
+| **C (i3.2xlarge)** | Tối ưu cho lưu trữ với NVMe, nhưng có 61GB RAM → dư so với yêu cầu 32GB. NVMe không phải lựa chọn tốt nhất cho cơ sở dữ liệu cần độ bền cao. |
+| **D (c5.2xlarge)** | Tối ưu cho tính toán → thiếu RAM (chỉ 16GB), không phù hợp cho cơ sở dữ liệu. |
 
 ### 📝 Phân tích từ vựng:
 
-- **Memory Optimized**: được tối ưu cho workload cần nhiều RAM
-- **Storage Optimized**: được tối ưu cho workload cần storage performance
-- **Compute Optimized**: được tối ưu cho workload cần CPU
-- **EBS optimized**: instance có network bandwidth cao cho EBS
-- **Durability**: độ bền, khả năng không mất dữ liệu
+- **Tối ưu cho bộ nhớ (Memory Optimized)**: dành cho khối lượng công việc cần nhiều RAM.
+- **Tối ưu cho lưu trữ (Storage Optimized)**: dành cho khối lượng công việc cần hiệu năng lưu trữ cao.
+- **Tối ưu cho tính toán (Compute Optimized)**: dành cho khối lượng công việc cần CPU.
+- **EBS optimized**: instance có băng thông mạng cao cho EBS.
+- **Durability**: độ bền, khả năng không mất dữ liệu.
 
-### 🔄 Thay đổi context:
+### 🔄 Thay đổi ngữ cảnh:
 
-- **Nếu cần 99.99% durability thực sự** → Nên dùng **RDS** thay vì EC2 với EBS, vì RDS cung cấp Multi-AZ, automated backups, point-in-time recovery
-- **Nếu cần NVMe cho tempdb** → i3 suitable cho temp tables nhưng không phải best cho primary storage
-- **Nếu workload là read-heavy** → Có thể consider dùng ElastiCache (Redis) làm cache layer
+- **Nếu thực sự cần độ bền 99.99%** → Nên dùng **RDS** thay vì EC2 với EBS, vì RDS cung cấp Multi-AZ, automated backups và khôi phục về một thời điểm cụ thể.
+- **Nếu cần NVMe cho tempdb** → i3 phù hợp cho temp tables nhưng không phải lựa chọn tốt nhất làm primary storage.
+- **Nếu workload chủ yếu đọc** → Có thể cân nhắc dùng ElastiCache (Redis) làm lớp cache.
 
 ---
 
-## Tóm tắt Patterns trong DVA Exam
+## Tóm tắt các mẫu câu hỏi DVA Exam
 
-### IAM Questions:
-- **Explicit Deny** ln thắng Explicit Allow
-- IAM Role cho Lambda/EC2 tốt hơn Access Keys
-- Least privilege principle
+### Câu hỏi IAM:
+- **Explicit Deny** luôn thắng Explicit Allow.
+- IAM Role cho Lambda/EC2 tốt hơn Access Keys.
+- Nguyên tắc least privilege.
 
-### EC2 Questions:
-- Security Group: Reference by SG thay vì IP
-- User Data chỉ chạy 1 lần khi launch
-- Chọn đúng instance type theo workload
+### Câu hỏi EC2:
+- Security Group: tham chiếu bằng SG thay vì IP.
+- User Data chỉ chạy một lần khi launch.
+- Chọn đúng Instance Type theo workload.
 
-### Purchasing:
-- Steady workload → Reserved / Savings Plans
-- Flexible workload → Savings Plans
-- Interruptible workload → Spot
+### Hình thức mua:
+- Workload ổn định → Reserved / Savings Plans.
+- Workload linh hoạt → Savings Plans.
+- Workload có thể bị gián đoạn → Spot.

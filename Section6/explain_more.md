@@ -1,555 +1,373 @@
-# Section 6 - Kiến thức mở rộng: CloudFront Nâng cao, Elastic Beanstalk, CloudFormation, Messaging
+# Section 6 - Kiến thức mở rộng: ECS, ECR, Fargate và EKS
 
 ---
+## 1. Mẫu kiến trúc ECS
 
-## 1. CloudFront Nâng cao
+### Thực hành tốt với ECS Task Definition
 
-### CloudFront Signed URLs Chi tiết
+#### Giải thích cốt lõi
+Task Definition là bản mô tả có phiên bản về cách ECS chạy một hoặc nhiều containers: image, CPU/bộ nhớ, ports, biến môi trường, role và logs. Task là lần chạy thực tế theo bản mô tả đó; so với cấu hình thủ công trên từng máy, Task Definition giúp tạo lại tasks nhất quán.
 
-**NÊN LÀM:**
+#### NÊN làm (DO)
 
-**Khi nào sử dụng Signed URLs:**
-| Use Case | Thời hạn khuyến nghị |
-|----------|-------------------|
-| Premium video streaming | 1-4 giờ |
-| Tạm thời document download | 15-60 phút |
-| Nội dung riêng tư dài hạn | Ngày đến năm |
-| User-specific content | Theo session |
+- Khai báo log và cấu hình secret reference trong Task Definition → Giúp chẩn đoán và tránh ghi credentials trực tiếp vào image; so với biến môi trường chứa giá trị bí mật rõ, dùng `secrets` để lấy giá trị từ SSM Parameter Store/Secrets Manager.
 
-**Signed URL Components:**
-1. **Policy**: URL, IP range, expiration
-2. **Signature**: HMAC/SHA-1 encrypted policy
-3. **Key Pair ID**: Identifier cho key
-
-**CLI để tạo (sử dụng CloudFront Key Pair):**
-```bash
-# Tạo signed URL bằng program
-aws cloudfront sign \
-  --url "https://example.com/private/*" \
-  --key-pair-id KPSTAGING \
-  --private-key file://private_key.pem \
-  --date-less-than 2024-12-31
-```
-
-**KHÔNG NÊN:**
-- Tạo signed URLs với root credentials
-- Set expiration quá dài cho shared content
-- Sử dụng same key pair cho tất cả use cases
-
-### CloudFront Cache Optimization
-
-**NÊN LÀM:**
-
-**Tối đa hóa Cache Hit Ratio:**
-```
-1. Giảm thiểu query string variation
-2. Sử dụng consistent URLs
-3. Set appropriate TTLs
-4. Sử dụng Cache Policies
-5. Enable Gzip/Brotli compression
-```
-
-**Cache Policy Settings:**
 ```json
 {
-  "QueryStringsConfig": {
-    "QueryStringBehavior": "whitelist",
-    "QueryStrings": {
-      "Items": ["language", "version"]
+  "containerDefinitions": [{
+    "name": "web-app",
+    "image": "123456789012.dkr.ecr.us-east-1.amazonaws.com/web:latest",
+    "memory": 512,
+    "cpu": 256,
+    "essential": true,
+    "portMappings": [{
+      "containerPort": 80,
+      "protocol": "tcp"
+    }],
+    "environment": [
+      {"name": "ENV", "value": "production"}
+    ],
+    "secrets": [
+      {"name": "API_KEY", "valueFrom": "arn:aws:ssm:us-east-1:123456789012:parameter/ecs/API_KEY"}
+    ],
+    "logConfiguration": {
+      "logDriver": "awslogs",
+      "options": {
+        "awslogs-group": "/ecs/web-app",
+        "awslogs-region": "us-east-1",
+        "awslogs-stream-prefix": "ecs"
+      }
     }
-  },
-  "HeadersConfig": {
-    "HeaderBehavior": "whitelist",
-    "Headers": {
-      "Items": ["Origin", "Accept-Encoding"]
+  }],
+  "family": "web-app-task"
+}
+```
+
+#### KHÔNG NÊN làm (DON'T)
+- **Ghi API key hoặc password trực tiếp vào `environment` hay image** → Giá trị bí mật có thể lộ khi xem cấu hình hoặc image. NÊN: tham chiếu secret bằng `secrets` và cấp quyền tối thiểu cho role phù hợp.
+
+
+### Bảo mật ECS - IAM Roles
+
+#### Giải thích cốt lõi
+- **EC2 Instance Profile (container instance role)** được ECS Agent dùng trên EC2 container instances để giao tiếp với ECS.
+- **Task Execution Role** được ECS/Fargate Agent dùng khi khởi chạy task, chẳng hạn tải Docker image từ ECR, ghi logs vào CloudWatch Logs và lấy secrets từ Secrets Manager hoặc SSM Parameter Store để đưa vào container.
+- **Task Role** cấp AWS credentials cho mã ứng dụng chạy trong container.
+
+| IAM Role | Bên sử dụng | Mục đích |
+|----------|-------------|----------|
+| EC2 Instance Profile | ECS Agent trên EC2 | Giao tiếp với ECS và quản lý instance chạy containers |
+| Task Execution Role | ECS/Fargate Agent khi khởi chạy task | Tải image từ ECR, ghi logs, đọc secrets |
+| Task Role | Ứng dụng trong container | Gọi AWS services thay mặt ứng dụng |
+- Ví dụ giới hạn `dynamodb:Query` vào đúng bảng bằng ARN `arn:aws:dynamodb:us-east-1:123456789012:table/my-table`; với `s3:GetObject`, tài nguyên có dạng `arn:aws:s3:::my-bucket/*`.
+
+#### NÊN làm (DO)
+- **Cấp role riêng với quyền tối thiểu và khai báo đúng trường** → Tách quyền agent lúc khởi chạy khỏi quyền của ứng dụng; so với dùng EC2 Instance Profile cho mọi quyền, Task Role giới hạn ảnh hưởng khi một container bị xâm nhập.
+
+#### KHÔNG NÊN làm (DON'T)
+- Dùng EC2 Instance Profile để cấp quyền nghiệp vụ cho mọi container trên host; dùng Task Role cho quyền của ứng dụng.
+- Nhầm Task Role với Task Execution Role: một role dành cho mã ứng dụng, role còn lại dành cho thao tác khởi chạy task.
+
+Tài liệu AWS: [IAM Role cho ECS Task](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-iam-roles.html) · [IAM Role thực thi ECS Task](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_execution_IAM_role.html).
+
+### Các chế độ mạng của ECS
+
+#### Giải thích cốt lõi
+Network mode quyết định cách container/task dùng network stack và nhận địa chỉ IP/port. `awsvpc` cấp ENI/IP riêng cho task; `bridge` ánh xạ qua host; `host` chia sẻ network stack của host. Fargate yêu cầu `awsvpc`; trên EC2, chọn mode theo mức cô lập và nhu cầu hiệu năng.
+
+#### NÊN làm (DO)
+
+- Dùng `awsvpc` cho Fargate hoặc khi cần IP/Security Group riêng theo task; trên EC2 chỉ chọn `bridge`/`host` khi yêu cầu ánh xạ port hay hiệu năng phù hợp với đánh đổi cô lập.
+
+| Chế độ | Mô tả | Trường hợp sử dụng |
+|--------|-------|--------------------|
+| **awsvpc** | Mỗi task có ENI và private IP | Fargate, ứng dụng hiện đại |
+| **bridge** | Docker bridge trên host | EC2, ánh xạ port |
+| **host** | Container dùng network stack của host | Ứng dụng cần hiệu năng cao |
+| **none** | Không cấu hình network | Tác vụ cô lập |
+
+**awsvpc trên Fargate:**
+- ENI được gắn vào task.
+- Security Group được áp dụng cho task.
+- Tránh nhầm lẫn port.
+
+#### KHÔNG NÊN làm (DON'T)
+- **Dùng `host` mode khi tasks cần cùng port hoặc cô lập mạng riêng** → Các containers dùng chung network stack và có thể xung đột port. NÊN: chọn `awsvpc` để mỗi task có ENI và Security Group riêng, hoặc `bridge` khi phù hợp với ánh xạ port.
+
+### Tự động mở rộng ECS Service
+
+#### Giải thích cốt lõi
+ECS Service Auto Scaling thay đổi số tasks mong muốn theo CloudWatch metrics. Target Tracking giữ metric gần mục tiêu; Step Scaling phản ứng theo mức alarm; Scheduled Scaling phù hợp với tải dự đoán trước. Scaling tasks không tự đồng nghĩa với tăng số EC2 container instances.
+
+#### NÊN làm (DO)
+
+**Chính sách Target Tracking:**
+```json
+{
+  "TargetTrackingScalingPolicyConfiguration": {
+    "TargetValue": 60.0,
+    "ScaleInCooldown": 300,
+    "ScaleOutCooldown": 60,
+    "PredefinedMetricSpecification": {
+      "PredefinedMetricType": "ECSServiceAverageCPUUtilization"
     }
   }
 }
 ```
+- Chọn metric phản ánh nút thắt (CPU, memory hoặc ALB requests per target) và Target Tracking cho tải biến động; so với lịch cố định, metric giúp phản ứng theo nhu cầu thực tế.
 
-### CloudFront Origin Shield
 
-**NÊN LÀM:**
+**💡 Mẹo: Chỉ số dùng để mở rộng**
+| Chỉ số | Phù hợp với |
+|--------|-------------|
+| CPU | Ứng dụng web thông thường |
+| Memory | Ứng dụng cần nhiều bộ nhớ |
+| ALB Request Count | Ứng dụng cân bằng tải |
 
-**Architecture:**
-```
-User → Edge Location → Origin Shield → Origin (S3/ALB)
-```
+#### KHÔNG NÊN làm (DON'T)
+- **Chỉ scale tasks mà không bảo đảm EC2 capacity cho EC2 launch type** → Tasks có thể ở trạng thái không chạy vì thiếu CPU/bộ nhớ. NÊN: kết hợp Capacity Provider/Auto Scaling Group hoặc chọn Fargate khi muốn AWS quản lý capacity.
+- **Dùng Scheduled Scaling cho tải khó dự đoán** → Service có thể thiếu hoặc dư tasks giữa các khung giờ. NÊN: dùng Target Tracking hoặc Step Scaling theo metric/alarm.
 
-**Lợi ích:**
-- Giảm origin load
-- Cải thiện availability
-- Single point of origin access
-- Tốt hơn cache efficiency
+### Cập nhật rolling cho ECS
 
-**Khi nào enable:**
-- High traffic origins
-- Multiple edge locations hitting origin
-- Cần tối ưu chi phí
+#### Giải thích cốt lõi
+ECS rolling deployment thay tasks theo tỷ lệ Minimum healthy percent và Maximum percent: cấu hình đặt giới hạn số task giữ khỏe và số task có thể tồn tại trong lúc triển khai. So với thay toàn bộ một lần, rolling chia nhỏ rủi ro nhưng cần đủ capacity để chạy phiên bản mới.
 
-### CloudFront Lambda@Edge Use Cases
+#### NÊN làm (DO)
 
-**NÊN LÀM:**
-
-| Use Case | Function Type | Purpose |
-|----------|--------------|---------|
-| A/B Testing | Viewer Request | Route traffic |
-| Auth | Viewer Request | Validate tokens |
-| Image resize | Origin Request | Transform images |
-| Header manipulation | Viewer Response | Add headers |
-| SEO optimization | Viewer Response | Modify caching |
-
----
-
-## 2. Elastic Beanstalk Chi tiết
-
-### Deployment Strategies So sánh
-
-**NÊN LÀM:**
-
-| Strategy | Downtime | Chi phí | Speed | Rollback |
-|----------|----------|---------|-------|----------|
-| All at once | ❌ Có | Miễn phí | Nhanh nhất | Thủ công |
-| Rolling | ⚠️ Một phần | Miễn phí | Trung bình | Thủ công |
-| Rolling+Batch | ✅ Không | +Instance | Trung bình | Thủ công |
-| Immutable | ✅ Không | +Instances | Chậm | Nhanh |
-| Blue/Green | ✅ Không | +Environment | Trung bình | Nhanh |
-| Traffic Split | ✅ Không | +Instances | Trung bình | Tự động |
-
-**Khi nào sử dụng:**
-| Environment | Recommended Strategy |
-|------------|-------------------|
-| Dev | All at once |
-| Test | Rolling |
-| Production | Immutable/Blue-Green |
-
-### Elastic Beanstalk Configuration Files
-
-**NÊN LÀM:**
-
-**`.ebextensions/options.config`:**
-```yaml
-option_settings:
-  aws:autoscaling:launchconfiguration:
-    InstanceType: t3.medium
-  aws:autoscaling:asg:
-    MaxSize: '10'
-    MinSize: '2'
-  aws:elasticbeanstalk:container:php:
-    NumProcesses: '2'
-  aws:elasticbeanstalk:environment:
-    ServiceRole: aws:elasticbeanstalk:environment
-```
-
-**`.ebextensions/nginx.config`:**
-```yaml
-files:
-  /etc/nginx/conf.d/elasticbeanstalk.conf:
-    content: |
-      server {
-        listen 80;
-        location / {
-          proxy_pass http://docker;
-        }
-      }
-```
-
-### Elastic Beanstalk với RDS
-
-**NÊN LÀM:**
-
-**Cho Production - Separate RDS:**
-```bash
-# Tạo RDS độc lập
-aws rds create-db-instance \
-  --db-instance-identifier my-db \
-  --db-instance-class db.t3.micro
-
-# Cấu hình Beanstalk
-eb create --database.type mysql
-```
-
-**Connection String:**
-```bash
-# Environment variables được Beanstalk cung cấp
-RDS_HOSTNAME
-RDS_PORT
-RDS_DB_NAME
-RDS_USERNAME
-RDS_PASSWORD
-```
-
-### Elastic Beanstalk Worker Environments
-
-**NÊN LÀM:**
-
-**Worker Tier Architecture:**
-```
-SQS Queue
-    ↓
-Worker Environment
-    ↓
-Processing (PHP, Python, etc.)
-    ↓
-Output (Database, S3, etc.)
-```
+- Chọn Minimum healthy percent và Maximum percent theo SLA/khả năng chạy song song → So với thay toàn bộ tasks cùng lúc, rolling giữ số task khỏe trong giới hạn đã tính trước.
 
 **Cấu hình:**
-```yaml
-option_settings:
-  aws:elasticbeanstalk:sqsd:
-    WorkerQueueURL: https://sqs.region.amazonaws.com/account/queue
-    HttpPath: /worker
-    Memory: 512
-    Timeout: 300
+- **Minimum healthy percent**: 100% nghĩa là không giảm số tasks trong lúc cập nhật.
+- **Maximum percent**: 200% cho phép tăng số tasks lên gấp đôi trong lúc cập nhật.
+
+**Ví dụ chiến lược:**
 ```
+Min: 100%, Max: 200%
+- Khởi chạy 4 tasks
+- Khởi chạy 4 tasks mới dùng v2
+- Chờ các tasks mới đạt health check
+- Dừng 4 tasks cũ dùng v1
+```
+
+#### KHÔNG NÊN làm (DON'T)
+- **Đặt Maximum percent thấp đến mức không còn chỗ khởi chạy task mới trong khi vẫn giữ Minimum healthy percent** → Deployment có thể không tiến triển. NÊN: tính trước số task và capacity khả dụng, rồi chọn tỷ lệ cho phép thay task.
 
 ---
 
-## 3. CloudFormation Mastery
+## 2. Thực hành tốt với ECR
 
-### CloudFormation Template Structure
+### Chính sách kho lưu trữ của ECR
 
-**NÊN LÀM:**
+#### Giải thích cốt lõi
+ECR repository policy cấp quyền trực tiếp lên repository, hữu ích khi chia sẻ image giữa AWS accounts; identity-based IAM policy vẫn cần phù hợp ở phía caller. So với public repository, repository policy giới hạn principal và thao tác được phép.
 
-```yaml
-AWSTemplateFormatVersion: '2010-09-09'
-Description: >-
-  CloudFormation template cho VPC với public và private subnets
+#### NÊN làm (DO)
 
-Metadata:
-  TemplateFormatVersion: '2010-09-09'
+- Chỉ cho phép account/role cần thiết và các action push/pull phù hợp → Hạn chế người có thể tải hoặc sửa image so với policy mở rộng.
 
-Parameters:
-  VpcCIDR:
-    Type: String
-    Default: 10.0.0.0/16
-  Environment:
-    Type: String
-    AllowedValues: [dev, staging, prod]
-
-Mappings:
-  RegionMap:
-    us-east-1:
-      HVM64: ami-0ff8a91504f7
-    us-west-2:
-      HVM64: ami-0bdb828fd58c
-
-Resources:
-  VPC:
-    Type: AWS::EC2::VPC
-    Properties:
-      CidrBlock: !Ref VpcCIDR
-      EnableDnsHostnames: true
-      Tags:
-        - Key: Environment
-          Value: !Ref Environment
-
-Outputs:
-  VPCId:
-    Description: VPC ID
-    Value: !Ref VPC
-    Export:
-      Name: !Sub "${Environment}-VPC-ID"
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Sid": "PushPull",
+    "Effect": "Allow",
+    "Principal": {
+      "AWS": "arn:aws:iam::123456789012:root"
+    },
+    "Action": [
+      "ecr:GetDownloadUrlForLayer",
+      "ecr:BatchGetImage",
+      "ecr:BatchCheckLayerAvailability",
+      "ecr:PutImage",
+      "ecr:UploadLayerPart",
+      "ecr:InitiateLayerUpload",
+      "ecr:CompleteLayerUpload"
+    ]
+  }]
+}
 ```
 
-### CloudFormation Intrinsic Functions
+#### KHÔNG NÊN làm (DON'T)
+- **Cho phép `Principal: "*"` hoặc mọi action trên repository riêng** → Bên ngoài có thể đọc/ghi image ngoài ý muốn. NÊN: giới hạn principal theo account/role và action tối thiểu.
 
-**NÊN LÀM:**
+### Quản lý vòng đời image trong ECR
 
-**Fn::Ref vs Fn::GetAtt:**
-```yaml
-# Ref - returns physical ID
-Instance:
-  Type: AWS::EC2::Instance
-  Properties:
-    InstanceType: t3.micro
+#### Giải thích cốt lõi
+ECR Lifecycle Policy chọn image theo tag status, prefix hoặc tuổi/số lượng rồi tự hết hạn các image khớp rule. So với xóa thủ công, policy giữ repository gọn và kiểm soát dung lượng, nhưng rule sai có thể xóa image còn cần.
 
-# Reference the instance
-InstanceId: !Ref Instance
+#### NÊN làm (DO)
 
-# GetAtt - returns attributes
-AvailabilityZone: !GetAtt Instance.AvailabilityZone
-PrivateIp: !GetAtt Instance.PrivateIp
+- Kiểm tra selection và thời gian giữ trước khi áp dụng; ưu tiên thử rule trên image mẫu → Xác nhận image hiện hành/rollback vẫn còn, thay vì xóa theo một số ngày không kiểm chứng.
+
+```json
+{
+  "rules": [{
+    "rulePriority": 1,
+    "description": "Expire untagged images",
+    "selection": {
+      "tagStatus": "untagged",
+      "countType": "sinceImagePushed",
+      "countUnit": "days",
+      "countNumber": 7
+    },
+    "action": {
+      "type": "expire"
+    }
+  }]
+}
 ```
 
-**Fn::Sub - String substitution:**
-```yaml
-# Sử dụng Sub
-DbEndpoint: !Sub "${DBInstance.Endpoint.Address}"
-```
+#### KHÔNG NÊN làm (DON'T)
+- **Đặt rule hết hạn image có tag đang được production dùng mà không có bản thay thế** → Task mới có thể không tải được image hoặc rollback thất bại. NÊN: dùng tag/version rõ ràng, giữ image đang triển khai và thử rule trước.
 
-**Fn::Join - Join strings:**
-```yaml
-# Sử dụng Join
-SgIngress: !Join
-  - ","
-  - - !Ref SecurityGroup
-```
+---
 
-### CloudFormation Conditions
+## 3. Chi tiết Fargate
 
-**NÊN LÀM:**
+### Phân bổ tài nguyên Fargate
 
-```yaml
-Conditions:
-  IsProduction: !Equals [!Ref Environment, prod]
-  IsHighCPU: !Or
-    - !Equals [!Ref InstanceType, c5.large]
-    - !Equals [!Ref InstanceType, m5.large]
+#### Giải thích cốt lõi
+Fargate chỉ nhận các cặp CPU/bộ nhớ được nền tảng và hệ điều hành hỗ trợ; dung lượng ephemeral storage cũng có mức mặc định và giới hạn cấu hình. So với EC2, người dùng không chọn host instance type mà phải chọn task size tương thích.
 
-Resources:
-  # Conditional resource
-  ProdEIP:
-    Type: AWS::EC2::EIP
-    Condition: IsProduction
-    Properties:
-      Domain: vpc
-  
-  # Conditional property
-  Instance:
-    Type: AWS::EC2::Instance
-    Properties:
-      InstanceType: !If [IsHighCPU, m5.large, t3.micro]
-```
+#### NÊN làm (DO)
 
-### CloudFormation Wait Conditions
+| CPU | Tùy chọn bộ nhớ |
+|-----|-----------------|
+| 0.25 vCPU | 0.5, 1, 2 GB (Linux) |
+| 0.5 vCPU | 1, 2, 3, 4 GB (Linux) |
+| 1 vCPU | 2-8 GB (Linux/Windows) |
+| 2 vCPU | 4-16 GB, bước 1 GB (Linux/Windows) |
+| 4 vCPU | 8-30 GB, bước 1 GB (Linux/Windows) |
+| 8 vCPU | 16-60 GB, bước 4 GB (Linux platform 1.4+) |
+| 16 vCPU | 32-120 GB, bước 8 GB (Linux platform 1.4+) |
+| 32 vCPU | 60, 120 hoặc 244 GB (Linux platform 1.4+) |
 
-**NÊN LÀM:**
+Cập nhật 06/11/2026: các cặp CPU/bộ nhớ của Fargate phụ thuộc hệ điều hành và platform version; Linux platform 1.4+ hỗ trợ task 8, 16 và 32 vCPU với giới hạn bộ nhớ tương ứng trong bảng. Kiểm tra bảng tương thích trước khi đăng ký Task Definition. [AWS Fargate task size](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#task_size).
+- Xác thực cặp CPU/bộ nhớ và platform version trước khi đăng ký Task Definition → Tránh lỗi cấu hình; so với đoán theo dung lượng mong muốn, bảng hỗ trợ của Fargate xác định các tổ hợp hợp lệ.
 
-```yaml
-WaitHandle:
-  Type: AWS::CloudFormation::WaitConditionHandle
+**Lưu trữ của task:**
+- Ephemeral storage 20 GiB theo mặc định.
+- Có thể tăng lên đến 200 GiB bằng cấu hình bổ sung.
+- Dùng EFS cho lưu trữ bền vững.
 
-WaitCondition:
-  Type: AWS::CloudFormation::WaitCondition
-  Properties:
-    Handle: !Ref WaitHandle
-    Timeout: '300'
-    Count: '3'
+#### KHÔNG NÊN làm (DON'T)
+- **Giả định mọi cặp CPU/bộ nhớ đều hợp lệ hoặc ephemeral storage là lưu trữ bền vững** → Task có thể không khởi chạy hoặc mất dữ liệu khi kết thúc. NÊN: kiểm tra compatibility matrix và dùng EFS cho dữ liệu cần tồn tại lâu dài.
 
-# Trong EC2 UserData
-/usr/bin/cfn-signal -e 0 --stack ${AWS::StackName} --resource WaitCondition --region ${AWS::Region}
-```
+### Fargate và EC2 Launch Type
 
-### CloudFormation Nested Stacks
+#### Giải thích cốt lõi
+Fargate chạy tasks mà không cần người dùng quản lý EC2 hosts; EC2 Launch Type cho phép kiểm soát host, AMI, capacity và cấu hình instance. Đổi lại, Fargate giới hạn quyền kiểm soát host và tính phí theo task, còn EC2 yêu cầu vận hành hạ tầng nhưng có thể phù hợp workload cần tùy chỉnh.
 
-**NÊN LÀM:**
+#### NÊN làm (DO)
 
-```yaml
-# Parent stack
-Resources:
-  VPCStack:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: https://s3.amazonaws.com/mybucket/vpc.yaml
-      Parameters:
-        VpcCIDR: 10.0.0.0/16
+| Yếu tố | Fargate | EC2 Launch Type |
+|--------|---------|-----------------|
+| **Quản lý** | AWS quản lý hoàn toàn | Bạn quản lý |
+| **Chi phí** | Trả theo task | Trả cho EC2 instances |
+| **Mở rộng** | Nhanh | Mất thời gian hơn |
+| **Khả năng tùy chỉnh** | Hạn chế | Toàn quyền kiểm soát |
+| **Spot** | Fargate Spot qua capacity provider | EC2 Spot Instances |
+| **Reserved Instances** | Không áp dụng cho Fargate | Có |
+| **Savings Plans** | Compute Savings Plans có thể áp dụng | Compute/EC2 Instance Savings Plans |
 
-  AppStack:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: https://s3.amazonaws.com/mybucket/app.yaml
-      Parameters:
-        VPC: !GetAtt VPCStack.Outputs.VPCID
-```
+Cập nhật 06/11/2026: Fargate Spot sử dụng dung lượng dự phòng với mức giá thấp hơn; task có thể nhận thông báo gián đoạn trước hai phút, vì vậy chỉ dùng cho khối lượng công việc chịu được gián đoạn. Chọn Fargate Spot qua capacity provider. [Fargate capacity providers](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/fargate-capacity-providers.html).
+- Chọn Fargate khi ưu tiên giảm vận hành; chọn EC2 khi cần AMI/host customization hoặc tối ưu capacity bằng Spot. So với chọn theo thói quen, đối chiếu yêu cầu kiểm soát, tính gián đoạn và mô hình chi phí.
 
-### CloudFormation Drift Detection
+**Khi nào dùng Fargate:**
+- Tasks chạy trong thời gian ngắn.
+- Khối lượng công việc khó dự đoán.
+- Microservices.
+- Khi muốn giảm công việc quản lý hạ tầng.
 
-**NÊN LÀM:**
+**Khi nào dùng EC2:**
+- Cần các kết nối duy trì lâu.
+- Cần tiết kiệm chi phí bằng Spot/RI.
+- Cần AMIs tùy chỉnh.
+- Cần lưu trữ cục bộ bền vững.
 
+#### KHÔNG NÊN làm (DON'T)
+- **Cho rằng Fargate luôn rẻ hơn hoặc phù hợp mọi workload** → Chi phí và giới hạn host có thể không khớp nhu cầu. NÊN: ước tính theo task usage và so sánh với EC2 capacity cho workload ổn định, cần tùy chỉnh.
+
+---
+
+## 4. Kiến trúc EKS
+
+### Nhóm node EKS và Fargate
+
+#### Giải thích cốt lõi
+EKS hỗ trợ Managed Node Groups (AWS quản lý EC2 node group), Self-Managed Nodes (người dùng quản lý nodes/ASG) và Fargate (không quản lý node). Node group cho phép dùng EC2/EBS và kiểm soát host; Fargate giảm vận hành nhưng không hỗ trợ mọi loại storage/workload. Chọn theo nhu cầu quản trị và storage.
+
+#### NÊN làm (DO)
+
+| Đặc điểm | Managed Node Group | Fargate |
+|----------|-------------------|---------|
+| Mức quản lý | Một phần | Không |
+| Truy cập SSH | Có | Không |
+| Lưu trữ bền vững | EBS, EFS | Chỉ EFS |
+| Spot Instances | Có | Không |
+| Yêu cầu VPC | Thông thường | Cần nhiều ENIs hơn |
+- **Chọn Managed Node Groups khi cần EC2 nhưng muốn AWS quản lý vòng đời node; chọn Self-Managed khi cần kiểm soát AMI/cấu hình; chọn Fargate khi không cần node riêng** → So sánh mức kiểm soát và công vận hành để tránh quản lý thừa hoặc thiếu khả năng tùy chỉnh.
+
+#### KHÔNG NÊN làm (DON'T)
+- **Chọn Fargate khi workload phụ thuộc storage hoặc cấu hình node không được hỗ trợ** → Pod có thể không được lập lịch hoặc không gắn được volume. NÊN: kiểm tra yêu cầu workload; dùng EBS/EFS và node group phù hợp.
+
+### Lưu trữ EKS với CSI
+
+#### Giải thích cốt lõi
+CSI (Container Storage Interface) chuẩn hóa cách Kubernetes yêu cầu storage driver cấp volume. EBS CSI Driver cung cấp block volume gắn vào EC2 node; EFS phù hợp dữ liệu chia sẻ qua nhiều AZ và được hỗ trợ cho Fargate. So với ephemeral storage, volume CSI có thể tồn tại theo vòng đời của storage resource.
+
+#### NÊN làm (DO)
+
+- Chọn EBS cho workload cần block storage gắn với node/AZ; chọn EFS khi cần file system dùng chung → So với ephemeral storage, CSI volume phù hợp hơn cho dữ liệu cần tồn tại theo vòng đời storage resource.
+
+**Cài đặt EBS CSI Driver:**
 ```bash
-# Phát hiện drift
-aws cloudformation detect-stack-drift --stack-name my-stack
-
-# Liệt kê drift
-aws cloudformation describe-stack-resource-drifts --stack-name my-stack
-
-# Stack drift status
-aws cloudformation describe-stacks --stack-name my-stack --query 'Stacks[0].StackDriftStatus'
+eksctl create addon --name aws-ebs-csi-driver --cluster my-cluster
 ```
+
+**StorageClass:**
+```yaml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: ebs-sc
+provisioner: ebs.csi.aws.com
+parameters:
+  type: gp3
+```
+
+#### KHÔNG NÊN làm (DON'T)
+- **Dùng EBS như volume chia sẻ đồng thời giữa các AZ hoặc kỳ vọng ephemeral storage bền vững** → Pod không truy cập được volume theo cách mong muốn hoặc dữ liệu mất cùng task. NÊN: dùng EFS khi cần file system chia sẻ và dùng driver CSI phù hợp với storage class.
 
 ---
+## 5. Cập nhật AWS (2026-11-06)
 
-## 4. AWS Messaging - SQS & SNS
+### Worker ECS tiêu thụ SQS
 
-### SQS vs SNS vs Kinesis
+#### Giải thích cốt lõi
+Với mô hình xử lý liên tục, các tasks worker trong ECS Service thăm dò SQS, xử lý thông điệp rồi xóa sau khi xử lý thành công. ECS Service Auto Scaling điều chỉnh số lượng tasks theo tải hàng đợi; SQS không tự gọi một ECS Service task cho mỗi thông điệp.
 
-**NÊN LÀM:**
+#### NÊN làm (DO)
+- **Mở rộng theo lượng công việc tồn trên mỗi task** → Chia `ApproximateNumberOfMessagesVisible` cho số tasks đang chạy để đo lượng công việc trung bình mỗi worker. So với chỉ dùng độ sâu hàng đợi, chỉ số này xét cả năng suất worker và độ trễ chấp nhận được.
+- **Bật CloudWatch Container Insights nếu chính sách cần `RunningTaskCount`** → Chỉ số này làm mẫu số khi tính lượng công việc tồn trên mỗi task; nếu thiếu dữ liệu, phép tính mở rộng sẽ không hoạt động.
+- **Bảo vệ task đang xử lý khi giảm số lượng tasks nếu công việc kéo dài hoặc không lũy đẳng** → Tránh dừng task giữa chừng khiến thông điệp phải xử lý lại.
 
-| Đặc điểm | SQS | SNS | Kinesis |
-|---------|-----|-----|---------|
-| **Type** | Queue | Pub/Sub | Stream |
-| **Delivery** | Pull | Push | Pull |
-| **Consumers** | 1 | Many | Many (Shards) |
-| **Ordering** | FIFO available | FIFO available | Per shard |
-| **Replay** | Không | Không | Có |
-| **Use case** | Decouple | Fan-out | Real-time analytics |
+#### KHÔNG NÊN làm (DON'T)
+- **Giả định SQS tự khởi chạy một ECS task cho mỗi thông điệp** → Worker có thể không thăm dò hàng đợi liên tục và cách mở rộng không phản ánh lượng công việc tồn. NÊN: chạy worker trong ECS Service, để mỗi task thăm dò SQS và mở rộng service theo tải.
+- **Chỉ mở rộng theo độ sâu hàng đợi mà không xét số worker hoặc thời gian xử lý** → Có thể mở rộng quá mức và tăng chi phí. NÊN: dùng lượng công việc tồn trên mỗi task với target phù hợp SLA.
 
-### SQS Design Patterns
+Tài liệu AWS: [Mở rộng ECS Service theo hàng đợi SQS](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/service-autoscaling-queue.html).
 
-**NÊN LÀM:**
+### Target Tracking cho ECS Service
 
-**Standard Queue:**
-- At least once delivery
-- Best effort ordering
-- Unlimited throughput
+#### Giải thích cốt lõi
+Target Tracking điều chỉnh số tasks để duy trì CloudWatch metric gần giá trị mục tiêu. Với CPU, `ECSServiceAverageCPUUtilization` là predefined metric; policy phải gắn vào scalable target của ECS Service. So với Step Scaling theo alarm, Target Tracking tự điều chỉnh theo sai lệch metric.
 
-**FIFO Queue:**
-- Exactly once processing
-- Strict ordering
-- Limited throughput (300 msg/s)
+#### NÊN làm (DO)
+- Gắn policy vào đúng scalable target và chọn target phù hợp với hành vi workload → Tránh điều chỉnh nhầm tài nguyên; theo dõi metric để cân bằng độ trễ và số tasks.
 
-### SQS Visibility Timeout
+#### KHÔNG NÊN làm (DON'T)
+- **Dùng metric không phản ánh tải hoặc bỏ qua scalable target** → Policy không scale đúng service hoặc không xử lý nút thắt. NÊN: kiểm tra resource ID, dimension và metric trước khi bật policy.
 
-**NÊN LÀM:**
-
-```bash
-# Set visibility timeout
-aws sqs get-queue-attributes \
-  --queue-url https://sqs.region.amazonaws.com/account/queue \
-  --attribute-names VisibilityTimeout
-# Default: 30 seconds
-```
-
-**Processing flow:**
-1. Message received (visible)
-2. Processing starts
-3. Delete after success
-4. Nếu timeout expires, message reappears
-
-**Best practice:**
-```python
-def process_message(message):
-    try:
-        do_work(message)
-        sqs.delete_message(
-            QueueUrl=url,
-            ReceiptHandle=message['ReceiptHandle']
-        )
-    except Exception:
-        # Message sẽ become visible lại after timeout
-        raise
-```
-
-### SNS vs SQS Combination
-
-**NÊN LÀM:**
-
-**Fan-out Pattern:**
-```
-SNS Topic
-    ├── SQS Queue 1 (Processing)
-    ├── SQS Queue 2 (Analytics)
-    └── SQS Queue 3 (Archive)
-```
-
-**Tại sao kết hợp:**
-- SNS pushes đến multiple queues
-- Mỗi queue processes độc lập
-- Decouple producers từ consumers
-
-### Kinesis Data Streams
-
-**NÊN LÀM:**
-
-**Key concepts:**
-- **Shards**: Partition capacity
-- **Records**: Data units
-- **Retention**: 24 hours đến 365 days
-
-**Capacity planning:**
-| Shards | Records/sec | DataMB/sec |
-|--------|------------|------------|
-| 1 | 1000 | 1 |
-| 10 | 10,000 | 10 |
-| 100 | 100,000 | 100 |
-
-**Enhanced Fan-out:**
-- Separate consumer throughput
-- Up to 2 MB/s per shard per consumer
-- Additional cost
-
----
-
-## 5. Architecture Patterns
-
-### Event-Driven Architecture với SNS
-
-```
-Event Source → SNS Topic → SQS Queue → Lambda/EC2
-                     ↓
-              SQS Queue → Lambda
-                     ↓
-              SQS Queue → Lambda
-```
-
-### Auto-Scaling với SQS
-
-```
-CloudWatch
-    ↓ (QueueDepth metric)
-Auto Scaling Group
-    ↓
-ECS Tasks / EC2 Instances
-    ↓
-SQS Queue
-```
-
-### Microservices với API Gateway + Lambda + SQS
-
-```
-API Gateway
-    ↓
-Lambda Function
-    ↓
-SQS Queue (async processing)
-    ↓
-Lambda (worker)
-    ↓
-DynamoDB
-```
-
----
-
-## 6. Exam Tips
-
-### CloudFront trọng tâm:
-1. Signed URLs vs Signed Cookies
-2. Cache invalidations
-3. Price classes
-4. Geo-restriction
-5. Origin Groups
-
-### Elastic Beanstalk trọng tâm:
-1. Deployment strategies
-2. .ebextensions configuration
-3. Worker tier
-4. RDS decoupling cho prod
-5. Immutable vs Blue-Green
-
-### CloudFormation trọng tâm:
-1. Intrinsic functions (Ref, GetAtt, Sub, Import)
-2. Conditions
-3. Outputs và cross-stack references
-4. DeletionPolicy
-5. Custom Resources
-6. Rollback behavior
-
-### Messaging trọng tâm:
-1. SQS Standard vs FIFO
-2. SQS visibility timeout
-3. SNS fan-out pattern
-4. Kinesis shards và scaling
-5. CloudWatch metrics cho queues
-
-### Các Scenario phổ biến trong Exam:
-
-| Scenario | Giải pháp |
-|---------|----------|
-| Deploy mà không downtime | Immutable/Blue-Green |
-| Decouple microservices | SNS + SQS |
-| Quản lý hạ tầng như code | CloudFormation |
-| Phân phối premium content | CloudFront Signed URLs |
-| Process messages async | SQS Worker |
-| Real-time analytics | Kinesis |
+Tài liệu AWS: [Tạo chính sách target tracking cho tự động mở rộng ECS Service](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/target-tracking-create-policy.html).

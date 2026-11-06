@@ -4,159 +4,163 @@
 
 ---
 
-## 1. EBS Volume Types
+## 1. Các loại EBS Volume
 
-### Chọn EBS Volume Type - So sánh
+### Chọn loại EBS Volume - So sánh
 
 #### Giải thích cốt lõi
 
 EBS có 6 loại volume, chia thành 2 nhóm chính:
 
-**SSD-based (3 loại):**
+**Các loại dựa trên SSD (4 loại):**
 
-| Type | IOPS Max | Throughput Max | Durability | Boot Volume |
+| Loại | IOPS tối đa | Thông lượng tối đa | Độ bền | Boot volume |
 |------|----------|----------------|------------|-------------|
-| **gp3** | 16,000 | 1,000 MiB/s | 99.8-99.9% | ✅ |
+| **gp3 (Regional)** | 80,000 | 2,000 MiB/s | 99.8-99.9% | ✅ |
 | **gp2** | 16,000 | 250 MiB/s | 99.8-99.9% | ✅ |
 | **io2 Block Express** | 256,000 | 4,000 MiB/s | **99.999%** | ✅ |
+| **io1** | 64,000 | 1,000 MiB/s | 99.8-99.9% | ✅ |
 
-**HDD-based (2 loại):**
+**Cập nhật 2026-11-06:** Mức tối đa của gp3 tiêu chuẩn là 80,000 IOPS, 2,000 MiB/s và 64 TiB; trên **Outposts** là 16,000 IOPS, 1,000 MiB/s và 16 TiB. Mức tối đa thực tế còn phụ thuộc vào kích thước volume và tỉ lệ cấp phát IOPS/thông lượng. [AWS gp3 limits](https://docs.aws.amazon.com/ebs/latest/userguide/general-purpose.html)
 
-| Type | Throughput Max | IOPS Max | Boot Volume |
+**Các loại dựa trên HDD (2 loại):**
+
+| Loại | Thông lượng tối đa | IOPS tối đa | Boot volume |
 |------|---------------|----------|-------------|
 | **st1** | 500 MiB/s | 500 | ❌ |
 | **sc1** | 250 MiB/s | 250 | ❌ |
 
-**Điểm khác biệt quan trọng giữa gp2 và gp3:**
+**Khác biệt quan trọng giữa gp2 và gp3:**
 
-| Feature | gp2 | gp3 |
+| Đặc điểm | gp2 | gp3 |
 |---------|-----|-----|
-| **IOPS vs Size** | Linked (3 IOPS/GB) | **Independent** |
-| **IOPS base** | Tỷ lệ với size | Fixed 3,000 |
-| **Provisioned IOPS** | Không | ✅ Có thể increase |
-| **Throughput** | Max 250 MiB/s | Max 1,000 MiB/s |
-| **Cost** | Đắt hơn gp3 | **Rẻ hơn** |
+| **IOPS so với dung lượng** | Liên kết (3 IOPS/GB) | **Độc lập** |
+| **IOPS cơ sở** | Tỷ lệ theo dung lượng | Cố định 3,000 |
+| **IOPS cấp phát riêng** | Không | ✅ Có thể tăng |
+| **Thông lượng** | Tối đa 250 MiB/s | Tối đa 2,000 MiB/s (Regional); 1,000 MiB/s (Outposts) |
+| **Chi phí** | Đắt hơn gp3 | **Rẻ hơn** |
 
-#### NÊN làm:
-- **Dùng gp3 làm default** → Vì gp3 rẻ hơn gp2, cho phép tăng IOPS và throughput độc lập với size. Đây là lựa chọn tối ưu cho hầu hết workloads.
-- **Dùng io2 Block Express cho mission-critical database** → Vì durability 99.999% (vs 99.9% của gp3), IOPS lên đến 256,000, và sub-millisecond latency. So với gp3 chỉ đủ 16,000 IOPS, io2 phù hợp cho database cần nhiều hơn.
+#### NÊN làm (DO):
+- **Dùng gp3 làm mặc định** → Vì gp3 có giá thấp hơn gp2 trên mỗi GiB và cho phép cấp IOPS/thông lượng độc lập với dung lượng; xác định đúng giới hạn theo Region hay Outposts.
+- **Dùng io2 Block Express khi cần độ bền 99.999%, độ trễ dưới mili giây hoặc hiệu năng vượt giới hạn gp3** → gp3 có độ bền 99.8-99.9%, dù mức tối đa Regional hiện đã lên tới 80,000 IOPS.
 
-#### KHÔNG NÊN làm:
-- **Dùng gp2 cho database mới** → Vì gp2 có IOPS linked với size (3 IOPS/GB). Muốn 9,000 IOPS → phải có 3,000 GB volume. Trong khi gp3 có thể provision 9,000 IOPS ngay với 100 GB. NÊN: dùng gp3 với provisioned IOPS.
-- **Dùng st1/sc1 làm boot volume** → Vì HDD-based volumes không support boot volume. NÊN: dùng gp3 hoặc gp2 cho OS.
+#### KHÔNG NÊN làm (DON'T):
+- **Ưu tiên gp3 cho khối lượng công việc mới nếu đáp ứng yêu cầu** → gp2 vẫn được hỗ trợ, nhưng IOPS gắn với dung lượng (3 IOPS/GiB, tối đa 16,000 ở 5,334 GiB); gp3 tách IOPS/thông lượng khỏi dung lượng và thường có giá thấp hơn. NÊN: chọn loại theo hiệu năng và giá cần thiết, không vì cho rằng gp2 đã deprecated.
+- **Dùng st1/sc1 làm boot volume** → Vì volume dựa trên HDD không hỗ trợ boot. NÊN: dùng gp3 hoặc gp2 cho hệ điều hành.
 
 ---
 
-### EBS Volume Size
+### Dung lượng EBS Volume
 
 #### Giải thích cốt lõi
 
-EBS có 2 operations chính với size:
+EBS có hai thao tác chính với dung lượng:
 
-**Upsize (tăng size):**
-- ✅ Modify volume online → **không downtime**
-- ✅ Không cần stop instance
-- ✅ Immediate effect
+**Tăng dung lượng (upsize):**
+- ✅ Có thể sửa đổi volume khi đang chạy → **không cần downtime**.
+- ✅ Không cần dừng instance.
+- ✅ Có hiệu lực ngay.
 
-**Downsize (giảm size):**
-- ❌ **Không có direct operation**
-- Phải làm thủ công:
+**Giảm dung lượng (downsize):**
+- ❌ **Không có thao tác trực tiếp**.
+- Cần thực hiện thủ công:
   ```
-  1. Stop instance (downtime)
-  2. Create snapshot (backup phòng data loss)
-  3. Create new volume (size nhỏ hơn)
-  4. Attach new volume
-  5. Mount → copy data từ volume cũ
-  6. Umount → detach volume cũ
-  7. Delete volume cũ (nếu không cần)
+  1. Dừng instance (downtime)
+  2. Tạo snapshot (sao lưu để phòng mất dữ liệu)
+  3. Tạo volume mới có dung lượng nhỏ hơn
+  4. Gắn volume mới
+  5. Mount → sao chép dữ liệu từ volume cũ
+  6. Umount → tháo volume cũ
+  7. Xóa volume cũ (nếu không cần nữa)
   ```
-- Tốn thời gian, cần downtime, risk data loss nếu làm sai
+- Mất thời gian, cần downtime và có nguy cơ mất dữ liệu nếu thao tác sai.
 
-**So sánh với alternatives:**
+**So sánh với các lựa chọn khác:**
 
-| Storage | Upsize | Downsize | Persistence | Cost |
+| Loại lưu trữ | Tăng dung lượng | Giảm dung lượng | Lưu trữ bền vững | Chi phí |
 |---------|--------|----------|-------------|------|
-| **EBS** | ✅ Online | ❌ Manual | ✅ | $/GB |
-| **Instance Store** | ❌ | ❌ | ❌ Ephemeral | Included |
-| **EFS** | ✅ Auto | ✅ Auto | ✅ | 3x gp2 |
+| **EBS** | ✅ Khi đang chạy | ❌ Thủ công | ✅ | $/GB |
+| **Instance Store** | ❌ | ❌ | ❌ Tạm thời | Đã bao gồm |
+| **EFS** | ✅ Tự động | ✅ Tự động | ✅ | Tùy Region, storage class và throughput/access |
 
-#### NÊN làm:
-- **Bắt đầu với size nhỏ vừa đủ, tăng dần** → Vì upsizing chỉ cần 1 click trên console, effect immediate, không downtime. Downsizing phải manual process phức tạp. So với việc overprovision từ đầu rồi không dùng hết → lãng phí tiền.
+#### NÊN làm (DO):
+- **Bắt đầu với dung lượng vừa đủ rồi tăng dần** → Vì tăng dung lượng chỉ cần một thao tác trên console, có hiệu lực ngay và không cần downtime. Giảm dung lượng phải thực hiện thủ công, phức tạp; so với cấp dư ngay từ đầu rồi không dùng hết thì cách này tránh lãng phí.
 
-#### KHÔNG NÊN làm:
-- **Overprovision EBS size từ đầu "cho chắc"** → Vì nếu sau này data thật sự cần ít hơn, bạn không thể giảm. Phải tạo volume mới, copy data, swap → mất thời gian và có risk. NÊN: estimate dựa trên initial requirements + buffer nhỏ, sau đó resize khi có data thật.
+#### KHÔNG NÊN làm (DON'T):
+- **Cấp dư EBS "cho chắc" ngay từ đầu** → Vì nếu sau này dữ liệu ít hơn, không thể giảm trực tiếp. Phải tạo volume mới, sao chép dữ liệu rồi chuyển đổi → mất thời gian và có rủi ro. NÊN: ước tính nhu cầu ban đầu cộng một phần dự phòng nhỏ, rồi resize khi có dữ liệu thực tế.
 
 ---
 
-### EBS Encryption
+### Mã hóa EBS
 
 #### Giải thích cốt lõi
 
 EBS encryption sử dụng **AES-256** thông qua **AWS KMS**:
 
-**Encryption được applied ở đâu:**
-- Data at rest (trong volume)
-- Data in flight (giữa instance và volume)
-- All snapshots từ encrypted volume
-- All volumes từ encrypted snapshot
+**Mã hóa được áp dụng cho:**
+- Dữ liệu lưu trữ (at rest) trong volume.
+- Dữ liệu truyền tải (in flight) giữa instance và volume.
+- Tất cả snapshots tạo từ volume đã mã hóa.
+- Tất cả volumes tạo từ snapshot đã mã hóa.
 
-**Quy trình encrypt unencrypted volume:**
+**Quy trình mã hóa volume chưa được mã hóa:**
 
 ```
-Unencrypted Volume
-    ↓ Create Snapshot
-Unencrypted Snapshot
-    ↓ Copy (with encryption enabled)
-Encrypted Snapshot ← (snapshot mới đã encrypt)
-    ↓ Create Volume
-Encrypted Volume
-    ↓ Attach
+Volume chưa mã hóa
+    ↓ Tạo Snapshot
+Snapshot chưa mã hóa
+    ↓ Sao chép (bật mã hóa)
+Snapshot đã mã hóa ← (snapshot mới đã được mã hóa)
+    ↓ Tạo Volume
+Volume đã mã hóa
+    ↓ Gắn vào
 Instance
 ```
 
 **Điểm quan trọng:**
-- Encryption có **minimal impact on latency** (thường <3%)
-- Không thể encrypt in-place
-- Encryption không thể disable trên encrypted volume
+- Mã hóa có **ảnh hưởng tối thiểu đến độ trễ** (thường <3%).
+- Không thể mã hóa tại chỗ.
+- Không thể tắt mã hóa trên volume đã mã hóa.
 
-#### NÊN làm:
-- **Để encryption enabled by default** → Vì AWS tự enable khi tạo volume mới. Encryption không ảnh hưởng performance đáng kể nhưng bảo vệ data nếu disk bị leak.
-- **Dùng KMS keys có rotation** → Vì customer managed keys cho phép automatic rotation (hàng năm), tăng security.
+#### NÊN làm (DO):
+- **Bật EBS encryption by default riêng cho từng Region cần dùng** → Đây là setting cấp account theo Region, không tự bật mọi nơi. Khi bật, volume mới và snapshot copy mới được mã hóa; tài nguyên đã tồn tại không bị thay đổi. [AWS EBS encryption by default](https://docs.aws.amazon.com/ebs/latest/userguide/encryption-by-default.html) (đã kiểm tra 2026-11-06).
+- **Dùng KMS keys có rotation** → Customer managed keys cho phép tự động luân chuyển key hằng năm, tăng cường bảo mật.
 
-#### KHÔNG NÊN làm:
-- **Tắt encryption để "cải thiện performance"** → Vì encryption chỉ ảnh hưởng ~3% latency. Trong hầu hết cases, đây là acceptable tradeoff cho security. Performance-sensitive cases nên test trước.
+#### KHÔNG NÊN làm (DON'T):
+- **Tắt encryption để "cải thiện performance"** → Vì encryption chỉ ảnh hưởng khoảng 3% độ trễ. Trong hầu hết trường hợp, đây là sự đánh đổi hợp lý để tăng bảo mật. Với khối lượng công việc nhạy cảm về hiệu năng, hãy kiểm thử trước.
 
 ---
 
-### EBS Backup với Snapshots
+### Sao lưu EBS bằng Snapshots
 
 #### Giải thích cốt lõi
 
-**EBS Snapshot mechanism:**
-- Snapshot là **incremental** → chỉ backup những blocks đã thay đổi
-- Lần đầu full backup, các lần sau chỉ incremental → tiết kiệm storage
-- Có thể copy **across AZ** hoặc **across Regions**
+**Cơ chế EBS Snapshot:**
+- Snapshot là **incremental** → chỉ sao lưu những blocks đã thay đổi.
+- Lần đầu sao lưu toàn bộ; các lần sau chỉ sao lưu phần thay đổi → tiết kiệm storage.
+- Có thể sao chép **qua AZ** hoặc **qua Region**.
 
-**Storage tiers cho snapshots:**
+**Các lớp lưu trữ của snapshots:**
 
-| Tier | Cost | Restore Time | Use Case |
+| Lớp | Chi phí tham khảo (USD/GB-tháng) | Thời gian khôi phục | Trường hợp sử dụng |
 |------|------|--------------|----------|
-| **Standard** | $0.05/GB | Immediate | Recent backups |
-| **Archive** | $0.0125/GB (75% off) | 24-72 hours | Long-term retention |
-| **Recycle Bin** | $0.03/GB | Immediate | Prevent accidental deletion |
+| **Standard** | $0.05/GB | Ngay lập tức | Bản sao lưu gần đây |
+| **Archive** | $0.0125/GB (giảm 75%) | 24-72 giờ | Lưu giữ dài hạn |
+| **Recycle Bin** | Không thu thêm phí; snapshot tính theo mức thông thường | Ngay lập tức | Phòng xóa nhầm |
+Các mức giá Standard/Archive là số tham khảo, có thể khác theo Region; Recycle Bin không thu thêm phí riêng nhưng snapshot bên trong vẫn tính theo mức snapshot thông thường. [AWS EBS pricing](https://aws.amazon.com/ebs/pricing/) · [Recycle Bin pricing](https://docs.aws.amazon.com/ebs/latest/userguide/recycle-bin.html)
 
-**Recycle Bin (Bộ rác):**
-- Setup rules để retain deleted snapshots
-- Retention: 1 ngày → 1 năm
-- Restore được sau khi "delete"
+**Recycle Bin:**
+- Thiết lập rules để giữ lại snapshots đã xóa.
+- Thời hạn lưu: 1 ngày → 1 năm.
+- Có thể khôi phục sau khi đã xóa.
 
-#### NÊN làm:
-- **Dùng Lifecycle Policy cho automated backup** → Vì đảm bảo backup đều đặn mà không cần manual. Có thể setup daily/weekly backup với retention policy tự động.
-- **Setup Recycle Bin với retention 1-7 ngày** → Vì prevent accidental deletion. Nếu ai đó xóa nhầm, vẫn có thời gian recover.
+#### NÊN làm (DO):
+- **Dùng Lifecycle Policy để tự động sao lưu** → Bảo đảm sao lưu đều đặn mà không cần thao tác thủ công. Có thể thiết lập lịch hằng ngày/hằng tuần cùng retention policy.
+- **Thiết lập Recycle Bin với thời hạn 1-7 ngày** → Giúp phòng xóa nhầm; vẫn có thời gian khôi phục nếu ai đó xóa nhầm.
 
-#### KHÔNG NÊN làm:
-- **Không có backup strategy** → Vì EBS không đảm bảo 100% durability. Mặc dù durability cao (99.8-99.999%), trong scale lớn vẫn có risk mất data.
-- **Lưu snapshots quá lâu không cần** → Vì tốn tiền. NÊN: dùng Archive tier cho snapshots >30 ngày không cần frequent access.
+#### KHÔNG NÊN làm (DON'T):
+- **Không có chiến lược sao lưu** → EBS không bảo đảm độ bền 100%. Dù độ bền cao (99.8-99.999%), khi quy mô lớn vẫn có nguy cơ mất dữ liệu.
+- **Giữ snapshots lâu hơn mức cần thiết** → Tốn chi phí. NÊN: dùng Archive tier cho snapshots hơn 30 ngày không cần truy cập thường xuyên.
 
 ---
 
@@ -167,37 +171,26 @@ Instance
 #### Giải thích cốt lõi
 
 **Instance Store là gì:**
-- Storage được attach **trực tiếp vào instance** (không qua network)
-- NVMe SSD → **ultra-high performance**
-- **Ephemeral** → data mất khi instance stop/terminate
+- Lưu trữ cục bộ gắn với instance; thiết bị có thể là NVMe SSD, loại SSD khác hoặc HDD tùy Instance Type.
+- Dữ liệu vẫn còn sau **reboot**, nhưng mất khi instance **stopped, hibernated hoặc terminated**; lỗi ổ đĩa nền tảng cũng có thể gây mất dữ liệu.
+- Hiệu năng phụ thuộc Instance Type, thiết bị và khối lượng công việc; không có mức IOPS/độ trễ chung cho mọi Instance Store.
 
 **So sánh với EBS:**
 
-| Feature | Instance Store | EBS |
+| Đặc điểm | Instance Store | EBS |
 |---------|---------------|-----|
-| **Latency** | ~0.1ms (local NVMe) | ~1-3ms (network) |
-| **IOPS** | Up to millions | Max 256,000 (io2) |
-| **Persistence** | ❌ Mất khi stop | ✅ Persistent |
-| **Cost** | Included in instance | Extra $/GB |
-| **Resize** | ❌ Không thể | ✅ Online resize |
+| **Gắn kết** | Cục bộ với instance; không thể chuyển volume sang instance khác | Block storage qua mạng; có thể attach/detach theo giới hạn của volume |
+| **Lưu trữ bền vững** | Giữ dữ liệu khi reboot; mất khi stop/hibernate/terminate | Bền vững, độc lập với vòng đời instance |
+| **Hiệu năng** | Phụ thuộc Instance Type và phần cứng cục bộ | Phụ thuộc loại volume và hiệu năng được cấp phát |
+| **Thay đổi kích thước** | Không thể resize volume trực tiếp | Có thể sửa đổi volume bằng Elastic Volumes |
 
-**Tại sao Instance Store nhanh hơn:**
-```
-Instance Store: CPU ↔ NVMe (direct attach)
-                ↓ ~0.1ms
+Instance Store thường có lợi thế truy cập cục bộ, không qua network như EBS; hãy so sánh trên Instance Type và khối lượng công việc cụ thể thay vì dựa vào con số IOPS/độ trễ chung.
 
-EBS: CPU → Network → EBS Service → NVMe
-                ↓ ~1-3ms
-```
+#### NÊN làm (DO):
+- **Dùng cho cache, buffer, scratch data** → Dữ liệu có thể tái tạo; xác nhận Instance Type cung cấp thiết bị phù hợp (NVMe chỉ có trên những loại hỗ trợ).
 
-#### NÊN làm:
-- **Dùng cho cache, buffer, scratch data** → Vì data có thể rebuild được. Performance cao quan trọng hơn persistence. Ví dụ: Redis cache, temporary processing files.
-
-#### KHÔNG NÊN làm:
-- **Dùng cho persistent data (database, files)** → Vì data mất khi instance stop. Không có backup mechanism. NÊN: dùng EBS hoặc EFS cho persistent data.
-
----
-
+#### KHÔNG NÊN làm (DON'T):
+- **Dùng làm nơi duy nhất lưu dữ liệu cần giữ** → Dữ liệu mất khi instance dừng, ngủ đông hoặc kết thúc; sao chép dữ liệu cần giữ sang EBS, EFS hoặc S3. [Độ bền dữ liệu của EC2 Instance Store](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-store-lifetime.html) (đã kiểm tra 2026-11-06).
 ## 3. EFS - Elastic File System
 
 ### Khi nào nên dùng EFS
@@ -205,44 +198,49 @@ EBS: CPU → Network → EBS Service → NVMe
 #### Giải thích cốt lõi
 
 **EFS là gì:**
-- **Managed NFS v4.1** → POSIX-compliant filesystem
-- Mount được trên **hàng trăm instances** cùng lúc
-- **Multi-AZ** → highly available by default
-- Auto-scaling → không cần estimate capacity trước
+- **NFS v4.1** được quản lý → hệ thống tệp tuân thủ POSIX.
+- Có thể gắn cùng lúc vào **hàng trăm instances**.
+- **Regional EFS** lưu dữ liệu dư thừa trên nhiều Availability Zones, nên có tính sẵn sàng cao.
+- **One Zone EFS** lưu dữ liệu trong một Availability Zone; nếu AZ đó gặp sự cố lớn, dữ liệu có thể mất. [AWS EFS file system types](https://docs.aws.amazon.com/efs/latest/ug/features.html)
+- Tự động mở rộng → không cần ước tính capacity trước.
 
 **So sánh với EBS và S3:**
 
-| Feature | EFS | EBS | S3 |
+| Đặc điểm | EFS | EBS | S3 |
 |---------|-----|-----|-----|
-| **Access** | Multiple instances | Single instance | Multiple via API |
-| **Protocol** | NFS (filesystem) | Block | Object |
-| **Persistence** | ✅ | ✅ | ✅ |
-| **AZ-bound** | Multi-AZ | Single AZ | Global |
-| **Cost** | 3x gp2 | $/GB | $/GB + requests |
+| **Truy cập** | Nhiều instances | Một instance | Nhiều clients qua API |
+| **Giao thức** | NFS (hệ thống tệp) | Block | Object |
+| **Lưu trữ bền vững** | ✅ | ✅ | ✅ |
+| **Gắn với AZ** | Regional: nhiều AZ; One Zone: một AZ | Một AZ | S3 không gắn với một AZ |
+| **Chi phí** | Tùy Region, storage class, throughput và access | $/GB và hiệu năng cấp phát | $/GB + requests |
 | **Windows** | ❌ | ✅ | ✅ |
 
-**EFS Performance Modes:**
+Chi phí EFS không có tỷ lệ cố định so với gp2: giá phụ thuộc Region, storage class, throughput mode và access. IA/Archive có giá lưu trữ thấp hơn nhưng có thể có phí truy cập/tiering; hãy so sánh khối lượng công việc trên [định giá EFS](https://aws.amazon.com/efs/pricing/) thay vì dùng một hệ số chung (kiểm tra 2026-11-06).
 
-| Mode | Description | Use Case |
+**Các chế độ hiệu năng EFS:**
+
+| Chế độ | Mô tả | Trường hợp sử dụng |
 |------|------------|----------|
-| **General Purpose** | Low latency, burst | Web servers, CMS, development |
-| **Max I/O** | Higher throughput, higher latency | Big data, ML, genomics |
+| **General Purpose** | Độ trễ thấp, burst | Máy chủ web, CMS, phát triển |
+| **Max I/O** | Thông lượng cao hơn, độ trễ cao hơn | Big data, ML, genomics |
 
-**EFS Storage Classes:**
+**Các lớp lưu trữ EFS:**
 
-| Class | Access Pattern | Cost | Restore |
-|-------|---------------|------|---------|
-| **Standard** | Frequent | Highest | Immediate |
-| **IA (Infrequent Access)** | Few times/quarter | ~90% cheaper | Tens of ms |
-| **Archive** | Few times/year | ~95% cheaper | Hours |
+| Lớp | Mẫu truy cập | Chi phí lưu trữ | Độ trễ đọc byte đầu tiên |
+|-------|---------------|----------------|--------------------------|
+| **Standard** | Truy cập thường xuyên | Cao nhất | Dưới 1 ms |
+| **IA (Infrequent Access)** | Truy cập vài lần mỗi quý | Thấp hơn Standard đến 95% | Hàng chục ms |
+| **Archive** | Truy cập vài lần mỗi năm hoặc ít hơn | Thấp hơn IA đến 50% | Hàng chục ms |
 
-#### NÊN làm:
-- **Dùng EFS cho shared file storage giữa nhiều instances** → Vì EBS chỉ attach được 1 instance (trừ io1/io2 Multi-Attach - phức tạp). EFS cho phép hàng trăm instances mount cùng lúc qua NFS.
-- **Dùng Lifecycle policies (EFS IA)** → Vì tự động chuyển files không accessed >90 ngày sang tier rẻ hơn. Tiết kiệm 90% cost mà không cần manual management.
+EFS Archive vẫn là một lớp lưu trữ trong cùng file system; file được truy cập trực tiếp, không cần restore/rehydrate như EBS Snapshot Archive. [Các lớp lưu trữ EFS](https://aws.amazon.com/efs/storage-classes/) (đã kiểm tra 2026-11-06).
 
-#### KHÔNG NÊN làm:
-- **Dùng EFS cho single instance** → Vì EFS đắt hơn EBS ~3x. Nếu chỉ 1 instance, dùng EBS đủ và rẻ hơn.
-- **Dùng EFS cho ultra-low latency requirement** → Vì EFS đi qua network (NFS), latency cao hơn EBS hoặc Instance Store. NÊN: dùng Instance Store cho cache, EBS cho database.
+#### NÊN làm (DO):
+- **Dùng EFS để chia sẻ tệp giữa nhiều instances** → EBS chỉ gắn được với một instance (ngoại trừ io1/io2 Multi-Attach - phức tạp). EFS cho phép hàng trăm instances cùng gắn qua NFS.
+- **Dùng Lifecycle policies (EFS IA)** → Tự động chuyển files không được truy cập hơn 90 ngày sang lớp rẻ hơn; tiết kiệm 90% chi phí mà không cần quản lý thủ công.
+
+#### KHÔNG NÊN làm (DON'T):
+- **Không chọn EFS cho một instance nếu không cần hệ thống tệp chia sẻ** → EFS có thể tốn kém hơn block storage tùy Region, storage class và throughput/access; so sánh giá theo khối lượng công việc. Nếu cần block storage cho một host, EBS thường phù hợp hơn.
+- **Dùng EFS cho yêu cầu độ trễ cực thấp** → EFS đi qua network (NFS), độ trễ cao hơn EBS hoặc Instance Store. NÊN: dùng Instance Store cho cache, EBS cho database.
 
 ---
 
@@ -252,56 +250,56 @@ EBS: CPU → Network → EBS Service → NVMe
 
 #### Giải thích cốt lõi
 
-**AMI vs EBS Snapshot:**
+**AMI và EBS Snapshot:**
 
 | | AMI | EBS Snapshot |
 |---|-----|-------------|
-| **Là gì** | Template để launch instance | Backup của 1 volume |
-| **Launch được?** | ✅ Có | ❌ Không |
-| **Bao gồm** | Instance config + all volumes | Chỉ 1 volume |
-| **Use case** | Deploy identical instances | Backup data |
+| **Là gì** | Template để khởi chạy instance | Bản sao lưu của một volume |
+| **Có thể khởi chạy?** | ✅ Có | ❌ Không |
+| **Bao gồm** | Cấu hình instance + mọi volumes | Chỉ một volume |
+| **Trường hợp sử dụng** | Triển khai các instances giống nhau | Sao lưu dữ liệu |
 
-**AMI creation process:**
+**Quy trình tạo AMI:**
 ```
-1. Start instance → customize (install software, config)
-2. Stop instance → đảm bảo data consistency
-3. Create Image → AWS tạo AMI + EBS snapshots
-4. Launch instances từ AMI → identical copies
+1. Khởi chạy instance → tùy chỉnh (cài phần mềm, cấu hình)
+2. Dừng instance → bảo đảm tính nhất quán dữ liệu
+3. Tạo Image → AWS tạo AMI + EBS snapshots
+4. Khởi chạy instances từ AMI → các bản sao giống nhau
 ```
 
 **AMI có thể:**
-- Copy **across regions**
-- Share **across accounts** (với permissions)
-- Make **public** (nếu muốn)
+- Sao chép **qua các Regions**.
+- Chia sẻ **giữa các accounts** (có permissions).
+- Công khai **public** (nếu muốn).
 
-#### NÊN làm:
-- **Stop instance trước khi tạo AMI** → Vì đảm bảo data integrity. Nếu tạo AMI khi có writes đang xảy ra, snapshot có thể không nhất quán.
-- **Dùng Launch Template thay vì Launch Configuration** → Vì Launch Template hỗ trợ versioning, có thể update mà không tạo mới, tích hợp tốt hơn với ASG và SSM.
+#### NÊN làm (DO):
+- **Dừng instance trước khi tạo AMI** → Bảo đảm tính toàn vẹn dữ liệu. Nếu tạo AMI khi đang có thao tác ghi, snapshot có thể không nhất quán.
+- **Dùng Launch Template thay cho Launch Configuration** → Launch Template hỗ trợ versioning, có thể update mà không tạo mới và tích hợp tốt hơn với ASG và SSM.
 
-#### KHÔNG NÊN làm:
-- **Hard-code credentials trong AMI** → Vì credentials sẽ được snapshot và có thể bị leak. NÊN: dùng IAM Role, User Data scripts, hoặc Secrets Manager để inject credentials khi launch.
+#### KHÔNG NÊN làm (DON'T):
+- **Ghi cứng credentials trong AMI** → Credentials sẽ được snapshot và có thể bị lộ. NÊN: dùng IAM Role, User Data scripts hoặc Secrets Manager để thêm credentials khi khởi chạy.
 
 ---
 
-## 5. Load Balancers
+## 5. Cân bằng tải (Load Balancers)
 
-### Chọn Load Balancer Type
+### Chọn loại Load Balancer
 
 #### Giải thích cốt lõi
 
-**3 loại Load Balancer chính:**
+**Ba loại Load Balancer chính:**
 
-| Feature | ALB | NLB | GWLB |
+| Đặc điểm | ALB | NLB | GWLB |
 |---------|-----|-----|------|
-| **OSI Layer** | Layer 7 (HTTP/HTTPS) | Layer 4 (TCP/UDP) | Layer 3 (IP) |
-| **Latency** | ~400ms | ~100ms | Varies |
-| **Throughput** | Medium | Extreme (millions RPS) | Varies |
-| **Routing** | Path, Host, Query | IP/Port | Packet |
-| **Static IP** | ❌ | ✅ (1 per AZ) | ✅ |
-| **SSL Termination** | ✅ Easy | ✅ Complex | ❌ |
-| **Cost** | $/LCU | $/NLBCU | $/GB |
+| **Lớp OSI** | Layer 7 (HTTP/HTTPS) | Layer 4 (TCP/UDP) | Layer 3 (IP) |
+| **Độ trễ** | ~400ms | ~100ms | Thay đổi |
+| **Thông lượng** | Trung bình | Rất cao (hàng triệu RPS) | Thay đổi |
+| **Định tuyến** | Path, Host, Query | IP/Port | Packet |
+| **Static IP** | ❌ | ✅ (1 cho mỗi AZ) | ✅ |
+| **Kết thúc SSL** | ✅ Dễ | ✅ Phức tạp | ❌ |
+| **Chi phí** | $/LCU | $/NLBCU | $/GB |
 
-**ALB routing capabilities:**
+**Khả năng định tuyến của ALB:**
 ```
 Listener
     ├── Rule: /api/* → Target Group A
@@ -310,13 +308,13 @@ Listener
     └── Rule: ?user=vip → Target Group D
 ```
 
-#### NÊN làm:
-- **Dùng ALB cho web applications (HTTP/HTTPS)** → Vì hỗ trợ path-based routing, host-based routing, giúp tách microservices. So với NLB, ALB dễ config SSL termination hơn, và có nhiều routing rules phong phú.
-- **Dùng NLB cho TCP/UDP applications cần high performance** → Vì latency thấp hơn ALB (~100ms vs ~400ms), throughput cao hơn, hỗ trợ static IP cho whitelisting.
+#### NÊN làm (DO):
+- **Dùng ALB cho ứng dụng web (HTTP/HTTPS)** → Hỗ trợ định tuyến theo path và host để tách microservices. So với NLB, ALB cấu hình SSL termination dễ hơn và có nhiều loại routing rules hơn.
+- **Dùng NLB cho ứng dụng TCP/UDP cần hiệu năng cao** → Độ trễ thấp hơn ALB (~100ms so với ~400ms), throughput cao hơn và hỗ trợ static IP để allowlist.
 
-#### KHÔNG NÊN làm:
-- **Dùng CLB (Classic Load Balancer)** → Vì legacy, ít features, đang deprecated. NÊN: dùng ALB hoặc NLB.
-- **Dùng NLB cho HTTP applications** → Vì NLB không hỗ trợ path-based routing, SSL termination phức tạp hơn. ALB là lựa chọn tốt hơn cho HTTP/HTTPS.
+#### KHÔNG NÊN làm (DON'T):
+- **Không chọn CLB (Classic Load Balancer) cho hệ thống mới nếu ALB/NLB phù hợp** → CLB là thế hệ cũ với ít khả năng định tuyến hơn; AWS vẫn liệt kê CLB là loại Load Balancer được hỗ trợ, nên không gọi dịch vụ này là deprecated. [So sánh Load Balancer của AWS](https://aws.amazon.com/elasticloadbalancing/features/) (đã kiểm tra 2026-11-06).
+- **Dùng NLB cho ứng dụng HTTP** → NLB không hỗ trợ định tuyến theo path, SSL termination phức tạp hơn. ALB phù hợp hơn với HTTP/HTTPS.
 
 ---
 
@@ -324,7 +322,7 @@ Listener
 
 #### Giải thích cốt lõi
 
-**Architecture đúng:**
+**Kiến trúc phù hợp:**
 
 ```
 Internet (0.0.0.0/0)
@@ -341,41 +339,40 @@ Database
     └── Inbound: Chỉ từ App SG
 ```
 
-**Tại sao EC2 không có public IP:**
-- Security Layer: Only LB exposed to internet
-- Cost: Public IPs có phí từ Feb 2024
-- Security: SG của EC2 chỉ cần allow từ LB
+**Vì sao EC2 không cần public IP:**
+- **Bảo mật:** chỉ LB được phơi ra Internet.
+- **Chi phí:** Public IP bị tính phí từ tháng 2 năm 2024.
+- **Security:** SG của EC2 chỉ cần cho phép từ LB.
 
-#### NÊN làm:
-- **EC2 Security Group chỉ allow traffic TỪ Load Balancer SG** → Vì khi LB scale, mọi instances đều được allow tự động. So với allow by IP, khi LB có nhiều instances, IP thay đổi → phải update rules.
+#### NÊN làm (DO):
+- **EC2 Security Group chỉ cho phép lưu lượng TỪ Load Balancer SG** → Khi LB mở rộng, mọi instances đều tự động được cho phép. So với cho phép theo IP, cách này không cần cập nhật rules khi IP của nhiều instances thay đổi.
 
-#### KHÔNG NÊN làm:
-- **Expose EC2 directly to internet (public IP + SG 0.0.0.0/0)** → Vì vi phạm security principle. Bất kỳ ai cũng có thể truy cập. NÊN: dùng Load Balancer, EC2 chỉ allow từ LB.
+#### KHÔNG NÊN làm (DON'T):
+- **Để EC2 truy cập trực tiếp từ Internet (public IP + SG 0.0.0.0/0)** → Bất kỳ ai cũng có thể truy cập, vi phạm nguyên tắc bảo mật. NÊN: dùng Load Balancer và chỉ cho phép EC2 nhận lưu lượng từ LB.
 
 ---
 
-### Health Checks Configuration
+### Cấu hình Health Checks
 
 #### Giải thích cốt lõi
 
-**Health check mechanism:**
+**Cơ chế health check:**
 
 ```
 Load Balancer
-    ↓ periodic health checks
+    ↓ health checks định kỳ
 Instance (port + path)
     ├── Response 200 → Healthy
-    └── Response ≠ 200 → Unhealthy
-        ↓ after N failures
-    Terminate & Replace
-```
+    └── Response ≠ 200 → Unhealthy (Load Balancer ngừng gửi traffic mới)
 
-**Timeout vs Interval:**
-- **Timeout**: Thời gian chờ response tối đa
-- **Interval**: Tần suất gửi health check
-- **Threshold**: Số lần fail/success để change status
+Nếu ASG được cấu hình dùng ELB health checks, ASG có thể thay thế instance không khỏe; nếu không, health check tự nó chỉ đánh dấu target là unhealthy.
 
-**Ví dụ config:**
+**Timeout và Interval:**
+- **Timeout**: thời gian tối đa chờ response.
+- **Interval**: tần suất gửi health check.
+- **Threshold**: số lần thất bại/thành công trước khi đổi trạng thái.
+
+**Ví dụ cấu hình:**
 ```yaml
 HealthCheckIntervalSeconds: 30   # Gửi mỗi 30s
 HealthCheckTimeoutSeconds: 5    # Chờ response 5s
@@ -383,29 +380,29 @@ HealthyThresholdCount: 2        # 2 lần success → healthy
 UnhealthyThresholdCount: 3     # 3 lần fail → unhealthy
 ```
 
-#### NÊN làm:
-- **Health check path riêng (/health hoặc /status)** → Vì endpoint này nên return 200 ngay lập tức mà không cần authenticate. So với check root `/`, endpoint riêng tránh triggering health check từ real user requests.
+#### NÊN làm (DO):
+- **Dùng path health check riêng (/health hoặc /status)** → Endpoint nên trả về 200 ngay và không yêu cầu xác thực. So với kiểm tra root `/`, endpoint riêng tránh phát sinh health check từ request của người dùng thật.
 
-#### KHÔNG NÊN làm:
-- **Health check trên application logic nặng** → Vì nếu application mất 5s để process request nhưng timeout chỉ 2s → false unhealthy. NÊN: health check endpoint đơn giản, return 200 ngay lập tức.
+#### KHÔNG NÊN làm (DON'T):
+- **Dùng logic ứng dụng nặng cho health check** → Nếu ứng dụng xử lý request mất 5 giây nhưng timeout chỉ 2 giây thì target bị đánh dấu unhealthy nhầm. NÊN: dùng endpoint health check đơn giản, trả về 200 ngay.
 
 ---
 
 ## 6. Auto Scaling Group (ASG)
 
-### Scaling Policies
+### Các chính sách mở rộng
 
 #### Giải thích cốt lõi
 
-**3 loại Scaling Policies:**
+**Ba loại Scaling Policies:**
 
-| Type | Description | Use Case |
+| Loại | Mô tả | Trường hợp sử dụng |
 |------|-------------|----------|
-| **Target Tracking** | Tự động scale theo metric target | CPU 50%, Memory 70% |
-| **Simple/Step** | Scale dựa trên CloudWatch alarm | Custom metrics |
-| **Scheduled** | Scale theo schedule | Daily peaks |
+| **Target Tracking** | Tự động mở rộng theo metric mục tiêu | CPU 50%, Memory 70% |
+| **Simple/Step** | Mở rộng dựa trên CloudWatch alarm | Custom metrics |
+| **Scheduled** | Mở rộng theo lịch | Cao điểm hằng ngày |
 
-**Target Tracking Example:**
+**Ví dụ Target Tracking:**
 ```yaml
 ScalingPolicy:
   Type: TargetTrackingConfiguration
@@ -415,62 +412,65 @@ ScalingPolicy:
 ```
 
 **Cooldown Period:**
-- Thời gian chờ SAU khi scale action
-- Prevents rapid scale up/down cycles
-- Default: 300 seconds (5 minutes)
+- Áp dụng cho **Simple Scaling**: sau một hành động scale, ASG chờ hết cooldown trước khi bắt đầu hành động tiếp theo từ simple scaling policies.
+- Mặc định là 300 giây; có thể cấu hình lại.
+- **Target Tracking** và **Step Scaling** có thể scale-out mà không chờ default cooldown; các instance mới có thời gian warm-up riêng. ASG cũng không chờ cooldown để thay instance unhealthy.
+- Nên ưu tiên Target Tracking hoặc Step Scaling hơn Simple Scaling theo hướng dẫn AWS hiện hành. [AWS scaling cooldowns](https://docs.aws.amazon.com/autoscaling/ec2/userguide/ec2-auto-scaling-scaling-cooldowns.html)
 
-#### NÊN làm:
-- **Dùng Target Tracking cho auto scaling** → Vì đơn giản, AWS tự quản lý. Chỉ cần specify target value, AWS calculate số instances cần thiết. So với Simple Scaling, Target Tracking mượt mà hơn.
+#### NÊN làm (DO):
+- **Dùng Target Tracking cho auto scaling** → Đơn giản, AWS tự quản lý. Chỉ cần chỉ định target value, AWS tính số instances cần thiết. So với Simple Scaling, Target Tracking điều chỉnh mượt hơn.
 
-#### KHÔNG NÊN làm:
-- **Set MaxSize quá thấp** → Vì khi đạt MaxSize, ASG không thể scale out dù CPU/RAM cao → application overloaded. NÊN: estimate peak load + buffer 50%.
+#### KHÔNG NÊN làm (DON'T):
+- **Đặt MaxSize quá thấp** → Khi đạt MaxSize, ASG không thể scale out dù CPU/RAM cao, khiến ứng dụng quá tải. NÊN: ước tính tải đỉnh cộng 50% dự phòng.
 
 ---
 
-### Launch Template vs Launch Configuration
+### Launch Template và Launch Configuration
 
 #### Giải thích cốt lõi
 
-**Launch Template (recommended):**
-- ✅ Hỗ trợ **versioning**
-- ✅ Tích hợp **SSM**, **Spot Fleet**
-- ✅ **Mixed instances** (On-Demand + Spot)
-- ✅ **Latest generation** của AWS
+**Launch Template (được khuyến nghị):**
+- ✅ Hỗ trợ **versioning**.
+- ✅ Tích hợp **SSM**, **Spot Fleet**.
+- ✅ Hỗ trợ **mixed instances** (On-Demand + Spot).
+- ✅ Là thế hệ mới nhất của AWS.
 
 **Launch Configuration (deprecated):**
-- ❌ Không có versioning
-- ❌ Không hỗ trợ nhiều features mới
-- ❌ AWS khuyến khích dùng Launch Template
+- ❌ Không có versioning.
+- ❌ Không hỗ trợ nhiều tính năng mới.
+- ❌ AWS khuyến nghị dùng Launch Template.
 
-#### NÊN làm:
-- **Dùng Launch Template với versioning** → Vì có thể rollback nếu version mới có vấn đề. Update infrastructure bằng cách update version, không cần tạo mới.
+#### NÊN làm (DO):
+- **Dùng Launch Template có versioning** → Có thể rollback nếu version mới gặp vấn đề. Cập nhật hạ tầng bằng cách cập nhật version, không cần tạo mới.
+#### KHÔNG NÊN làm (DON'T):
+- **Không dùng Launch Configuration cho môi trường mới** → thiếu versioning và không hỗ trợ nhiều tính năng mới; thay bằng Launch Template.
 
 ---
 
-## Tóm tắt Key Takeaways
+## Tóm tắt các điểm cần nhớ
 
 ### EBS
-| | Recommendation | Why |
+| | Khuyến nghị | Lý do |
 |--|----------------|-----|
-| **Volume type** | gp3 default, io2 Block Express cho DB | gp3 rẻ và flexible hơn gp2 |
-| **Size** | Start small, resize online | Upsize easy, downsize requires manual process |
-| **Encryption** | Enable by default | Minimal performance impact, high security value |
+| **Loại volume** | gp3 mặc định, io2 Block Express cho DB | gp3 rẻ và linh hoạt hơn gp2 |
+| **Dung lượng** | Bắt đầu nhỏ, resize khi đang chạy | Tăng dung lượng dễ; giảm cần thao tác thủ công |
+| **Encryption** | Bật theo từng Region trong account settings | Volume mới/snapshot copy mới được mã hóa khi setting Region bật; dữ liệu hiện có không đổi |
 
-### EFS vs EBS
-| | Use Case | Why |
+### EFS và EBS
+| | Trường hợp sử dụng | Lý do |
 |--|---------|-----|
-| **EFS** | Shared storage, multi-instance | Multiple instances mount via NFS |
-| **EBS** | Single instance, database | Lower cost, better latency |
+| **EFS** | Lưu trữ chia sẻ, nhiều instances | Nhiều instances có thể gắn qua NFS |
+| **EBS** | Một instance, cơ sở dữ liệu | Chi phí thấp hơn, độ trễ tốt hơn |
 
 ### Load Balancers
-| | Use Case | Why |
+| | Trường hợp sử dụng | Lý do |
 |--|---------|-----|
-| **ALB** | HTTP/HTTPS web apps | Layer 7 routing, SSL termination easy |
-| **NLB** | TCP/UDP high performance | Ultra-low latency, static IP |
+| **ALB** | HTTP/HTTPS, ứng dụng web | Định tuyến Layer 7, SSL termination dễ |
+| **NLB** | TCP/UDP, hiệu năng cao | Độ trễ cực thấp, static IP |
 
 ### ASG
-| | Recommendation | Why |
-|--|----------------|-----|
-| **Policy** | Target Tracking | Simple, AWS-managed |
-| **Template** | Launch Template | Versioning, modern features |
-| **MaxSize** | Set high enough | Prevent blocking scale-out |
+| | Khuyến nghị | Lý do |
+|--|-------------|-----|
+| **Policy** | Target Tracking | Đơn giản, AWS quản lý |
+| **Template** | Launch Template | Versioning, tính năng hiện đại |
+| **MaxSize** | Đặt đủ cao | Tránh chặn scale-out |

@@ -1,57 +1,57 @@
-# Section 1 - Getting started with AWS | IAM & AWS CLI | EC2 Fundamentals
+# Section 1 - Bắt đầu với AWS | IAM & AWS CLI | Cơ bản về EC2
 
 ---
 
-## 1. Getting started with AWS (Trang 8-16)
+## 1. Bắt đầu với AWS (Trang 8-16)
 
-### AWS Global Infrastructure (Trang 8)
+### AWS - Dẫn đầu thị trường đám mây (Trang 9)
+
+*(Hình ảnh: AWS dẫn đầu thị trường đám mây.)*
+
+### Hạ tầng toàn cầu AWS (Trang 10)
 
 - AWS Regions
 - AWS Availability Zone
 - AWS Data Centers
 - AWS Edge Locations / Points of Presence
 
-### AWS - The leading cloud (Trang 9)
+### Các AWS Region (Trang 11)
 
-*(Hình ảnh: AWS dẫn đầu thị trường cloud)*
-
-### AWS Regions (Trang 10-11)
-
-- **Region** là một cụm các data centers
+- **Region** là một cụm trung tâm dữ liệu.
 - **Chọn AWS Region dựa trên:**
-  - **Compliance với data governance và yêu cầu pháp lý:** data không bao giờ rời khỏi region mà không có sự cho phép rõ ràng của bạn
-  - **Proximity đến khách hàng:** giảm latency
-  - **Available services trong Region:** services và features mới không có ở mọi Region
-  - **Pricing:** giá cả khác nhau theo region và được công khai trên service pricing page
+  - **Tuân thủ quy định quản trị dữ liệu và yêu cầu pháp lý:** dữ liệu không rời khỏi Region nếu bạn chưa cho phép rõ ràng.
+  - **Khoảng cách tới khách hàng:** giảm độ trễ.
+  - **Các dịch vụ hiện có trong Region:** dịch vụ và tính năng mới không có ở mọi Region.
+  - **Giá:** khác nhau giữa các Region và được công bố trên trang định giá của dịch vụ.
 
-> *Biểu đồ AWS Regions: Minh họa các region trên thế giới với các điểm coverage*
+> *Biểu đồ AWS Region: minh họa các Region trên thế giới và phạm vi phủ sóng.*
 
-### AWS Availability Zones (Trang 12-14)
+### AWS Availability Zone (Trang 12-14)
 
-- Mỗi region có nhiều **Availability Zones** (AZ):
-  - Thông thường là **3**, tối thiểu **3**, tối đa **6**
-  - Ví dụ: `ap-southeast-2a`, `ap-southeast-2b`, `ap-southeast-2c`
+- Mỗi Region có nhiều **Availability Zone** (AZ):
+  - Thông thường có **3**, tối thiểu **3**, tối đa **6**.
+  - Ví dụ: `ap-southeast-2a`, `ap-southeast-2b`, `ap-southeast-2c`.
 
-- Mỗi AZ là một hoặc nhiều data centers riêng biệt với:
+- Mỗi AZ gồm một hoặc nhiều trung tâm dữ liệu riêng biệt, có:
   - Nguồn điện dự phòng
   - Kết nối mạng dự phòng
-  - Kết nối riêng
+  - Kết nối riêng biệt
 
-- Các AZ **tách biệt nhau** để tránh ảnh hưởng khi có disaster
-- Các AZ được kết nối bằng mạng **bandwidth cao, latency cực thấp**
+- Các AZ **tách biệt** để hạn chế ảnh hưởng lẫn nhau khi xảy ra thảm họa.
+- Các AZ kết nối bằng mạng **băng thông cao, độ trễ cực thấp**.
 
-> *Sơ đồ Availability Zones: Hiển thị 3 AZ trong một Region, kết nối với nhau*
+> *Sơ đồ Availability Zone: ba AZ trong cùng một Region được kết nối với nhau.*
 
 ### AWS Edge Locations (Points of Presence) (Trang 15-16)
 
 - Mạng lưới edge toàn cầu hiện có:
   - **400+ Edge Locations**
   - **13 Regional Caches**
-  - **90+ thành phố** across **48+ quốc gia**
+  - **90+ thành phố** tại **48+ quốc gia**
 
-- **Mục đích:** Content được deliver đến end users với **latency thấp hơn**
+- **Mục đích:** phân phối nội dung đến người dùng cuối với **độ trễ thấp hơn**.
 
-> *Sơ đồ Edge Locations: Minh họa mạng lưới edge toàn cầu*
+> *Sơ đồ Edge Locations: minh họa mạng lưới edge toàn cầu.*
 
 ---
 
@@ -59,424 +59,437 @@
 
 ### AWS Identity and Access Management (AWS IAM) (Trang 17)
 
-- IAM = Identity and Access Management
-- Là **Global service** (không cần chọn region)
 
 ### IAM: Users & Groups (Trang 18)
+- IAM = Quản lý danh tính và quyền truy cập.
+- Là **dịch vụ toàn cầu** (không cần chọn Region).
 
-- **Root account** được tạo mặc định, **không nên sử dụng hoặc chia sẻ**
-- **Users** là người trong tổ chức, có thể được nhóm lại
-- **Groups** chỉ chứa users, không chứa groups khác
-- Users không bắt buộc phải thuộc một group, và một user có thể thuộc nhiều groups
+- **Root account** được tạo mặc định, **không nên dùng hoặc chia sẻ**.
+- **Users** là những người trong tổ chức và có thể được nhóm lại.
+- **Groups** chỉ chứa users, không chứa groups khác.
+- Users không bắt buộc thuộc một group; một user có thể thuộc nhiều groups.
 
-> *Sơ đồ IAM Users & Groups: Root -> Groups (Admin, Dev) -> Users*
+> *Sơ đồ IAM Users & Groups: Root → Groups (Admin, Dev) → Users.*
 
 ### IAM: Permissions (Trang 19)
 
-- Users hoặc Groups có thể được gán các **JSON documents** gọi là **policies**
-- Policies định nghĩa permissions của users
-- Trong AWS áp dụng nguyên tắc **least privilege principle**: không cấp permissions nhiều hơn mức user cần
+- Users hoặc Groups có thể được gán các tài liệu **JSON** gọi là **policies**.
+- Policies xác định quyền của users.
+- AWS áp dụng nguyên tắc **least privilege**: không cấp nhiều quyền hơn mức user cần.
 
-### IAM Policies inheritance (Trang 20)
+### Tính kế thừa IAM Policies (Trang 20)
 
-> *Sơ đồ Policy Inheritance: Users trong Groups thừa hưởng policies từ group*
+> *Sơ đồ kế thừa policy: Users trong Groups thừa hưởng policies từ group.*
 
-### IAM Policies Structure (Trang 21)
+### Cấu trúc IAM Policies (Trang 21)
 
 Policy gồm:
 
 | Thành phần | Mô tả |
 |------------|--------|
-| **Version** | Policy language version |
-| **Id** | Identifier cho policy (optional) |
-| **Statement** | Một hoặc nhiều statements (required) |
+| **Version** | Phiên bản ngôn ngữ policy |
+| **Id** | Mã định danh policy (không bắt buộc) |
+| **Statement** | Một hoặc nhiều statement (bắt buộc) |
 
 **Statement gồm:**
-- **Sid**: Identifier cho statement (optional)
+- **Sid**: mã định danh statement (không bắt buộc)
 - **Effect**: `Allow` hoặc `Deny`
-- **Principal**: account/user/role
-- **Action**: Danh sách actions được allow hoặc deny
-- **Resource**: Danh sách resources mà actions áp dụng
-- **Condition**: Điều kiện để policy có hiệu lực (optional)
+- **Principal**: thực thể được policy chỉ định (account/user/role); chỉ xuất hiện trong resource-based policy, không có trong identity-based policy
+- **Action**: danh sách hành động được cho phép hoặc từ chối
+- **Resource**: danh sách tài nguyên áp dụng các hành động
+- **Condition**: điều kiện để policy có hiệu lực (không bắt buộc)
 
-### IAM - Password Policy (Trang 22)
+### IAM - Chính sách mật khẩu (Trang 22)
 
-- Strong passwords = higher security
-- Trong AWS có thể setup password policy:
-  - Set minimum password length
-  - Require specific character types
-  - Allow all IAM users thay đổi password của chính họ
-  - Require users thay đổi password sau một khoảng thời gian (password expiration)
-  - Prevent password re-use
+- Mật khẩu mạnh hơn giúp tăng cường bảo mật.
+- Trong AWS có thể thiết lập chính sách mật khẩu:
+  - Đặt độ dài tối thiểu cho mật khẩu.
+  - Yêu cầu các loại ký tự cụ thể.
+  - Cho phép mọi IAM user đổi mật khẩu của chính họ.
+  - Yêu cầu users đổi mật khẩu sau một khoảng thời gian (hết hạn mật khẩu).
+  - Ngăn sử dụng lại mật khẩu cũ.
 
-### Multi Factor Authentication - MFA (Trang 23)
+### Xác thực đa yếu tố (MFA) (Trang 23)
 
-- Bảo vệ **Root Accounts** và **IAM users**
-- MFA = **password bạn biết** + **security device bạn sở hữu**
+- Bảo vệ **Root Account** và IAM users.
+- MFA kết hợp **mật khẩu bạn biết** với **thiết bị bảo mật bạn sở hữu**.
 
-### MFA devices options in AWS (Trang 24)
+### Các thiết bị MFA trong AWS (Trang 24)
 
-| Loại Device | Ví dụ |
+| Loại thiết bị | Ví dụ |
 |-------------|-------|
-| **Virtual MFA device** | Google Authenticator (phone only), Authy (phone only) |
-| **U2F Security Key** | YubiKey by Yubico (3rd party) |
+| **Virtual MFA device** | Google Authenticator (chỉ trên điện thoại), Authy (chỉ trên điện thoại) |
+| **U2F Security Key** | YubiKey của Yubico (bên thứ ba) |
 
-### How can users access AWS? (Trang 25)
+### Người dùng có thể truy cập AWS bằng cách nào? (Trang 25)
 
-**3 cách truy cập AWS:**
+**Có ba cách truy cập AWS:**
 
-| Phương thức | Bảo vệ bởi |
-|-------------|-------------|
-| **AWS Management Console** | Password + MFA |
+| Phương thức | Được bảo vệ bằng |
+|-------------|------------------|
+| **AWS Management Console** | Mật khẩu + MFA |
 | **AWS CLI** | Access Keys |
 | **AWS SDK** | Access Keys |
 
-- Access Keys được tạo qua AWS Console
-- Access Keys là secret, không chia sẻ
-- **Access Key ID** ~= username
-- **Secret Access Key** ~= password
+- Access Keys được tạo qua AWS Console.
+- Access Keys là bí mật như mật khẩu, không chia sẻ.
+- **Access Key ID** tương tự tên người dùng.
+- **Secret Access Key** tương tự mật khẩu.
 
-### What's the AWS CLI? (Trang 26)
+### AWS CLI là gì? (Trang 26)
 
-- Tool cho phép tương tác với AWS services bằng commands trong command-line shell
-- Direct access đến public APIs của AWS services
-- Open-source: https://github.com/aws/aws-cli
+- Công cụ tương tác với các dịch vụ AWS bằng lệnh trong shell dòng lệnh.
+- Cho phép truy cập trực tiếp các API công khai của các dịch vụ AWS.
+- Mã nguồn mở: https://github.com/aws/aws-cli
 
 ### AWS SDK (Trang 27)
 
-- AWS SDK = Software Development Kit
-- **Language-specific APIs** (set of libraries)
-- Cho phép truy cập và quản lý AWS services theo cách programmatic
-- **Embedded trong application**
+- AWS SDK = Bộ công cụ phát triển phần mềm AWS.
+- Cung cấp **API theo ngôn ngữ lập trình** (tập hợp thư viện).
+- Cho phép truy cập và quản lý các dịch vụ AWS theo cách lập trình.
+- Được nhúng trong ứng dụng.
 
-**Hỗ trợ:**
-- SDKs: JS, Python, PHP, .NET, Ruby, Java, Go, Node.js, C++
-- Mobile SDKs: Android, iOS
-- IoT Device SDKs: Embedded C, Arduino
+**Ngôn ngữ/nền tảng được hỗ trợ:**
+- SDK: JS, Python, PHP, .NET, Ruby, Java, Go, Node.js, C++.
+- SDK di động: Android, iOS.
+- SDK thiết bị IoT: Embedded C, Arduino.
 
-> *AWS CLI được build trên AWS SDK for Python*
+> *AWS CLI được xây dựng trên AWS SDK for Python.*
 
-### IAM Roles for Services (Trang 28)
+### IAM Roles cho các dịch vụ (Trang 28)
 
-- Một số AWS service cần thực hiện actions thay mặt bạn
-- Gán permissions cho AWS services bằng **IAM Roles**
+- Một số dịch vụ AWS cần thực hiện hành động thay mặt bạn.
+- Gán quyền cho các dịch vụ AWS bằng **IAM Roles**.
 
-**Common roles:**
+**Các role thường dùng:**
 - EC2 Instance Roles
 - Lambda Function Roles
-- Roles for CloudFormation
+- Roles dành cho CloudFormation
 
-### IAM Security Tools (Trang 29)
+### Công cụ bảo mật IAM (Trang 29)
 
-| Tool | Cấp độ | Mô tả |
+| Công cụ | Cấp độ | Mô tả |
 |------|--------|--------|
-| **IAM Credentials Report** | Account-level | Report liệt kê tất cả users và status của credentials |
-| **IAM Access Advisor** | User-level | Shows service permissions và thời điểm services được truy cập gần nhất |
+| **IAM Credentials Report** | Cấp account | Báo cáo liệt kê tất cả users và trạng thái credentials của họ |
+| **IAM Access Advisor** | Cấp user | Hiển thị quyền đối với dịch vụ và thời điểm gần nhất dịch vụ được truy cập |
 
-### IAM Guidelines & Best Practices (Trang 30)
+### Hướng dẫn và thực hành tốt nhất về IAM (Trang 30)
 
-- ✅ Không sử dụng root account ngoài việc setup AWS account
-- ✅ Một user vật lý = Một AWS user
-- ✅ Gán users vào groups, gán permissions cho groups
-- ✅ Tạo strong password policy
-- ✅ Sử dụng và enforce MFA
-- ✅ Tạo và sử dụng Roles để cấp permissions cho AWS services
-- ✅ Sử dụng Access Keys cho Programmatic Access (CLI/SDK)
-- ✅ Audit permissions bằng IAM Credentials Report & IAM Access Advisor
-- ✅ Không chia sẻ IAM users & Access Keys
+- ✅ Không dùng root account ngoài việc thiết lập AWS account.
+- ✅ Một người dùng thực tế = Một AWS user.
+- ✅ Gán users vào groups và gán quyền cho groups.
+- ✅ Tạo chính sách mật khẩu mạnh.
+- ✅ Dùng và bắt buộc sử dụng MFA.
+- ✅ Tạo và dùng Roles để cấp quyền cho các dịch vụ AWS.
+- ✅ Dùng Access Keys cho truy cập lập trình (CLI/SDK).
+- ✅ Kiểm tra quyền bằng IAM Credentials Report và IAM Access Advisor.
+- ✅ Không chia sẻ IAM users hoặc Access Keys.
 
-### Shared Responsibility Model for IAM (Trang 31)
+### Mô hình trách nhiệm chung cho IAM (Trang 31)
 
-| AWS responsibility | User responsibility |
-|--------------------|---------------------|
-| Infrastructure (global network security) | Users, Groups, Roles, Policies management |
-| Configuration and vulnerability analysis | Enable MFA on all accounts |
-| Compliance validation | Rotate all keys often |
-| | Use IAM tools để apply permissions |
-| | Analyze access patterns & review permissions |
+| Trách nhiệm của AWS | Trách nhiệm của người dùng |
+|--------------------|----------------------------|
+| Hạ tầng (bảo mật mạng toàn cầu) | Quản lý Users, Groups, Roles, Policies |
+| Phân tích cấu hình và lỗ hổng | Bật MFA cho mọi account |
+| Xác thực tuân thủ | Thường xuyên luân chuyển keys |
+| | Dùng công cụ IAM để áp dụng quyền phù hợp |
+| | Phân tích mẫu truy cập và rà soát quyền |
 
-### IAM Section - Summary (Trang 32)
+### Tóm tắt phần IAM (Trang 32)
 
-- **Users**: mapped đến user vật lý, có password cho AWS Console
-- **Groups**: chỉ chứa users
-- **Policies**: JSON document định nghĩa permissions
-- **Roles**: cho EC2 instances hoặc AWS services
-- **Security**: MFA + Password Policy
-- **AWS CLI**: quản lý AWS services bằng command-line
-- **AWS SDK**: quản lý AWS services bằng programming language
-- **Access Keys**: truy cập AWS bằng CLI hoặc SDK
-- **Audit**: IAM Credential Reports & IAM Access Advisor
+- **Users**: gắn với một người dùng thực tế, có mật khẩu cho AWS Console.
+- **Groups**: chỉ chứa users.
+- **Policies**: tài liệu JSON mô tả quyền cho users hoặc groups.
+- **Roles**: dành cho EC2 instances hoặc các dịch vụ AWS.
+- **Bảo mật**: MFA + chính sách mật khẩu.
+- **AWS CLI**: quản lý dịch vụ AWS bằng dòng lệnh.
+- **AWS SDK**: quản lý dịch vụ AWS bằng ngôn ngữ lập trình.
+- **Access Keys**: truy cập AWS bằng CLI hoặc SDK.
+- **Kiểm tra quyền**: IAM Credentials Report và IAM Access Advisor.
 
 ---
 
-## 3. EC2 Fundamentals (Trang 33-60)
+## 3. Cơ bản về EC2 (Trang 33-60)
 
-### Amazon EC2 - Basics (Trang 33)
+### Amazon EC2 - Cơ bản (Trang 33)
 
-- EC2 là một trong những offering phổ biến nhất của AWS
-- EC2 = **Elastic Compute Cloud** = Infrastructure as a Service
+- EC2 là một trong những dịch vụ phổ biến nhất của AWS.
+- EC2 = **Elastic Compute Cloud** = hạ tầng như một dịch vụ (IaaS).
 
 **EC2 chủ yếu cung cấp khả năng:**
-- Rent virtual machines (EC2)
-- Store data trên virtual drives (EBS)
-- Distribute load across machines (ELB)
-- Scale services sử dụng Auto-Scaling Group (ASG)
+- Thuê máy ảo (EC2).
+- Lưu trữ dữ liệu trên ổ đĩa ảo (EBS).
+- Phân phối tải giữa các máy (ELB).
+- Mở rộng dịch vụ bằng Auto Scaling Group (ASG).
 
-> *EC2 là nền tảng quan trọng để hiểu Cloud hoạt động như thế nào*
+> *EC2 là nền tảng quan trọng để hiểu cách Cloud hoạt động.*
 
-### EC2 - Sizing & Configuration Options (Trang 34)
+### EC2 - Các tùy chọn định cỡ và cấu hình (Trang 34)
 
-| Option | Các lựa chọn |
+| Tùy chọn | Các lựa chọn |
 |--------|--------------|
-| **Operating System (OS)** | Linux, Windows, Mac OS |
-| **Compute power & cores (CPU)** | Tùy instance type |
-| **RAM** | Tùy instance type |
-| **Storage** | Network-attached (EBS & EFS) hoặc hardware (EC2 Instance Store) |
-| **Network card** | Speed, Public IP address |
-| **Firewall rules** | Security Group |
-| **Bootstrap script** | EC2 User Data |
+| **Hệ điều hành (OS)** | Linux, Windows, macOS |
+| **Năng lực tính toán và số lõi (CPU)** | Tùy Instance Type |
+| **RAM** | Tùy Instance Type |
+| **Lưu trữ** | Gắn qua mạng (EBS/EFS) hoặc ổ cứng cục bộ (EC2 Instance Store) |
+| **Giao diện mạng** | Tốc độ, địa chỉ IP công khai |
+| **Quy tắc tường lửa** | Security Group |
+| **Script khởi tạo** | EC2 User Data |
 
 ### EC2 - User Data (Trang 35)
 
-- Có thể **bootstrapping** instances bằng **EC2 User Data script**
-- Bootstrapping = launch commands khi machine start
-- Script **chỉ chạy một lần** khi instance start lần đầu
+- Có thể dùng **EC2 User Data script** để khởi tạo instance.
+- Bootstrapping là chạy các lệnh khi máy khởi động.
+- Script **chỉ chạy một lần** khi instance khởi động lần đầu.
 
-**EC2 User Data được dùng để:**
-- Install updates
-- Install software
-- Download common files từ internet
-- Bất cứ điều gì bạn muốn
+**EC2 User Data dùng để:**
+- Cài đặt bản cập nhật.
+- Cài đặt phần mềm.
+- Tải tệp dùng chung từ Internet.
+- Thực hiện tác vụ khởi tạo khác theo nhu cầu.
 
-> *EC2 User Data Script chạy với quyền root user*
+> *EC2 User Data Script chạy với quyền root.*
 
-> *Demo: Launching an EC2 Instance running Linux - Trang 36*
+> *Thực hành: khởi chạy EC2 instance chạy Linux - Trang 36.*
 
 ### EC2 - Instance Types (Trang 37)
 
-- Có nhiều loại EC2 instances được tối ưu cho các use cases khác nhau
+- Có nhiều Instance Type được tối ưu cho các trường hợp sử dụng khác nhau.
 
-**AWS naming convention:**
+**Quy ước đặt tên EC2:**
 ```
 m5.2xlarge
-│ │  │    │
-│ │  │    └── size (kích thước)
-│ │  └─────── generation (AWS cải thiện theo thời gian)
-│ └────────── instance class
-└───────────── instance family
+│ │ └──── kích thước
+│ └────── thế hệ
+└──────── họ instance
 ```
 
-### EC2 Instance Types - General Purpose (Trang 38)
+### EC2 Instance Types - Mục đích chung (Trang 38)
 
-**Cung cấp balance của:**
-- Compute
-- Memory
-- Networking
-
-**Phù hợp cho:**
-- Web servers
-- Code repositories
-
-### EC2 Instance Types - Compute Optimized (Trang 39)
-
-**Phù hợp cho compute-bound applications:**
-- Compute intensive applications
-- Batch processing workloads
-- Media transcoding
-- High performance web servers, HPC
-- Scientific modeling, machine learning
-- Dedicated gaming servers và ad server engines
-
-### EC2 Instance Types - Memory Optimized (Trang 40)
-
-**Hiệu suất cao cho workloads xử lý large data sets in memory:**
-- Relational/non-relational databases
-- Distributed web scale cache stores
-- In-memory databases optimized for BI
-- Real-time processing của big unstructured data
-
-### EC2 Instance Types - Storage Optimized (Trang 41)
-
-**High, sequential read/write access đến very large data sets trên local storage:**
+**Cung cấp sự cân bằng giữa:**
+- Năng lực tính toán
+- Bộ nhớ
+- Mạng
 
 **Phù hợp cho:**
-- High frequency OLTP systems
-- Relational & NoSQL databases
-- Cache for in-memory databases (Redis)
-- Data warehousing applications
-- Distributed file systems
+- Máy chủ web
+- Kho lưu trữ mã nguồn
+
+### EC2 Instance Types - Tối ưu cho tính toán (Trang 39)
+
+**Phù hợp với ứng dụng bị giới hạn bởi năng lực tính toán:**
+- Ứng dụng cần nhiều năng lực tính toán
+- Tác vụ xử lý theo lô
+- Chuyển mã nội dung đa phương tiện
+- Máy chủ web hiệu năng cao và tính toán hiệu năng cao (HPC)
+- Mô hình khoa học, học máy
+- Máy chủ trò chơi chuyên dụng và công cụ quảng cáo
+
+### EC2 Instance Types - Tối ưu cho bộ nhớ (Trang 40)
+
+**Hiệu suất cao cho khối lượng công việc xử lý tập dữ liệu lớn trong bộ nhớ:**
+- Cơ sở dữ liệu quan hệ/phi quan hệ
+- Bộ nhớ đệm phân tán quy mô web
+- Cơ sở dữ liệu trong bộ nhớ tối ưu cho Business Intelligence (BI)
+- Ứng dụng xử lý dữ liệu lớn phi cấu trúc theo thời gian thực
+
+### EC2 Instance Types - Tối ưu cho lưu trữ (Trang 41)
+
+**Đọc/ghi tuần tự với thông lượng cao trên tập dữ liệu rất lớn trong lưu trữ cục bộ:**
+
+**Phù hợp cho:**
+- Hệ thống OLTP tần suất cao
+- Cơ sở dữ liệu quan hệ và NoSQL
+- Bộ nhớ đệm cho cơ sở dữ liệu trong bộ nhớ (ví dụ: Redis)
+- Kho dữ liệu
+- Hệ thống tệp phân tán
 
 ### EC2 - Security Groups (Trang 42-44)
 
-- Kiểm soát traffic vào/ra EC2 (**firewall**)
-- Có thể attach đến **nhiều instances**
-- **Mặc định:** Tất cả inbound traffic bị **block**
-- **Mặc định:** Tất cả outbound traffic được **authorize**
-- Security groups chỉ chứa **allow rules**
-- Rules có thể reference bằng **IP** hoặc **security group**
+- Kiểm soát lưu lượng vào/ra EC2 (tường lửa).
+- Có thể gắn vào **nhiều instances**.
+- **Mặc định:** mọi inbound traffic bị chặn.
+- **Mặc định:** mọi outbound traffic được cho phép.
+- Security Groups chỉ chứa các quy tắc **Allow**.
+- Rules có thể tham chiếu địa chỉ **IP** hoặc **Security Group**.
 
-> *Sơ đồ Security Groups: Bastion SG -> Web server SG -> Inbound/Outbound rules*
+> *Sơ đồ Security Groups: Bastion SG → Web server SG → quy tắc Inbound/Outbound.*
 
-### Classic Ports to know (Trang 45)
+**Ma trận Security Group minh họa trên slide (Trang 44):**
 
-| Port | Protocol | Mô tả |
+| Security Group | Hướng | Loại | Giao thức | Dải cổng | Nguồn/Đích |
+|----------------|-------|------|----------|------------|--------------------|
+| **Bastion SG** | Inbound | SSH | TCP | 22 | `0.0.0.0/0` |
+| **Bastion SG** | Outbound | All traffic | All | All | `0.0.0.0/0` |
+| **Web server SG** | Inbound | SSH | TCP | 22 | SG của bastion host |
+| **Web server SG** | Outbound | All traffic | All | All | `0.0.0.0/0` |
+
+### Các cổng phổ biến cần biết (Trang 45)
+
+| Cổng | Giao thức | Mô tả |
 |------|----------|--------|
-| **22** | SSH | Log into Linux instance |
-| **21** | FTP | Upload files vào file share |
-| **22** | SFTP | Upload files sử dụng SSH |
-| **80** | HTTP | Access unsecured websites |
-| **443** | HTTPS | Access secured websites |
-| **3389** | RDP | Log into Windows instance |
+| **22** | SSH | Đăng nhập vào instance Linux |
+| **21** | FTP | Tải tệp lên vùng chia sẻ tệp |
+| **22** | SFTP | Tải tệp bằng SSH |
+| **80** | HTTP | Truy cập website không mã hóa |
+| **443** | HTTPS | Truy cập website bảo vệ bằng TLS |
+| **3389** | RDP | Đăng nhập vào instance Windows |
 
-### EC2 - Connect to your EC2 instance (Trang 46)
+### EC2 - Kết nối tới EC2 instance (Trang 46)
 
-> *Hình ảnh: Các cách kết nối đến EC2*
+> *Ma trận phương thức kết nối trên slide (Trang 46): dấu ✓ cho biết cách kết nối được hỗ trợ.*
+
+| Hệ điều hành máy khách | SSH | PuTTY | EC2 Instance Connect |
+|-------------------------|-----|-------|----------------------|
+| Mac | ✓ | — | ✓ |
+| Linux | ✓ | — | ✓ |
+| Windows < 10 | — | ✓ | ✓ |
+| Windows ≥ 10 | ✓ | ✓ | ✓ |
 
 ### EC2 Instance Connect (Trang 47)
 
-- Kết nối đến EC2 instance **trong browser**
-- **Không cần** key file
-- Cần đảm bảo port 22 vẫn mở
+- Kết nối tới EC2 instance **trong trình duyệt**
+- **Không cần** tệp khóa
+- Cần đảm bảo cổng 22 vẫn mở
 - Chỉ hoạt động trên **Amazon Linux** hoặc **Ubuntu**
 
-### EC2 Instances Purchasing Options (Trang 48)
+### Các lựa chọn mua EC2 (Trang 48)
 
 | Loại | Mô tả |
 |------|--------|
-| **On-Demand Instances** | Short workload, predictable pricing, pay by second |
-| **Reserved Instances (1 & 3 years)** | Long workloads - Reserve Instances & Convertible Reserved Instances |
-| **Savings Plans (1 & 3 years)** | Commit một amount of usage |
-| **Spot Instances** | Short workloads, cheap, có thể mất instance |
-| **Dedicated Hosts** | Book entire physical server |
-| **Dedicated Instances** | Không share hardware với customers khác |
-| **Capacity Reservations** | Reserve capacity trong specific AZ |
+| **On-Demand Instances** | Khối lượng công việc ngắn hạn, giá dễ dự đoán, trả theo giây |
+| **Reserved Instances (1 & 3 năm)** | Khối lượng công việc dài hạn - Reserved Instances và Convertible Reserved Instances |
+| **Savings Plans (1 & 3 năm)** | Cam kết một mức sử dụng |
+| **Spot Instances** | Khối lượng công việc ngắn hạn, giá thấp, có thể mất instance |
+| **Dedicated Hosts** | Thuê trọn một máy chủ vật lý |
+| **Dedicated Instances** | Phần cứng không dùng chung với khách hàng khác |
+| **Capacity Reservations** | Dự trữ capacity trong một AZ cụ thể |
 
-### EC2 On Demand (Trang 49)
+### EC2 On-Demand (Trang 49)
 
 | Ưu điểm | Nhược điểm |
 |----------|-------------|
-| Không có upfront payment | Chi phí cao nhất |
-| Pay for what you use | |
-| No long-term commitment | |
+| Không cần trả trước | Chi phí cao nhất |
+| Trả theo mức sử dụng | |
+| Không cần cam kết dài hạn | |
 
-**Use cases:**
-- Dev/stg/test environment
-- Critical batch job
-- System chạy theo giờ hành chính (8am - 5pm)
-- System scale frequently
+**Trường hợp sử dụng:**
+- Môi trường phát triển/đánh giá/kiểm thử.
+- Tác vụ xử lý theo lô quan trọng.
+- Hệ thống chỉ chạy giờ hành chính (8:00-17:00).
+- Hệ thống thường xuyên thay đổi quy mô.
 
 ### EC2 Reserved Instances (Trang 50-51)
 
-**Giảm đến 72%** so với On-demand
+**Giảm đến 72%** so với On-Demand.
 
-| Thuộc tính | Options |
+| Thuộc tính | Lựa chọn |
 |------------|---------|
-| **Reservation Period** | 1 year (+discount) hoặc 3 years (+++discount) |
-| **Payment Options** | No Upfront (+), Partial Upfront (++), All Upfront (+++) |
-| **Scope** | Regional hoặc Zonal (reserve capacity trong AZ) |
+| **Thời hạn đặt trước** | 1 năm (+ chiết khấu) hoặc 3 năm (+++ chiết khấu) |
+| **Phương thức thanh toán** | Không trả trước (+), trả trước một phần (++), trả trước toàn bộ (+++) |
+| **Phạm vi** | Regional hoặc Zonal (dự trữ capacity trong AZ) |
 
 **Convertible Reserved Instances:**
-- Có thể thay đổi type, family, OS
-- Giảm đến **66%**
+- Có thể thay đổi type, family, OS.
+- Giảm đến **66%**.
 
-**Use cases:**
-- System chạy 24/7 trong thời gian dài
-- Workload không thay đổi trong thời gian dài
+**Trường hợp sử dụng:**
+- Hệ thống chạy 24/7 trong thời gian dài.
+- Khối lượng công việc ổn định trong thời gian dài.
 
 ### EC2 Savings Plans (Trang 52-53)
 
-- Commit một consistent amount of usage, tính theo USD/hour
-- Giảm đến **72%** so với On-demand
-- Locked vào **specific instance family** & **AWS region**
+- Cam kết một mức sử dụng ổn định, tính bằng USD/giờ.
+- Giảm đến **72%** so với On-Demand.
+- Gắn với **instance family** và **AWS Region** cụ thể.
 
-**Flexible across:**
-- Instance Size (m5.xlarge, m5.2xlarge)
-- OS (Linux, Windows)
-- Tenancy (Host, Dedicated, Default)
+**Linh hoạt theo:**
+- Kích thước instance (m5.xlarge, m5.2xlarge).
+- Hệ điều hành (Linux, Windows).
+- Tenancy (Host, Dedicated, Default).
 
-**Use cases:**
-- System chạy 24/7 trong thời gian dài
-- Workload cần thay đổi **INSTANCE TYPE** về lâu dài
+**Trường hợp sử dụng:**
+- Hệ thống chạy 24/7 trong thời gian dài.
+- Khối lượng công việc cần thay đổi **INSTANCE TYPE** về lâu dài.
 
 ### EC2 Spot Instances (Trang 54)
 
-- Giảm đến **90%** so với On-demand
-- **MOST cost-efficient** instances trong AWS
-- Nếu spot price > max price → có thể stop/terminate trong 2 minutes grace period
+- Giảm đến **90%** so với On-Demand.
+- Là loại instance **tiết kiệm chi phí nhất** của AWS.
+- Nếu Spot price vượt max price, bạn có thể dừng hoặc kết thúc instance trong thời gian báo trước 2 phút.
 
-**Spot Block:** "Block" spot instance trong 1-6 giờ mà không bị interrupt
+**Spot Block:** giữ instance Spot trong 1-6 giờ mà không bị gián đoạn.
 
-**Use cases (workloads có thể bị interrupt):**
-- Batch jobs
-- Data analysis
-- Workloads với flexible start và end time
+**Trường hợp sử dụng (khối lượng công việc có thể bị gián đoạn):**
+- Tác vụ xử lý theo lô.
+- Phân tích dữ liệu.
+- Khối lượng công việc có thời điểm bắt đầu và kết thúc linh hoạt.
 
 ### EC2 Dedicated Hosts (Trang 55)
 
-- Physical server với EC2 instance capacity **hoàn toàn dedicated** cho bạn
-- Sử dụng **existing server-bound software licenses** (per-socket, per-core, per-VM)
+- Máy chủ vật lý có toàn bộ capacity của EC2 instances dành riêng cho bạn.
+- Cho phép dùng giấy phép phần mềm máy chủ hiện có (theo socket, core hoặc VM).
 
 ### EC2 Dedicated Instances (Trang 56)
 
-- Instances chạy trên hardware dedicated cho bạn
-- Có thể **share hardware** với instances khác trong cùng account
-- **Không control** instance placement
+- Instances chạy trên phần cứng dành riêng cho bạn.
+- Có thể **dùng chung phần cứng** với instances khác trong cùng account.
+- **Không kiểm soát vị trí** đặt instance.
 
-**Use cases:**
-- System cần strict policy chạy trong isolated environment
-  - Ví dụ: Bank system, Hospital system
+**Trường hợp sử dụng:**
+- Hệ thống cần chính sách nghiêm ngặt và chạy trong môi trường cô lập.
+  - Ví dụ: hệ thống ngân hàng, bệnh viện.
 
-### Understanding AWS Tenancy (Trang 57)
+### Tìm hiểu AWS Tenancy (Trang 57)
 
-> *Sơ đồ: Shared, Dedicated Host, Dedicated Instance*
+> *Sơ đồ: Shared, Dedicated Host và Dedicated Instance.*
 
 ### EC2 Capacity Reservations (Trang 58)
 
-- Reserve On-Demand instances capacity trong **specific AZ**
-- Luôn có quyền truy cập EC2 capacity khi cần
-- **Không có time commitment** (create/cancel anytime)
-- **Không có billing discounts**
-- Bị charge theo On-Demand rate cho dù có chạy instances hay không
+- Dự trữ capacity On-Demand trong **AZ cụ thể**.
+- Đảm bảo luôn có quyền truy cập EC2 capacity khi cần.
+- **Không cam kết thời hạn** (có thể tạo/hủy bất kỳ lúc nào).
+- **Không có chiết khấu**; bị tính phí theo mức On-Demand dù không chạy instances.
 
-**Use cases:** Short-term, uninterrupted workloads cần ở specific AZ
+**Trường hợp sử dụng:** khối lượng công việc ngắn hạn, không bị gián đoạn và cần chạy trong AZ cụ thể.
 
-### Which purchasing option is right for me? (Trang 59)
+### Lựa chọn hình thức mua nào phù hợp? (Trang 59)
 
-| Analogy | Purchasing Option |
+| Phép so sánh | Hình thức mua |
 |---------|-------------------|
-| Resort - trả giá đầy đủ, ở bất kỳ lúc nào | On Demand |
-| Resort - đặt trước lâu dài, được giảm giá | Reserved / Savings Plans |
-| Resort - đặt phòng theo giờ, có thể bị đuổi ra | Spot Instances |
-| Resort - book entire building | Dedicated Hosts |
-| Resort - đặt phòng nhưng không ở, vẫn trả tiền | Capacity Reservations |
+| Khu nghỉ dưỡng - trả đủ giá, có thể đến ở bất cứ lúc nào | On-Demand |
+| Khu nghỉ dưỡng - đặt trước lâu dài để được giảm giá | Reserved / Savings Plans |
+| Khu nghỉ dưỡng - thuê phòng theo giờ nhưng có thể bị mời rời đi | Spot Instances |
+| Khu nghỉ dưỡng - thuê trọn một tòa nhà | Dedicated Hosts |
+| Khu nghỉ dưỡng - đặt phòng nhưng vẫn trả tiền dù không ở | Capacity Reservations |
 
-### AWS charges for IPv4 addresses (Trang 60)
+### AWS tính phí địa chỉ IPv4 (Trang 60)
 
-- Từ **February 1, 2024**, có phí cho tất cả Public IPv4 được tạo trong account
-- **$0.005/giờ** Public IPv4 (~$3.6/tháng)
+- Từ **ngày 1 tháng 2 năm 2024**, AWS tính phí cho Public IPv4 được tạo trong account.
+- **$0.005/giờ** cho mỗi Public IPv4 (khoảng $3.6/tháng).
 
-**Free tier cho EC2 (12 tháng đầu):**
-- 750 giờ Public IPv4/tháng
+**Free Tier cho EC2 (12 tháng đầu):**
+- 750 giờ Public IPv4 mỗi tháng.
 
-**Không có free tier:**
-- Load Balancer (1 Public IPv4 mỗi AZ)
-- RDS Database (1 Public IPv4)
+**Không có Free Tier:**
+- Load Balancer (một Public IPv4 cho mỗi AZ).
+- RDS Database (một Public IPv4).
 
 ---
 
 ## Tổng kết Section 1
 
-### AWS Global Infrastructure
-- **Region**: Cụm data centers
-- **AZ**: Data centers riêng biệt trong region (3-6 AZ)
-- **Edge Locations**: 400+ điểm cho content delivery
+### Hạ tầng toàn cầu AWS
+- **Region**: cụm trung tâm dữ liệu.
+- **AZ**: các trung tâm dữ liệu riêng biệt trong Region (3-6 AZ).
+- **Edge Locations**: hơn 400 điểm phân phối nội dung.
 
 ### IAM
-- Users, Groups, Policies, Roles
-- MFA, Password Policy
-- AWS CLI, SDK, Access Keys
+- Users, Groups, Policies, Roles.
+- MFA, chính sách mật khẩu.
+- AWS CLI, SDK, Access Keys.
 
 ### EC2
-- Instance Types: General, Compute, Memory, Storage Optimized
-- Security Groups: Firewall kiểm soát traffic
-- Purchasing Options: On-Demand, Reserved, Spot, Dedicated
+- Instance Types: mục đích chung, tối ưu tính toán, bộ nhớ và lưu trữ.
+- Security Groups: tường lửa kiểm soát lưu lượng.
+- Các hình thức mua: On-Demand, Reserved, Spot, Dedicated.

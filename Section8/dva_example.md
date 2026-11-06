@@ -19,31 +19,31 @@ D. AWS CodeDeploy
 ### 📖 Explanation (Vietnamese):
 
 **Why A is correct:**
-- **CloudFormation** là AWS service cho phép định nghĩa infrastructure **declaratively** (khai báo)
-- Sử dụng templates (YAML/JSON) để mô tả desired state
-- AWS tự động tạo, update, delete resources theo template
+- **CloudFormation** là dịch vụ AWS cho phép định nghĩa hạ tầng theo cách khai báo.
+- Dùng template để mô tả trạng thái hạ tầng mong muốn.
+- AWS tự động tạo, cập nhật hoặc xóa các resource theo template.
 
 **Cơ chế hoạt động:**
 ```
-Template (YAML/JSON) → Upload lên S3 → CloudFormation → AWS Resources
+Template (YAML/JSON) → Tải lên S3 → CloudFormation → Tài nguyên AWS
 ```
 
 **Why other options were eliminated:**
 
 | Option | Reason for Elimination |
 |--------|------------------------|
-| B. Systems Manager | Quản lý EC2 instances, không phải infrastructure provisioning |
-| C. Config | Tracking và compliance, không tạo resources |
-| D. CodeDeploy | Deploy application code, không phải infrastructure |
+| B. Systems Manager | Quản lý EC2 instances, không chuyên cung cấp hạ tầng bằng template |
+| C. Config | Theo dõi cấu hình và việc tuân thủ, không tạo resources |
+| D. CodeDeploy | Triển khai mã ứng dụng, không cấp phát hạ tầng |
 
 ### 📝 Vocabulary Analysis:
 - **declaratively**: khai báo (không cần chỉ định cách làm, chỉ cần mô tả kết quả mong muốn)
-- **template**: file định nghĩa infrastructure (YAML hoặc JSON)
-- **provisioning**: cung cấp, tạo ra (resources)
+- **template**: tệp định nghĩa hạ tầng (YAML hoặc JSON)
+- **provisioning**: cấp phát hoặc tạo resource
 
 ### 🔄 Context Variations:
-- **If team thích lập trình** → Consider **AWS CDK** (compiles to CloudFormation)
-- **If multi-cloud** → Consider **Terraform** (HashiCorp)
+- **Nếu nhóm thích viết mã** → Cân nhắc **AWS CDK** (biên dịch thành CloudFormation).
+- **Nếu cần hỗ trợ nhiều cloud** → Cân nhắc **Terraform** (HashiCorp).
 
 ---
 
@@ -62,33 +62,33 @@ D. Outputs
 ### 📖 Explanation (Vietnamese):
 
 **Why C is correct:**
-- **`Resources`** section là **BẮT BUỘC** trong mọi CloudFormation template
-- Khai báo AWS resources sẽ được tạo (EC2, S3, RDS, etc.)
-- Không có Resources → stack không thể tạo được gì
+- Phần **`Resources`** là **BẮT BUỘC** trong mọi CloudFormation template.
+- Phần này khai báo các AWS resources cần tạo (EC2, S3, RDS, v.v.).
+- Không có `Resources` thì stack không khai báo resource để tạo.
 
 **Các section khác (optional):**
 
-| Section | Required? | Purpose |
-|---------|-----------|---------|
-| `AWSTemplateFormatVersion` | Optional | Template version |
-| `Description` | Optional | Comments về template |
-| `Resources` | **MANDATORY** | AWS resources |
-| `Parameters` | Optional | Dynamic inputs |
-| `Mappings` | Optional | Static variables |
-| `Outputs` | Optional | Reference values |
-| `Conditions` | Optional | Conditional creation |
+| Section | Bắt buộc? | Mục đích |
+|---------|-----------|----------|
+| `AWSTemplateFormatVersion` | Không | Phiên bản template |
+| `Description` | Không | Ghi chú về template |
+| `Resources` | **BẮT BUỘC** | Khai báo AWS resources |
+| `Parameters` | Không | Giá trị đầu vào động |
+| `Mappings` | Không | Bảng tra cứu giá trị tĩnh |
+| `Outputs` | Không | Công bố giá trị đầu ra |
+| `Conditions` | Không | Tạo/cấu hình có điều kiện |
 
 **Why other options were eliminated:**
 
 | Option | Reason for Elimination |
 |--------|------------------------|
-| A. Parameters | Optional, dùng cho dynamic inputs |
-| B. Mappings | Optional, dùng cho hardcoded lookups |
-| D. Outputs | Optional, dùng cho cross-stack references |
+| A. Parameters | Không bắt buộc; dùng cho giá trị đầu vào động |
+| B. Mappings | Không bắt buộc; dùng làm bảng tra cứu tĩnh |
+| D. Outputs | Không bắt buộc; dùng công bố giá trị đầu ra |
 
 ### 📝 Vocabulary Analysis:
 - **MANDATORY**: bắt buộc, không thể thiếu
-- **Resources**: AWS components (EC2, S3, etc.)
+- **Resources**: các thành phần AWS được khai báo trong template (EC2, S3, v.v.)
 
 ---
 
@@ -109,9 +109,9 @@ D. Conditions
 ### 📖 Explanation (Vietnamese):
 
 **Why B is correct:**
-- **Parameters** cho phép user cung cấp inputs khi tạo/update stack
-- Mỗi environment có thể truyền giá trị khác nhau
-- Không cần edit template cho mỗi environment
+- **Parameters** cho phép người dùng truyền giá trị đầu vào khi tạo hoặc cập nhật stack.
+- Mỗi môi trường có thể nhận giá trị khác nhau.
+- Không cần chỉnh sửa template để đổi các giá trị này.
 
 **Ví dụ:**
 ```yaml
@@ -137,17 +137,17 @@ Resources:
 
 | Option | Reason for Elimination |
 |--------|------------------------|
-| A. Mappings | Hardcoded values, không linh hoạt bằng Parameters |
-| C. Outputs | Chỉ để hiển thị/export values, không phải input |
-| D. Conditions | Chỉ true/false, không thay đổi được values |
+| A. Mappings | Chứa giá trị ghi sẵn, kém linh hoạt hơn Parameters cho đầu vào theo lần triển khai |
+| C. Outputs | Công bố/xuất giá trị; không phải đầu vào |
+| D. Conditions | Chọn đúng/sai; không thay thế giá trị đầu vào |
 
 ### 📝 Vocabulary Analysis:
 - **reuse**: tái sử dụng
 - **inputs**: đầu vào, giá trị truyền vào
 
 ### 🔄 Context Variations:
-- **If values là region-specific** (vd: AMI IDs) → Dùng **Mappings**
-- **If values thay đổi thường xuyên** → Dùng **SSM Parameter Store** + dynamic reference
+- **Nếu giá trị phụ thuộc Region** (ví dụ AMI ID) → Dùng **Mappings**.
+- **Nếu cần cấu hình dùng chung, có thể thay đổi độc lập** → Cân nhắc **SSM Parameter Store** và dynamic reference.
 
 ---
 
@@ -166,9 +166,9 @@ D. CommaDelimitedList
 ### 📖 Explanation (Vietnamese):
 
 **Why C is correct:**
-- **AWS-Specific Parameter** validate giá trị với existing AWS resources
-- `AWS::EC2::VPC::Id` chỉ chấp nhận VPC ID **tồn tại trong account/region**
-- Nếu user nhập sai → stack fail ngay lúc validation
+- **AWS-Specific Parameter** xác thực giá trị với resource AWS hiện có.
+- `AWS::EC2::VPC::Id` chỉ chấp nhận VPC ID tồn tại trong account/Region.
+- Nếu nhập sai, stack thất bại ngay ở bước xác thực parameter.
 
 **Các AWS-Specific Parameter types:**
 - `AWS::EC2::VPC::Id` - VPC ID
@@ -181,9 +181,9 @@ D. CommaDelimitedList
 
 | Option | Reason for Elimination |
 |--------|------------------------|
-| A. String | Không validate, chấp nhận bất kỳ string |
-| B. Number | Chỉ validate là số, không check AWS resources |
-| D. CommaDelimitedList | List of strings, không validate AWS |
+| A. String | Không xác thực resource; có thể nhận bất kỳ chuỗi nào |
+| B. Number | Chỉ xác thực giá trị là số, không kiểm tra AWS resources |
+| D. CommaDelimitedList | Danh sách chuỗi, không xác thực AWS resources |
 
 ### 📝 Vocabulary Analysis:
 - **validated**: xác thực, kiểm tra tính hợp lệ
@@ -208,9 +208,9 @@ D. Use Conditions for AMI IDs
 ### 📖 Explanation (Vietnamese):
 
 **Why B is correct:**
-- **Mappings** rất phù hợp cho **region-specific** values
-- AMIs là region-specific (không dùng được AMI us-east-1 ở eu-west-1)
-- Mappings cho phép hardcode AMI IDs cho từng region
+- **Mappings** phù hợp với các giá trị phụ thuộc Region.
+- AMI thuộc từng Region; không dùng trực tiếp AMI của `us-east-1` trong `eu-west-1`.
+- Có thể ghi sẵn AMI ID cho từng Region trong Mappings.
 
 **Ví dụ:**
 ```yaml
@@ -234,9 +234,9 @@ Resources:
 
 | Option | Reason for Elimination |
 |--------|------------------------|
-| A. Parameters | User phải nhập AMI ID mỗi lần, dễ sai |
-| C. Outputs | Không thể dùng để khai báo values trong Resources |
-| D. Conditions | Chỉ true/false, không thể map values |
+| A. Parameters | Người dùng phải nhập AMI ID mỗi lần triển khai, dễ nhập sai |
+| C. Outputs | Không dùng để khai báo giá trị trong phần Resources |
+| D. Conditions | Chỉ biểu diễn điều kiện đúng/sai, không tra cứu giá trị |
 
 ### 📝 Vocabulary Analysis:
 - **Mappings**: bảng ánh xạ, tra cứu giá trị
@@ -261,9 +261,9 @@ D. Use a manual copy-paste
 ### 📖 Explanation (Vietnamese):
 
 **Why B is correct:**
-- **Outputs with Export** cho phép cross-stack references
-- App stack dùng `Fn::ImportValue` để lấy VPC ID
-- **Single source of truth** - network team quản lý VPC, app team consume
+- **Outputs với Export** cho phép tham chiếu trực tiếp giữa các stacks.
+- App stack dùng `Fn::ImportValue` để lấy VPC ID.
+- Nhóm mạng quản lý VPC; nhóm ứng dụng dùng lại cùng một giá trị thay vì sao chép thủ công.
 
 **Ví dụ:**
 
@@ -289,9 +289,9 @@ Resources:
 
 | Option | Reason for Elimination |
 |--------|------------------------|
-| A. Parameters | App team phải biết VPC ID trước khi deploy |
-| C. SSM Parameter Store | Workaround tốt nhưng tốn thêm setup |
-| D. Manual copy-paste | Error-prone, không tự động |
+| A. Parameters | Nhóm ứng dụng phải biết và tự truyền VPC ID trước khi triển khai |
+| C. SSM Parameter Store | Có thể dùng khi cần liên kết lỏng, nhưng không phải tham chiếu CloudFormation trực tiếp |
+| D. Sao chép thủ công | Dễ nhập sai và không tự đồng bộ khi giá trị đổi |
 
 ### 📝 Vocabulary Analysis:
 - **cross-stack reference**: tham chiếu giữa các stacks
@@ -320,9 +320,9 @@ D. !FindInMap
 ### 📖 Explanation (Vietnamese):
 
 **Why B is correct:**
-- `!GetAtt` lấy **specific attributes** của resource
-- Mỗi resource có nhiều attributes (AZ, PrivateIp, PublicDnsName, etc.)
-- `!GetAtt MyInstance.AvailabilityZone` trả về AZ của instance
+- `!GetAtt` lấy các thuộc tính cụ thể của resource.
+- Mỗi resource có các thuộc tính khác nhau (AZ, PrivateIp, PublicDnsName, v.v.).
+- `!GetAtt MyInstance.AvailabilityZone` trả về AZ của instance.
 
 **Cú pháp:**
 ```yaml
@@ -332,18 +332,18 @@ PrivateIp: !GetAtt MyInstance.PrivateIp
 
 **`!Ref` vs `!GetAtt`:**
 
-| Function | Returns | Example |
+| Hàm | Giá trị trả về | Ví dụ |
 |----------|---------|---------|
 | `!Ref MyInstance` | Physical ID | `i-0123456789abcdef0` |
-| `!GetAtt MyInstance.AvailabilityZone` | Specific attribute | `us-east-1a` |
+| `!GetAtt MyInstance.AvailabilityZone` | Thuộc tính cụ thể | `us-east-1a` |
 
 **Why other options were eliminated:**
 
 | Option | Reason for Elimination |
 |--------|------------------------|
 | A. !Ref | Trả về Physical ID, không phải AZ |
-| C. !Sub | String substitution, không lấy attributes |
-| D. !FindInMap | Lấy values từ Mappings, không phải từ Resources |
+| C. !Sub | Thay thế chuỗi, không lấy thuộc tính resource |
+| D. !FindInMap | Lấy giá trị từ Mappings, không lấy thuộc tính resource |
 
 ### 📝 Vocabulary Analysis:
 - **attributes**: thuộc tính (của resource)
@@ -366,9 +366,9 @@ D. !Cidr
 ### 📖 Explanation (Vietnamese):
 
 **Why C is correct:**
-- `!Sub` (String substitution) cho phép embed values trong string
-- Ngắn gọn và dễ đọc hơn `!Join`
-- Hỗ trợ cả `!Ref` và các intrinsic functions khác
+- `!Sub` thay thế các thành phần `${...}` bằng giá trị của parameter, resource hoặc thuộc tính tương ứng.
+- Ngắn gọn và dễ đọc hơn `!Join` khi ghép nhiều giá trị thành chuỗi.
+- Khi cần giá trị thay thế tùy chỉnh, có thể khai báo map trong `Fn::Sub`.
 
 **Ví dụ:**
 ```yaml
@@ -385,17 +385,17 @@ BucketArn: !Join ["", ["arn:aws:s3:::", !Ref BucketName]]
 
 | Option | Reason for Elimination |
 |--------|------------------------|
-| A. !Ref | Chỉ reference một value, không concatenate |
-| B. !Join | Work nhưng verbose hơn `!Sub` |
-| D. !Cidr | CIDR operations, không phải string operations |
+| A. !Ref | Chỉ tham chiếu một giá trị, không ghép chuỗi |
+| B. !Join | Có thể ghép chuỗi nhưng dài dòng hơn `!Sub` |
+| D. !Cidr | Thực hiện phép toán CIDR, không xử lý chuỗi |
 
 ### 📝 Vocabulary Analysis:
 - **ARN (Amazon Resource Name)**: định danh duy nhất cho AWS resource
 - **embed**: nhúng, chèn vào trong
 
 ### 🔄 Context Variations:
-- **If cần concatenate nhiều values với separator** → `!Join` với delimiter
-- **If cần conditional values** → `!Sub` với `!If` bên trong
+- **Nếu cần nối nhiều giá trị bằng dấu phân cách** → Dùng `!Join` với delimiter.
+- **Nếu cần giá trị có điều kiện** → Dùng `!If`; có thể đưa kết quả vào chuỗi mà `!Sub` tạo.
 
 ---
 
@@ -416,27 +416,27 @@ D. The stack enters UPDATE_ROLLBACK_FAILED state
 ### 📖 Explanation (Vietnamese):
 
 **Why B is correct:**
-- **Default behavior**: khi stack creation fail, **tất cả resources đã tạo bị xóa** (rollback)
-- Stack status: `CREATE_FAILED` → `ROLLBACK_COMPLETE`
-- AWS đảm bảo stack không ở trạng thái "nửa vời"
+- **Hành vi mặc định:** khi tạo stack thất bại, các resources đã tạo sẽ bị xóa (rollback).
+- Trạng thái stack: `CREATE_FAILED` → `ROLLBACK_COMPLETE`.
+- Nếu rollback hoàn tất, CloudFormation xóa các resources đã tạo; nếu rollback thất bại, stack có thể còn ở trạng thái lỗi cần xử lý.
 
-**Có 3 loại rollback scenarios:**
+**Ba tình huống rollback:**
 
-| Scenario | Behavior |
+| Tình huống | Hành vi |
 |----------|----------|
-| **Stack Creation Fails** | Default: rollback (xóa hết) |
-| **Stack Update Fails** | Auto rollback về previous working state |
-| **Rollback Failure** | Manual fix + `continue-update-rollback` API |
+| **Tạo stack thất bại** | Mặc định rollback (xóa resources đã tạo) |
+| **Cập nhật stack thất bại** | Tự rollback về trạng thái hoạt động tốt trước đó |
+| **Update rollback thất bại** | Sửa thủ công rồi gọi API `continue-update-rollback` |
 
-**Disable rollback:** Đặt `DisableRollback: true` → giữ resources để debug.
+**Tắt rollback:** Đặt `DisableRollback: true` để giữ lại resources nhằm gỡ lỗi.
 
 **Why other options were eliminated:**
 
 | Option | Reason for Elimination |
 |--------|------------------------|
-| A. Continues creating | Không đúng, AWS rollback để tránh inconsistent state |
-| C. Paused for manual | Không tự động, AWS rollback ngay |
-| D. UPDATE_ROLLBACK_FAILED | Chỉ cho update fail, không phải create fail |
+| A. Tiếp tục tạo | Không đúng; AWS rollback theo hành vi mặc định |
+| C. Tạm dừng chờ thao tác | Không đúng; thao tác rollback diễn ra tự động |
+| D. `UPDATE_ROLLBACK_FAILED` | Trạng thái này áp dụng cho trường hợp cập nhật thất bại, không phải tạo stack thất bại |
 
 ### 📝 Vocabulary Analysis:
 - **midway**: giữa chừng
@@ -448,7 +448,7 @@ D. The stack enters UPDATE_ROLLBACK_FAILED state
 ## 7. CloudFormation DeletionPolicy
 
 ### Question 10:
-A production RDS database is managed by CloudFormation. The team wants to ensure the database is **backed up** before being deleted when the stack is removed. What should be configured?
+An existing CloudFormation template explicitly sets `DeletionPolicy: Delete` on a standalone `AWS::RDS::DBInstance` (no `DBClusterIdentifier`). The team wants CloudFormation to create a snapshot before deleting the database when the stack is removed. What should they configure?
 
 ```
 A. DeletionPolicy: Delete
@@ -470,7 +470,7 @@ D. No DeletionPolicy needed
 
 | Policy | Behavior | Use Case |
 |--------|----------|----------|
-| `Delete` (default) | Xóa resource | Stateless resources (EC2) |
+| `Delete` (default for most resources) | Xóa resource | Hầu hết resources không cần giữ lại |
 | `Retain` | Giữ lại resource | S3 buckets với data quan trọng |
 | `Snapshot` | Tạo snapshot trước khi xóa | RDS, EBS, ElastiCache |
 
@@ -488,7 +488,7 @@ D. No DeletionPolicy needed
 |--------|------------------------|
 | A. Delete | Mất data vĩnh viễn, không có backup |
 | B. Retain | Giữ lại DB, nhưng không tạo snapshot để restore |
-| D. Default (Delete) | Mất data, không an toàn cho production |
+| D. No DeletionPolicy needed | Template đang đặt tường minh `Delete`; không có thay đổi nên không tạo snapshot. RDS chỉ mặc định `Snapshot` khi không có policy và resource thuộc trường hợp được AWS nêu. |
 
 ### 📝 Vocabulary Analysis:
 - **snapshot**: ảnh chụp nhanh (backup tại một thời điểm)
@@ -518,8 +518,8 @@ D. IAM Policy restricting RDS access
 
 **Why B is correct:**
 - **Stack Policy** bảo vệ resources khỏi **accidental updates**
-- Mặc định, Stack Policy **deny tất cả updates**
-- Phải explicit `Allow` cho resources muốn update
+- Nếu **không gắn Stack Policy**, CloudFormation mặc định cho phép cập nhật tất cả resources.
+- Khi áp dụng policy, các hành động không được `Allow` tường minh bị từ chối; `Deny` trên Database chặn các lần update/replace của resource đó.
 - Có thể `Deny` specific resource (như database) để protect
 
 **Ví dụ Stack Policy:**
@@ -575,42 +575,28 @@ D. Use S3 Lifecycle Policy
 ### 📖 Explanation (Vietnamese):
 
 **Why B is correct:**
-- **Custom Resource** cho phép run custom logic trong CloudFormation lifecycle
-- Lambda function xóa tất cả objects trong S3 bucket
-- Trigger tự động trước khi CloudFormation xóa bucket
+- **Custom Resource** cho phép chạy logic tùy chỉnh trong vòng đời CloudFormation.
+- Lambda function có thể xóa các objects trong S3 bucket.
+- Custom Resource được gọi trước khi CloudFormation xóa bucket nếu có quan hệ phụ thuộc phù hợp.
 
-**Ví dụ Custom Resource:**
+**Ví dụ tham chiếu Custom Resource** (giả sử `EmptyBucketFunction` và `MyBucket` đã được khai báo trong stack):
 ```yaml
 Resources:
-  EmptyBucketFunction:
-    Type: AWS::Lambda::Function
-    Properties:
-      Runtime: python3.11
-      Handler: index.handler
-      Code:
-        ZipFile: |
-          import boto3, cfnresponse
-          def handler(event, context):
-              if event['RequestType'] == 'Delete':
-                  s3 = boto3.client('s3')
-                  # Delete all objects
-                  ...
-              cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
-  
   EmptyBucket:
     Type: Custom::EmptyBucket
     Properties:
       ServiceToken: !GetAtt EmptyBucketFunction.Arn
       BucketName: !Ref MyBucket
 ```
+Lambda được gọi qua `ServiceToken` cần liệt kê mọi trang kết quả; nếu bucket bật hoặc tạm ngưng versioning, cần xóa mọi object version và delete marker trước khi trả `SUCCESS` (xem ví dụ trong `explain_more.md`).
 
 **Why other options were eliminated:**
 
 | Option | Reason for Elimination |
 |--------|------------------------|
-| A. DeletionPolicy: Snapshot | S3 không support Snapshot policy |
-| C. Manually empty | Error-prone, không tự động, dễ quên |
-| D. S3 Lifecycle Policy | Chỉ xóa objects theo thời gian, không tức thì |
+| A. DeletionPolicy: Snapshot | S3 không hỗ trợ Snapshot policy |
+| C. Tự làm trống bucket | Dễ quên, dễ sai và không được tự động hóa trong stack |
+| D. S3 Lifecycle Policy | Xóa objects theo quy tắc/vòng đời, không làm trống bucket ngay trong quy trình xóa stack |
 
 ### 📝 Vocabulary Analysis:
 - **non-empty bucket**: bucket có chứa objects
@@ -636,27 +622,27 @@ D. Use AWS CLI scripts with for loop
 ### 📖 Explanation (Vietnamese):
 
 **Why B is correct:**
-- **StackSets** cho phép tạo/update/delete stacks trên **multiple accounts và regions** với single template
-- Với **service-managed permissions** + AWS Organization, AWS tự động tạo IAM roles
-- Khi thêm account mới vào Organization → StackSet có thể tự động deploy
+- **StackSets** cho phép triển khai, cập nhật hoặc xóa stacks trên nhiều AWS accounts và Regions bằng cùng một template.
+- Với **service-managed permissions** và AWS Organization, AWS tự thiết lập các IAM roles cần thiết giữa các tài khoản.
+- Khi thêm tài khoản mới vào Organization, StackSet có thể tự động triển khai đến đó nếu bật tính năng tự động triển khai.
 
-**StackSets features:**
+**Các tính năng của StackSets:**
 
-| Feature | Description |
+| Tính năng | Mô tả |
 |---------|-------------|
-| **Multi-account** | Deploy across nhiều accounts |
-| **Multi-region** | Deploy across nhiều regions |
-| **AWS Organization integration** | Auto-deploy tới all OUs |
+| **Nhiều tài khoản** | Triển khai trên nhiều AWS accounts |
+| **Nhiều Region** | Triển khai trên nhiều Regions |
+| **Tích hợp AWS Organization** | Tự động triển khai đến các OU được chọn |
 | **Service-managed permissions** | AWS quản lý IAM roles |
-| **Only Administrator account** | Chỉ admin account tạo StackSets |
+| **Quyền quản trị** | Administrator account hoặc Delegated Administrator có thể tạo StackSets |
 
 **Why other options were eliminated:**
 
 | Option | Reason for Elimination |
 |--------|------------------------|
-| A. Manually deploy | Lặp lại 50 lần, error-prone, không scale |
-| C. Lambda function | Phức tạp, tự maintain, reinvent wheel |
-| D. AWS CLI scripts | Lặp lại thủ công, không có rollback tracking |
+| A. Triển khai thủ công | Phải lặp lại nhiều lần, dễ sai và khó mở rộng |
+| C. Lambda function | Phức tạp, phải tự vận hành và trùng lặp chức năng StackSets |
+| D. AWS CLI scripts | Phải tự lặp thao tác; khó theo dõi trạng thái/rollback tập trung |
 
 ### 📝 Vocabulary Analysis:
 - **compliance**: tuân thủ (quy định, tiêu chuẩn)
@@ -664,8 +650,8 @@ D. Use AWS CLI scripts with for loop
 - **scale**: mở rộng quy mô
 
 ### 🔄 Context Variations:
-- **If không có AWS Organization** → Dùng StackSets với self-managed permissions
-- **If cần deploy application-specific** → Dùng CI/CD pipeline, không phải StackSets
+- **Nếu không dùng AWS Organization** → Dùng StackSets với self-managed permissions.
+- **Nếu triển khai ứng dụng riêng cho từng môi trường** → Cân nhắc CI/CD pipeline.
 
 ---
 
@@ -686,13 +672,13 @@ D. Use AWS Organizations SCP
 ### 📖 Explanation (Vietnamese):
 
 **Why B is correct:**
-- **CloudFormation Service Role** cho phép CloudFormation create resources thay mặt user
-- Users chỉ cần quyền `cloudformation:*` và `iam:PassRole`
-- **Least privilege**: user không cần quyền trực tiếp với EC2, RDS, etc.
+- **CloudFormation Service Role** cho phép CloudFormation tạo resources thay mặt người dùng.
+- Người dùng cần quyền CloudFormation phù hợp với stack được phép quản lý và `iam:PassRole` trên đúng Service Role.
+- **Đặc quyền tối thiểu**: người dùng không cần quyền trực tiếp để tạo EC2, RDS, v.v.
 
 **Architecture:**
 ```
-User (chỉ có cloudformation:* + iam:PassRole)
+User (CloudFormation actions scoped to allowed stacks + iam:PassRole on this role)
     ↓
 CloudFormation (assume Service Role)
     ↓
@@ -701,12 +687,33 @@ Service Role (có quyền tạo EC2, RDS, etc.)
 AWS Resources
 ```
 
-**User policy cần:**
+**Policy người dùng cần:**
 ```json
 {
-  "Effect": "Allow",
-  "Action": ["cloudformation:*", "iam:PassRole"],
-  "Resource": "*"
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "cloudformation:CreateStack",
+        "cloudformation:UpdateStack",
+        "cloudformation:DescribeStacks",
+        "cloudformation:DescribeStackEvents",
+        "cloudformation:ListStackResources"
+      ],
+      "Resource": "arn:aws:cloudformation:us-east-1:123456789012:stack/production-*/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": "iam:PassRole",
+      "Resource": "arn:aws:iam::123456789012:role/CloudFormationServiceRole",
+      "Condition": {
+        "StringEquals": {
+          "iam:PassedToService": "cloudformation.amazonaws.com"
+        }
+      }
+    }
+  ]
 }
 ```
 
@@ -716,7 +723,7 @@ AWS Resources
 |--------|------------------------|
 | A. AdministratorAccess | Vi phạm least privilege, quá nhiều quyền |
 | C. IAM Role cho mỗi user | Phức tạp, không tận dụng được CF's service role |
-| D. AWS Organizations SCP | Chỉ là permission boundaries, không phải solution cho CF |
+| D. AWS Organizations SCP | SCP giới hạn quyền tối đa trong Organization; không thay thế CloudFormation Service Role. |
 
 ### 📝 Vocabulary Analysis:
 - **principle of least privilege**: nguyên tắc đặc quyền tối thiểu
@@ -742,25 +749,25 @@ D. DeletionPolicy: Retain
 ### 📖 Explanation (Vietnamese):
 
 **Why C is correct:**
-- **Termination Protection** ngăn chặn **accidental deletion** của CloudFormation stacks
-- Khi enabled, stack không thể bị xóa qua Console, CLI, hoặc API
-- Phải **disable Termination Protection trước** mới có thể xóa
+- **Termination Protection** ngăn xóa nhầm CloudFormation stack.
+- Khi bật, không thể xóa stack qua Console, CLI hoặc API.
+- Phải **tắt Termination Protection trước** khi xóa stack.
 
-**Enable qua CLI:**
+**Bật qua CLI:**
 ```bash
 aws cloudformation update-termination-protection \
   --stack-name production-stack \
   --enable-termination-protection
 ```
 
-**Disable để xóa:**
+**Tắt bảo vệ trước khi xóa:**
 ```bash
-# 1. Disable termination protection
+# 1. Tắt Termination Protection
 aws cloudformation update-termination-protection \
   --stack-name production-stack \
   --no-enable-termination-protection
 
-# 2. Sau đó mới delete được
+# 2. Sau đó mới xóa stack
 aws cloudformation delete-stack --stack-name production-stack
 ```
 
@@ -768,9 +775,9 @@ aws cloudformation delete-stack --stack-name production-stack
 
 | Option | Reason for Elimination |
 |--------|------------------------|
-| A. IAM Policy | Kiểm soát user permissions, không ngăn delete stack |
-| B. Stack Policy | Bảo vệ resources trong update, không ngăn delete stack |
-| D. DeletionPolicy: Retain | Giữ lại resources khi xóa, không ngăn xóa stack |
+| A. IAM Policy | Kiểm soát quyền của người dùng, nhưng không tự ngăn xóa stack nếu policy vẫn cho phép |
+| B. Stack Policy | Bảo vệ resources khi cập nhật, không ngăn xóa toàn bộ stack |
+| D. DeletionPolicy: Retain | Giữ resource theo chính sách khi xóa stack, nhưng không ngăn thao tác xóa stack |
 
 ### 📝 Vocabulary Analysis:
 - **accidental deletion**: xóa ngoài ý muốn
@@ -778,15 +785,15 @@ aws cloudformation delete-stack --stack-name production-stack
 - **Termination Protection**: bảo vệ stack khỏi bị xóa
 
 ### 🔄 Context Variations:
-- **If cần update resources trong stack** → Termination Protection **không ảnh hưởng** (chỉ ngăn delete)
-- **If muốn protect resources trong update** → Dùng **Stack Policy**
+- **Nếu cần cập nhật resources trong stack** → Termination Protection không ảnh hưởng đến thao tác cập nhật.
+- **Nếu muốn bảo vệ resources trong lúc cập nhật** → Dùng **Stack Policy**.
 
 ---
 
 ## 13. CloudFormation Drift Detection
 
 ### Question 16:
-A security team suspects that someone manually modified resources through the AWS Console. They want to detect any differences between the CloudFormation template and actual AWS resources. What should they use?
+A security team suspects that someone manually modified a CloudFormation stack. They want to compare the actual values of **supported resources and properties** with the template and identify which resources were evaluated. What should they use?
 
 ```
 A. CloudTrail
@@ -800,14 +807,13 @@ D. AWS Config Rules
 ### 📖 Explanation (Vietnamese):
 
 **Why C is correct:**
-- **Drift Detection** phát hiện resources bị modified **ngoài CloudFormation**
-- So sánh actual state (AWS) với expected state (template)
-- Hiển thị rõ resource nào bị `MODIFIED`, `DELETED`, hoặc `IN_SYNC`
+- Drift Detection so sánh cấu hình thực tế với template đối với những resource/property được hỗ trợ.
+- Kết quả có thể gồm `MODIFIED`, `DELETED`, `IN_SYNC` hoặc `NOT_CHECKED`; `NOT_CHECKED` nghĩa là chưa đánh giá, không khẳng định resource không bị drift.
 
 **Cách sử dụng:**
 
 ```bash
-# Detect drift cho 1 stack
+# Phát hiện drift cho một stack
 aws cloudformation detect-stack-drift --stack-name my-stack
 
 # Xem chi tiết drift
@@ -818,7 +824,7 @@ aws cloudformation describe-stack-resource-drifts \
 
 **Drift Status:**
 
-| Status | Meaning |
+| Trạng thái | Ý nghĩa |
 |--------|---------|
 | `IN_SYNC` | Khớp với template |
 | `MODIFIED` | Bị thay đổi |
@@ -829,9 +835,9 @@ aws cloudformation describe-stack-resource-drifts \
 
 | Option | Reason for Elimination |
 |--------|------------------------|
-| A. CloudTrail | Track API calls, không so sánh với template |
-| B. CloudWatch Alarms | Monitoring metrics, không liên quan đến drift |
-| D. AWS Config Rules | Compliance checks, không so sánh với CF template |
+| A. CloudTrail | Ghi nhận API calls, không so sánh cấu hình với template |
+| B. CloudWatch Alarms | Giám sát metrics, không phát hiện drift trong stack |
+| D. AWS Config Rules | Kiểm tra compliance, không so sánh trực tiếp với CloudFormation template |
 
 ### 📝 Vocabulary Analysis:
 - **drift**: sai lệch, chệch hướng
@@ -839,31 +845,31 @@ aws cloudformation describe-stack-resource-drifts \
 - **detect**: phát hiện
 
 ### 🔄 Context Variations:
-- **If muốn auto-detect mỗi tuần** → Setup CloudWatch Event rule + Lambda
-- **If muốn prevent drift** → Restrict IAM permissions, chỉ cho phép thay đổi qua CF
+- **Nếu muốn tự động kiểm tra hằng tuần** → Dùng EventBridge rule và Lambda để gọi drift detection.
+- **Nếu muốn hạn chế drift** → Giới hạn IAM permissions và cho phép thay đổi qua CloudFormation.
 
 ---
 
 ## Tổng hợp câu hỏi
 
-| # | Topic | Key Point |
+| # | Chủ đề | Điểm chính |
 |---|-------|-----------|
-| 1 | CloudFormation Basics | Declarative IaC service |
-| 2 | Template Structure | Resources is MANDATORY |
-| 3 | Parameters | User inputs, dynamic values |
-| 4 | AWS-Specific Parameters | Validate against existing AWS resources |
-| 5 | Mappings | Region-specific hardcoded values |
-| 6 | Outputs | Cross-stack references via !ImportValue |
-| 7 | !GetAtt | Get specific resource attributes |
-| 8 | !Sub | String substitution (shorter than !Join) |
-| 9 | Rollback | Default: delete all on create fail |
-| 10 | DeletionPolicy: Snapshot | Backup before delete (RDS, EBS) |
-| 11 | Stack Policy | Protect resources from accidental updates |
-| 12 | Custom Resources | Lambda-backed for custom logic |
-| 13 | StackSets | Multi-account, multi-region deployment |
-| 14 | Service Role | Least privilege for users |
-| 15 | Termination Protection | Prevent accidental stack deletion |
-| 16 | Drift Detection | Detect manual changes outside CF |
+| 1 | Nền tảng CloudFormation | Dịch vụ IaC khai báo |
+| 2 | Cấu trúc template | `Resources` là bắt buộc |
+| 3 | Parameters | Đầu vào động do người dùng cung cấp |
+| 4 | AWS-Specific Parameters | Xác thực giá trị với resources AWS hiện có |
+| 5 | Mappings | Bảng giá trị cố định theo Region |
+| 6 | Outputs | Tham chiếu giữa stacks qua `!ImportValue` |
+| 7 | `!GetAtt` | Lấy thuộc tính cụ thể của resource |
+| 8 | `!Sub` | Thay thế chuỗi, thường gọn hơn `!Join` |
+| 9 | Rollback | Mặc định xóa resources đã tạo nếu tạo stack thất bại |
+| 10 | `DeletionPolicy: Snapshot` | Tạo snapshot trước khi xóa resource được hỗ trợ |
+| 11 | Stack Policy | Bảo vệ resources khỏi cập nhật ngoài ý muốn |
+| 12 | Custom Resources | Chạy logic tùy chỉnh, thường được hỗ trợ bởi Lambda |
+| 13 | StackSets | Triển khai trên nhiều accounts và Regions |
+| 14 | Service Role | Cho phép CloudFormation thao tác thay người dùng theo quyền được cấp |
+| 15 | Termination Protection | Ngăn xóa nhầm stack |
+| 16 | Drift Detection | Phát hiện thay đổi ngoài CloudFormation |
 
 ---
 
@@ -881,7 +887,7 @@ aws cloudformation describe-stack-resource-drifts \
 9. **Drift Detection** (phát hiện manual changes)
 
 ### Câu hỏi "trick" thường gặp:
-- "Cần share values giữa stacks" → Outputs + Export, **KHÔNG** phải SSM Parameter Store
+- "Cần chia sẻ giá trị trực tiếp giữa các stacks bằng tham chiếu CloudFormation" → Dùng Outputs + Export; **SSM Parameter Store** cũng phù hợp khi cần liên kết lỏng hoặc giá trị thay đổi độc lập.
 - "Cần xóa non-empty S3 bucket" → Custom Resource với Lambda, **KHÔNG** phải DeletionPolicy
 - "Cần backup RDS trước khi xóa" → DeletionPolicy: Snapshot, **KHÔNG** phải Retain
 - "Cần ngăn update resources" → Stack Policy, **KHÔNG** phải Termination Protection
